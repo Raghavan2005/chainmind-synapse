@@ -1,6 +1,6 @@
 #!/bin/sh
-# Bind the API first so the load balancer health check can pass, then
-# rebuild overlay from recent logs. Writer stays off unless a key is set.
+# Single-box host. Ingest runs in-process when HOSTED_INGEST=1 (see API lifespan).
+# Do not fork a second interpreter — that OOMs App Runner and fails health.
 set -eu
-python -m services.ingest.watch &
+export HOSTED_INGEST="${HOSTED_INGEST:-1}"
 exec uvicorn services.api.main:app --host 0.0.0.0 --port 8000

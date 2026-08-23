@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import time
 from contextlib import asynccontextmanager
 from typing import Any
@@ -28,11 +29,29 @@ def _load_metrics() -> dict[str, Any]:
     return {}
 
 
+def _hosted_ingest_loop() -> None:
+    from services.ingest.watch import run_once
+    from services.pipeline import Brain
+
+    assert scorer is not None
+    brain = Brain(settings, scorer)
+    while True:
+        try:
+            run_once(brain, None, settings)
+        except Exception as exc:
+            from services.common.log import emit
+
+            emit("ingest.error", chainId=0, err=str(exc), backoffMs=4000)
+        time.sleep(4)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global scorer, metrics
     scorer = Scorer(settings.model_path)
     metrics = _load_metrics()
+    if settings.hosted_ingest:
+        threading.Thread(target=_hosted_ingest_loop, name="hosted-ingest", daemon=True).start()
     yield
 
 
