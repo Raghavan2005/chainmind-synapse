@@ -20,13 +20,26 @@
       <p class="lede">SOTA methods that apply to conflicting cross-chain identity claims, mapped onto a 6-hour build. Every “use it” line is implementable with the math in MATH.html or the prompts in PROMPTS.html. Every “cite only” line is for the demo defence.</p>
 
       <h2 id="adjacent">Adjacent products (not prior art for the PRD)</h2>
-      <p>Full table lives in <code>research-existing-solutions.md</code>. Short version: Trusta.AI, Nomis, RubyScore, Ethos, Cred Protocol, UTU Trust score wallets or bots. W3C DID/VC and Chainlink are plumbing. ERC-8004 is agent identity. None fuse conflicting human credential claims with an explainable on-chain verdict.</p>
+      <p>Full table and fact-check live in <code>research-existing-solutions.md</code> (corrected 2026-08-23 against primary docs). Short version: Nomis and RubyScore score wallet <em>behavior</em>. Cred scores DeFi credit risk. Ethos and UTU are social reputation. Trusta.AI and Human Passport score humanity / Sybil risk. W3C DID/VC is a claim format. Chainlink ACE is a CCID + credential registry + policy engine (not “oracle plumbing”). ERC-8004 is a <em>Draft</em> agent-identity ERC. None fuse conflicting <em>human credential claims</em> with an explainable on-chain verdict.</p>
+      <table>
+        <thead><tr><th>Thing</th><th>Cite as</th><th>Do not say</th></tr></thead>
+        <tbody>
+          <tr><td>Trusta.AI</td><td>Sybil / MEDIA reputation / agent attestations. Docs: Linea, BSC, Scroll, TON.</td><td>“3M unique humans” or “bot detection only.”</td></tr>
+          <tr><td>Nomis, RubyScore</td><td>On-chain wallet scores.</td><td>That they reconcile issuer credentials.</td></tr>
+          <tr><td>Ethos, UTU</td><td>Social vouches / dapp reviews.</td><td>“Wallet reputation from transaction history.”</td></tr>
+          <tr><td>Cred Protocol</td><td>Lending-risk credit score.</td><td>General identity referee.</td></tr>
+          <tr><td>Human Passport</td><td>Closest multi-issuer stamp aggregator. Do not wrap.</td><td>That it arbitrates conflicting claims or explains them.</td></tr>
+          <tr><td>Chainlink ACE</td><td><a href="https://docs.chain.link/ace/concepts/cross-chain-identity">CCID docs</a>. Can require several issuers (<code>minValidations</code>).</td><td>The LLM education page at <code>chain.link/article/…</code>. “Just moves bits.”</td></tr>
+          <tr><td>ERC-8004</td><td>Draft ERC (created 2025-08-13). Agent registries. Mainnet refs 2026-01-29.</td><td>“2026 Ethereum standard” as if Final.</td></tr>
+        </tbody>
+      </table>
+      <p>Agent-identity drafts to name if a judge asks — not dependencies: <a href="https://eips.ethereum.org/EIPS/eip-8004">ERC-8004</a>; individual IETF draft <a href="https://datatracker.ietf.org/doc/html/draft-sharif-attp-01">draft-sharif-attp-01</a> (ATTP); <a href="https://github.com/visa/trusted-agent-protocol">Visa Trusted Agent Protocol</a>. “WEF Know Your Agent” is a <a href="https://www.weforum.org/stories/2026/01/ai-agents-trust/">Socure op-ed on the WEF site</a>, not a Forum standard. WEF’s paper is <a href="https://www.weforum.org/publications/ai-agents-in-action-foundations-for-evaluation-and-governance/">AI Agents in Action</a>.</p>
       <ul>
-        <li><a href="https://bingx.com/en/learn/article/what-is-trusta-ai-ta-identity-in-ai-and-crypto-how-does-it-work">Trusta.AI overview</a></li>
-        <li><a href="https://thegrid.id/discovery/productType/decentralised-identity">The Grid — decentralized identity products (2026)</a></li>
-        <li><a href="https://chain.link/article/cross-chain-identity">Chainlink — cross-chain identity</a></li>
-        <li><a href="https://chainaware.ai/blog/web3-reputation-score-comparison-2026/">Web3 reputation comparison 2026</a></li>
-        <li><a href="https://blockeden.xyz/blog/2026/02/14/reputation-systems-on-chain-trust-infrastructure/">On-chain reputation systems</a></li>
+        <li><a href="https://trusta-labs.gitbook.io/trustaai">Trusta.AI docs</a></li>
+        <li><a href="https://docs.nomis.cc/core-primitives/nomis-math-model">Nomis math model</a></li>
+        <li><a href="https://docs.rubyscore.io/">RubyScore</a> · <a href="https://www.ethos.network/post/the-ethos-credibility-score">Ethos</a> · <a href="https://credprotocol.com/">Cred</a> · <a href="https://utu.io/">UTU</a></li>
+        <li><a href="https://passport.human.tech/">Human Passport</a> · <a href="https://github.com/passportxyz/passport">passportxyz/passport</a></li>
+        <li><a href="https://docs.chain.link/ace/concepts/cross-chain-identity">Chainlink ACE — Cross-Chain Identity</a></li>
       </ul>
 
       <h2 id="standards">Standards we speak</h2>
@@ -39,7 +52,7 @@
           <tr><td>VC Overview 1.0</td><td><a href="https://www.w3.org/TR/vc-overview-1.0/">w3.org/TR/vc-overview-1.0</a></td><td>Glossary for the demo</td></tr>
           <tr><td>ERC-1056 Lightweight Identity</td><td><a href="https://eips.ethereum.org/EIPS/eip-1056">eips.ethereum.org/EIPS/eip-1056</a></td><td>did:ethr semantics. Registry <a href="https://github.com/uport-project/ethr-did-registry">uport-project/ethr-did-registry</a></td></tr>
           <tr><td>ERC-735 Claim Holder</td><td>EIP discussion 735</td><td>claimId = hash(issuer, topic) inspiration only</td></tr>
-          <tr><td>ERC-8004 Trustless Agents</td><td><a href="https://eips.ethereum.org/EIPS/eip-8004">eip-8004</a> · raw <a href="https://github.com/ethereum/ERCs/blob/master/ERCS/erc-8004.md">ERCs/erc-8004.md</a></td><td>Cite as 2025/26 agent-identity parallel, not a dependency. Contracts <a href="https://github.com/erc-8004/erc-8004-contracts">erc-8004/erc-8004-contracts</a></td></tr>
+          <tr><td>ERC-8004 Trustless Agents (Draft)</td><td><a href="https://eips.ethereum.org/EIPS/eip-8004">eip-8004</a> · raw <a href="https://github.com/ethereum/ERCs/blob/master/ERCS/erc-8004.md">ERCs/erc-8004.md</a></td><td>Cite as 2025/26 <em>draft</em> agent-identity parallel, not a finalized standard and not a dependency. Contracts <a href="https://github.com/erc-8004/erc-8004-contracts">erc-8004/erc-8004-contracts</a></td></tr>
           <tr><td>EIP-712</td><td><a href="https://eips.ethereum.org/EIPS/eip-712">eip-712</a></td><td>Optional typed claim signing if you have time</td></tr>
         </tbody>
       </table>
