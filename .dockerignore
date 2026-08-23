@@ -1,0 +1,16 @@
+.git
+.venv
+.env
+.env.local
+*.pem
+node_modules
+dashboard/node_modules
+dashboard/dist
+graphify-out
+contracts/lib
+contracts/cache
+contracts/out
+contracts/broadcast
+local
+**/.DS_Store
+__pycache__

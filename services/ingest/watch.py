@@ -136,10 +136,10 @@ def main() -> None:
     brain = Brain(settings, scorer)
     writer = None
     if settings.identity_state_sepolia and settings.deployer_private_key:
-        from services.chain import connect
+        from services.chain import connect_live
 
         writer = Writer(
-            connect(settings.sepolia_rpc_url),
+            connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback),
             settings.identity_state_sepolia,
             settings.deployer_private_key,
         )

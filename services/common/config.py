@@ -13,8 +13,8 @@ class Settings(BaseSettings):
 
     sepolia_rpc_url: str = "https://ethereum-sepolia-rpc.publicnode.com"
     amoy_rpc_url: str = "https://polygon-amoy-bor-rpc.publicnode.com"
-    sepolia_rpc_url_fallback: str = ""
-    amoy_rpc_url_fallback: str = ""
+    sepolia_rpc_url_fallback: str = "https://1rpc.io/sepolia"
+    amoy_rpc_url_fallback: str = "https://polygon-amoy.drpc.org"
     settlement_chain: str = "sepolia"
 
     deployer_private_key: str = ""

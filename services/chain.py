@@ -32,10 +32,25 @@ def connect(url: str) -> Web3:
     return Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 20}))
 
 
+def connect_live(url: str, fallback: str = "") -> Web3:
+    """Return the first RPC that answers eth_blockNumber."""
+    errors: list[str] = []
+    for candidate in (url, fallback):
+        if not candidate:
+            continue
+        w3 = connect(candidate)
+        try:
+            _ = w3.eth.block_number
+            return w3
+        except Exception as exc:
+            errors.append(f"{candidate}: {exc}")
+    raise ConnectionError("; ".join(errors) or f"RPC failed: {url}")
+
+
 def web3s(settings: Settings) -> dict[int, Web3]:
     return {
-        11155111: connect(settings.sepolia_rpc_url),
-        80002: connect(settings.amoy_rpc_url),
+        11155111: connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback),
+        80002: connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback),
     }
 
 

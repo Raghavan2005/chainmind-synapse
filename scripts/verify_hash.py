@@ -10,7 +10,7 @@ from pathlib import Path
 
 from web3 import Web3
 
-from services.chain import connect, identity_abi
+from services.chain import connect_live, identity_abi
 from services.common.config import load_settings
 from services.common.hashing import state_hash, to_hex
 
@@ -40,7 +40,7 @@ def main() -> int:
         print("mismatch local", to_hex(computed), "bundle", expected, file=sys.stderr)
         return 1
     if settings.identity_state_sepolia:
-        w3 = connect(settings.sepolia_rpc_url)
+        w3 = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
         contract = w3.eth.contract(
             address=Web3.to_checksum_address(settings.identity_state_sepolia),
             abi=identity_abi(),

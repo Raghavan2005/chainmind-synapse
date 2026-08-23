@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from web3 import Web3
 
-from services.chain import connect, identity_abi
+from services.chain import connect_live, identity_abi
 from services.common.config import load_settings
 from services.score.predict import Scorer
 from services.store import read_json
@@ -50,11 +50,11 @@ def _heads() -> tuple[int | None, int | None, dict[int, str]]:
     errors: dict[int, str] = {}
     sepolia = amoy = None
     try:
-        sepolia = connect(settings.sepolia_rpc_url).eth.block_number
+        sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback).eth.block_number
     except Exception as exc:
         errors[11155111] = str(exc)
     try:
-        amoy = connect(settings.amoy_rpc_url).eth.block_number
+        amoy = connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback).eth.block_number
     except Exception as exc:
         errors[80002] = str(exc)
     rpc_cache.update({"at": now, "sepolia": sepolia, "amoy": amoy, "errors": errors})
@@ -107,7 +107,7 @@ def identity(subject: str, pending: bool = True) -> dict[str, Any]:
 def history(subject: str) -> dict[str, Any]:
     if not settings.identity_state_sepolia:
         raise HTTPException(503, "identity contract not configured")
-    w3 = connect(settings.sepolia_rpc_url)
+    w3 = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
     contract = w3.eth.contract(address=Web3.to_checksum_address(settings.identity_state_sepolia), abi=identity_abi())
     count = contract.functions.historyCount(Web3.to_checksum_address(subject)).call()
     ids = [contract.functions.historyAt(Web3.to_checksum_address(subject), i).call() for i in range(count)]
@@ -150,7 +150,11 @@ def replay(subject: str, authorization: str | None = Header(default=None)) -> di
     brain = Brain(settings, scorer)
     writer = None
     if settings.identity_state_sepolia and settings.deployer_private_key:
-        writer = Writer(connect(settings.sepolia_rpc_url), settings.identity_state_sepolia, settings.deployer_private_key)
+        writer = Writer(
+            connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback),
+            settings.identity_state_sepolia,
+            settings.deployer_private_key,
+        )
     run_once(brain, writer, settings)
     row = _overlay(subject)
     if row is None:
