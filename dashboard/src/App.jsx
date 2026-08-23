@@ -362,7 +362,7 @@ export default function App() {
           <span className="mark" aria-hidden="true">◎</span>
           <div>
             <strong>ChainMind Synapse</strong>
-            <span>Watch floor · conflicting credentials, one verdict</span>
+            <span>Watch floor · 23 Aug 2026 · conflicting credentials, one verdict</span>
           </div>
         </div>
         <nav className="mast-links" aria-label="On this page">
