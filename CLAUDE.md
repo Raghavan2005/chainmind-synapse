@@ -4,7 +4,7 @@ This file is a pointer. The constitution is:
 
 **[`instructions/CLAUDE.html`](instructions/CLAUDE.html)**
 
-Then [`instructions/INDEX.html`](instructions/INDEX.html) → [`instructions/ARCHITECTURE.html`](instructions/ARCHITECTURE.html) → [`instructions/SCHEMA.html`](instructions/SCHEMA.html) → [`instructions/PLAN.html`](instructions/PLAN.html).
+Then [`instructions/INDEX.html`](instructions/INDEX.html) → [`instructions/ARCHITECTURE.html`](instructions/ARCHITECTURE.html) → [`instructions/SCHEMA.html`](instructions/SCHEMA.html) → [`instructions/PLAN.html`](instructions/PLAN.html). Hosting lock: [`instructions/DEVOPS.html`](instructions/DEVOPS.html).
 
 Rules:
 

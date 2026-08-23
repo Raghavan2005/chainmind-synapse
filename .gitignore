@@ -31,6 +31,8 @@ contracts/lib/
 node_modules/
 dashboard/dist/
 dashboard/.vite/
+**/.vercel/*
+!**/.vercel/project.json
 
 # Runtime caches (reconstruct from chain)
 data/cursors.json

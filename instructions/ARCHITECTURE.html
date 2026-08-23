@@ -159,7 +159,7 @@ interface IClaimSource {
       </ul>
 
       <h3>What we do not deploy</h3>
-      <p>No ERC-725 identity proxy per user. No ERC-735 claim holder as a dependency (we can <em>echo</em> its claim-id idea). No ERC-8004 registries as a hard dep. No CCIP receiver. Optional later: store <code>stateHash</code> preimage CID via a string event.</p>
+      <p>No ERC-725 identity proxy per user. No ERC-735 claim holder as a dependency (we can <em>echo</em> its claim-id idea). No ERC-8004 registries as a hard dep. No CCIP receiver. Optional later: store <code>stateHash</code> preimage CID via a string event. On the cloud side: no RDS, no NAT, no ALB, no always-on App Runner unless a human flipped <code>enable_runtime</code> in <a href="DEVOPS.html">DEVOPS.html</a>. Vercel hosts the Vite dashboard only.</p>
 
       <h2 id="identity-format">Identity format</h2>
       <p>Internally we speak <code>NormalizedClaim</code>. On the wire, prefer a W3C VC 2.0-shaped JSON so judges see standards literacy:</p>
@@ -373,7 +373,7 @@ stateHash commits the full preimage, not a silent winner
       <h2 id="production">Deploy, maintain, support (after the clock)</h2>
       <p>The 6-hour artifact is a testnet demo. This is the path we would take if it had to live:</p>
       <ol>
-        <li><strong>Deploy.</strong> Foundry scripts already reject chain id 1 and 137. Pin solc 0.8.24. Verify IdentityState on Etherscan. Publish addresses, <code>modelVersion</code>, and the preimage schema in the README.</li>
+        <li><strong>Deploy.</strong> Foundry scripts already reject chain id 1 and 137. Pin solc 0.8.24. Verify IdentityState on Etherscan. Publish addresses, <code>modelVersion</code>, and the preimage schema in the README. Hosted UI + gated AWS: <a href="DEVOPS.html">DEVOPS.html</a> — Vercel Hobby for <code>dashboard/</code>, OIDC+ECR only until a human pays for compute.</li>
         <li><strong>Release.</strong> Tag the git SHA that produced <code>model.joblib</code>. New model ⇒ new <code>modelVersion</code> ⇒ new commits; do not rewrite history.</li>
         <li><strong>Run.</strong> Two processes: ingest+writer, API. Overlay via <code>os.replace</code> on <code>data/overlay.json</code>. Systemd or a compose file with healthcheck on <code>/v1/health</code>.</li>
         <li><strong>Keys.</strong> Throwaway faucet key for the demo. Production: operator behind a 2-of-3 multisig or a timelock; never a funded mainnet key in env on a laptop.</li>

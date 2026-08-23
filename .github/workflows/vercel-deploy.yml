@@ -1,0 +1,113 @@
+name: Deploy Vercel
+
+# Same gate shape as aws-deploy.yml: push is handled so GitHub's subscription
+# is not a 0-job red X. Production deploys wait for CI, or workflow_dispatch,
+# and only when repository variables explicitly enable them.
+# Prefer the Vercel GitHub app (Root Directory = dashboard) so this token
+# path stays unused. Spec: instructions/DEVOPS.html
+on:
+  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: preflight checks the token and project ids; deploy ships dashboard/ to production
+        type: choice
+        options: [preflight, deploy]
+        default: preflight
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      action: ${{ steps.decide.outputs.action }}
+    steps:
+      - id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          ENABLED: ${{ vars.VERCEL_DEPLOY_ENABLED }}
+          ORG: ${{ vars.VERCEL_ORG_ID }}
+          PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          action=skip
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            echo "Push event: Vercel-from-Actions waits for the CI workflow_run (or workflow_dispatch)."
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" && "${DISPATCH_MODE:-preflight}" == "preflight" ]]; then
+            if [[ -n "${ORG}" && -n "${PROJECT}" ]]; then
+              action=preflight
+            else
+              echo "Preflight skipped: set repository variables VERCEL_ORG_ID and VERCEL_PROJECT_ID (from dashboard/.vercel/project.json)."
+            fi
+          elif [[ "${ENABLED}" == "true" && -n "${ORG}" && -n "${PROJECT}" ]]; then
+            action=deploy
+          else
+            echo "Deploy skipped (neutral). Prefer the Vercel GitHub app. Token path: VERCEL_DEPLOY_ENABLED=true plus org/project vars plus environment secret VERCEL_TOKEN."
+          fi
+          echo "action=${action}" >> "$GITHUB_OUTPUT"
+          echo "Resolved action=${action} event=${EVENT_NAME} enabled=${ENABLED:-} org=$([ -n "${ORG}" ] && echo set || echo unset) project=$([ -n "${PROJECT}" ] && echo set || echo unset)"
+
+  preflight:
+    name: Vercel preflight
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'preflight' }}
+    runs-on: ubuntu-latest
+    environment: vercel
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: whoami + project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${VERCEL_TOKEN}" ]]; then
+            echo "VERCEL_TOKEN missing on environment vercel" >&2
+            exit 1
+          fi
+          npx vercel@54 whoami --token "$VERCEL_TOKEN"
+          echo "org=${VERCEL_ORG_ID} project=${VERCEL_PROJECT_ID}"
+
+  deploy:
+    name: Vercel deploy
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'deploy' }}
+    runs-on: ubuntu-latest
+    environment: vercel
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - name: Pull, build, deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          npx vercel@54 pull --yes --environment=production --token "$VERCEL_TOKEN"
+          npx vercel@54 build --prod --token "$VERCEL_TOKEN"
+          npx vercel@54 deploy --prebuilt --prod --token "$VERCEL_TOKEN"

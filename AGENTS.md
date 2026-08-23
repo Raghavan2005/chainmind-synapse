@@ -18,6 +18,7 @@ Start there. Do not invent a second spec tree.
 | Math | [`instructions/MATH.html`](instructions/MATH.html) |
 | Verified repos | [`instructions/REPOS.html`](instructions/REPOS.html) |
 | Integration | [`instructions/INTEGRATION.html`](instructions/INTEGRATION.html) |
+| Hosting / DevOps | [`instructions/DEVOPS.html`](instructions/DEVOPS.html) |
 | Prompts | [`instructions/PROMPTS.html`](instructions/PROMPTS.html) |
 | Research | [`instructions/RESEARCH.html`](instructions/RESEARCH.html) |
 | Design | [`instructions/DESIGN.html`](instructions/DESIGN.html) |

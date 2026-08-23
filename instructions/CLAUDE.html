@@ -49,8 +49,9 @@
           <tr><td>ML</td><td>scikit-learn HistGradientBoosting or LogisticRegression</td><td>Unsloth, custom torch nets, paid AutoML</td></tr>
           <tr><td>Gen-AI</td><td>Instructor over LiteLLM (or DSPy). Env <code>LLM_*</code> is the operator default for ingest extract. Browser BYOK is localStorage + per-request only.</td><td>Fine-tuning, LangChain clouds as the product, persisting API keys to disk / overlay / git</td></tr>
           <tr><td>Explain</td><td>SHAP TreeExplainer + one prose prompt</td><td>Uncited “the model said so”</td></tr>
-          <tr><td>UI</td><td>Vite + React, tokens from DESIGN.html</td><td>Purple-gradient AI slop, Inter-on-white card grid</td></tr>
+          <tr><td>UI</td><td>Vite + React, tokens from DESIGN.html. Hosted on Vercel Hobby from <code>dashboard/</code> only.</td><td>Purple-gradient AI slop, Inter-on-white card grid, FastAPI on Vercel serverless, S3+CloudFront “because AWS”</td></tr>
           <tr><td>State</td><td>On-chain commit + local JSON/memory cache</td><td>Hosted Postgres / Firebase / Supabase as source of truth</td></tr>
+          <tr><td>Hosting</td><td>Vercel = dashboard. AWS default = OIDC + ECR in <code>us-east-1</code>. API on laptop/Compose until a human enables compute. See <a href="DEVOPS.html">DEVOPS.html</a>.</td><td><code>terraform apply</code> App Runner by default, <code>AWS_DEPLOY_ENABLED</code> without a human, NAT/ALB/RDS, long-lived <code>AKIA</code> in GitHub secrets, <code>vercel</code> from repo root</td></tr>
         </tbody>
       </table>
 
@@ -116,7 +117,8 @@
         <li>Fine-tune, LoRA, or DPO any model.</li>
         <li>Call Trusta, Nomis, RubyScore, Ethos, Cred Protocol, UTU, Gitcoin Passport, Worldcoin, or Civic to produce scores.</li>
         <li>Depend on Chainlink CCIP or LayerZero for the MVP (plumbing, not required, clock killer).</li>
-        <li>Put private keys in git. <code>.env</code> is gitignored. <code>.env.example</code> has blanks.</li>
+        <li>Put private keys in git or in Vercel env. <code>.env</code> is gitignored. <code>.env.example</code> has blanks. <code>VITE_*</code> is public in the JS bundle.</li>
+        <li>Turn on App Runner, Secrets Manager, or <code>AWS_DEPLOY_ENABLED</code> as a side effect of an HTML or CI edit. Hosting lock is <a href="DEVOPS.html">DEVOPS.html</a>.</li>
         <li>Use a funded mainnet key. Ever.</li>
         <li>Invent GitHub repos. If it is not in <a href="REPOS.html">REPOS.html</a>, run <code>gh repo view owner/name</code> before telling a human to clone it.</li>
         <li>Swallow RPC errors. Surface them on <code>/v1/health</code>.</li>
@@ -149,6 +151,8 @@ LLM_BASE_URL=
 LLM_API_KEY=
 LLM_MODEL=gpt-4.1-mini
 MODEL_PATH=data/model.joblib
+CORS_ORIGINS=*
+# VITE_API_BASE is dashboard-only; never put keys in VITE_*
 </code></pre>
       <p>LiteLLM is the router for extract (P1) and explain (P2). <code>LLM_API_KEY</code> / <code>LLM_BASE_URL</code> / <code>LLM_MODEL</code> remain the operator default for live ingest. If the env key is missing, the extractor uses the deterministic rules parser and explain uses the SHAP template — FR-02 still passes. Browser BYOK (dashboard + watch floor) is localStorage + per-request body only. Never write keys to disk, overlay, git, or explanation JSON. GET <code>/v1/identity</code> never calls the LLM. The LLM never emits <code>scoreBps</code> / <code>pCredible</code>.</p>
 

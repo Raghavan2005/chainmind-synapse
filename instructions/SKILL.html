@@ -99,6 +99,17 @@ npx hardhat init
 gh search repos OWNER NAME --limit 5
 </code></pre>
 
+      <h2 id="s-devops">Skill: Hosted dashboard + gated AWS</h2>
+      <ol>
+        <li>Read <a href="DEVOPS.html">DEVOPS.html</a>. Do not apply Terraform runtime. Do not set <code>AWS_DEPLOY_ENABLED</code>.</li>
+        <li><code>cd dashboard && npm ci && npm run build</code>. Same as CI.</li>
+        <li><code>vercel whoami</code>. Then <code>vercel link --yes --project chainmind-synapse</code> and <code>vercel --prod --yes</code>. Never from repo root (that publishes the watch floor).</li>
+        <li><code>vercel git connect https://github.com/Raghavan2005/chainmind-synapse</code> if the Vercel user can see the repo.</li>
+        <li>API stays local or Compose. Paste API base in the dashboard BYOK field. No keys on Vercel.</li>
+        <li>AWS: <code>bash scripts/aws_preflight.sh</code> only. OIDC + ECR in <code>us-east-1</code>.</li>
+        <li>Browser-verify the Vercel URL. Confirm CI still skips AWS/Vercel deploy jobs.</li>
+      </ol>
+
       <h2 id="s-security">Skill: Testnet hygiene</h2>
       <ul>
         <li>New key. No seed phrase in chat. .env gitignored.</li>

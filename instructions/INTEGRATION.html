@@ -168,7 +168,7 @@ npm i
 # optional: npm i viem
 npm run dev
 </code></pre>
-      <p>Fetch <code>http://localhost:8000/v1/identity/${subject}</code>. Tokens from DESIGN.html. Verify in a real browser: loading, empty, error, happy, conflict.</p>
+      <p>Fetch <code>http://localhost:8000/v1/identity/${subject}</code>. Tokens from DESIGN.html. Verify in a real browser: loading, empty, error, happy, conflict. Hosted dashboard: <a href="DEVOPS.html">DEVOPS.html</a> — <code>cd dashboard && vercel --prod</code>, never <code>vercel</code> from the repo root.</p>
 
       <h2 id="demo-script">demo_flow.sh</h2>
 <pre><code>#!/usr/bin/env bash
@@ -202,6 +202,7 @@ source .env
         <li><strong>Replay.</strong> <code>POST /v1/replay/{subject}</code> with the bearer from env rebuilds overlay from logs. Use this after a crash. The chain is the record.</li>
         <li><strong>Incidents.</strong> RPC 429 → backoff, second URL in .env. Unichain down → serve Sepolia + last Unichain snapshot, flag <code>degradedChains</code>; run <code>scripts/emergency_anvil_source.sh</code> for a live local fallback instead (health reports <code>emergencySource</code>). LLM down → rules + template explanation. Model file missing → refuse API start.</li>
         <li><strong>Keys.</strong> Demo: throwaway faucet account. Never a mainnet key. Never commit <code>.env</code>.</li>
+        <li><strong>Hosted UI.</strong> Vercel serves the dashboard. The API stays on this machine (or Compose) unless a human accepted AWS compute in <a href="DEVOPS.html">DEVOPS.html</a>. Paste <code>VITE_API_BASE</code> / the BYOK API-base field. Do not put operator keys on Vercel.</li>
       </ul>
 
       <h2 id="health-check">You are integrated when</h2>

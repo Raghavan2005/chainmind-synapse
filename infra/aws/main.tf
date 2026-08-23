@@ -1,3 +1,7 @@
+# Cheap default: ECR + (via gha_oidc.tf) GitHub OIDC role.
+# App Runner + Secrets Manager are opt-in: -var='enable_runtime=true'
+# Prefer scripts/aws_preflight.sh if those objects already exist — do not
+# double-create. Spec: instructions/DEVOPS.html
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
@@ -22,29 +26,33 @@ resource "aws_ecr_repository" "synapse" {
 }
 
 resource "aws_secretsmanager_secret" "runtime" {
-  name = "${var.name}/runtime"
+  count = var.enable_runtime ? 1 : 0
+  name  = "${var.name}/runtime"
 }
 
 resource "aws_secretsmanager_secret_version" "runtime" {
-  secret_id = aws_secretsmanager_secret.runtime.id
+  count     = var.enable_runtime ? 1 : 0
+  secret_id = aws_secretsmanager_secret.runtime[0].id
   secret_string = jsonencode({
-    SEPOLIA_RPC_URL          = var.sepolia_rpc_url
-    AMOY_RPC_URL             = var.amoy_rpc_url
-    CLAIM_SOURCE_SEPOLIA     = var.claim_source_sepolia
-    CLAIM_SOURCE_AMOY        = var.claim_source_amoy
-    IDENTITY_STATE_SEPOLIA   = var.identity_state_sepolia
-    DEPLOYER_PRIVATE_KEY     = var.deployer_private_key
-    OPERATOR_ADDRESS         = var.operator_address
-    DEMO_SUBJECT             = var.demo_subject
-    LLM_API_KEY              = var.llm_api_key
-    LLM_BASE_URL             = var.llm_base_url
-    LLM_MODEL                = var.llm_model
-    REPLAY_BEARER            = var.replay_bearer
+    SEPOLIA_RPC_URL                = var.sepolia_rpc_url
+    UNICHAIN_SEPOLIA_RPC_URL       = var.unichain_sepolia_rpc_url
+    CLAIM_SOURCE_SEPOLIA           = var.claim_source_sepolia
+    CLAIM_SOURCE_UNICHAIN_SEPOLIA  = var.claim_source_unichain_sepolia
+    IDENTITY_STATE_SEPOLIA         = var.identity_state_sepolia
+    DEPLOYER_PRIVATE_KEY           = var.deployer_private_key
+    OPERATOR_ADDRESS               = var.operator_address
+    DEMO_SUBJECT                   = var.demo_subject
+    LLM_API_KEY                    = var.llm_api_key
+    LLM_BASE_URL                   = var.llm_base_url
+    LLM_MODEL                      = var.llm_model
+    REPLAY_BEARER                  = var.replay_bearer
+    CORS_ORIGINS                   = var.cors_origins
   })
 }
 
 resource "aws_iam_role" "apprunner" {
-  name = "${var.name}-apprunner"
+  count = var.enable_runtime ? 1 : 0
+  name  = "${var.name}-apprunner"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -56,12 +64,14 @@ resource "aws_iam_role" "apprunner" {
 }
 
 resource "aws_iam_role_policy_attachment" "apprunner_ecr" {
-  role       = aws_iam_role.apprunner.name
+  count      = var.enable_runtime ? 1 : 0
+  role       = aws_iam_role.apprunner[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
 resource "aws_iam_role" "runtime" {
-  name = "${var.name}-runtime"
+  count = var.enable_runtime ? 1 : 0
+  name  = "${var.name}-runtime"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -73,23 +83,25 @@ resource "aws_iam_role" "runtime" {
 }
 
 resource "aws_iam_role_policy" "runtime_secrets" {
-  name = "${var.name}-secrets"
-  role = aws_iam_role.runtime.id
+  count = var.enable_runtime ? 1 : 0
+  name  = "${var.name}-secrets"
+  role  = aws_iam_role.runtime[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = [aws_secretsmanager_secret.runtime.arn]
+      Resource = [aws_secretsmanager_secret.runtime[0].arn]
     }]
   })
 }
 
 resource "aws_apprunner_service" "api" {
+  count        = var.enable_runtime ? 1 : 0
   service_name = var.name
   source_configuration {
     authentication_configuration {
-      access_role_arn = aws_iam_role.apprunner.arn
+      access_role_arn = aws_iam_role.apprunner[0].arn
     }
     image_repository {
       image_identifier      = "${aws_ecr_repository.synapse.repository_url}:latest"
@@ -97,16 +109,17 @@ resource "aws_apprunner_service" "api" {
       image_configuration {
         port = "8000"
         runtime_environment_secrets = {
-          SEPOLIA_RPC_URL        = "${aws_secretsmanager_secret.runtime.arn}:SEPOLIA_RPC_URL::"
-          AMOY_RPC_URL           = "${aws_secretsmanager_secret.runtime.arn}:AMOY_RPC_URL::"
-          CLAIM_SOURCE_SEPOLIA   = "${aws_secretsmanager_secret.runtime.arn}:CLAIM_SOURCE_SEPOLIA::"
-          CLAIM_SOURCE_AMOY      = "${aws_secretsmanager_secret.runtime.arn}:CLAIM_SOURCE_AMOY::"
-          IDENTITY_STATE_SEPOLIA = "${aws_secretsmanager_secret.runtime.arn}:IDENTITY_STATE_SEPOLIA::"
-          DEPLOYER_PRIVATE_KEY   = "${aws_secretsmanager_secret.runtime.arn}:DEPLOYER_PRIVATE_KEY::"
-          OPERATOR_ADDRESS       = "${aws_secretsmanager_secret.runtime.arn}:OPERATOR_ADDRESS::"
-          DEMO_SUBJECT           = "${aws_secretsmanager_secret.runtime.arn}:DEMO_SUBJECT::"
-          LLM_API_KEY            = "${aws_secretsmanager_secret.runtime.arn}:LLM_API_KEY::"
-          REPLAY_BEARER          = "${aws_secretsmanager_secret.runtime.arn}:REPLAY_BEARER::"
+          SEPOLIA_RPC_URL               = "${aws_secretsmanager_secret.runtime[0].arn}:SEPOLIA_RPC_URL::"
+          UNICHAIN_SEPOLIA_RPC_URL      = "${aws_secretsmanager_secret.runtime[0].arn}:UNICHAIN_SEPOLIA_RPC_URL::"
+          CLAIM_SOURCE_SEPOLIA          = "${aws_secretsmanager_secret.runtime[0].arn}:CLAIM_SOURCE_SEPOLIA::"
+          CLAIM_SOURCE_UNICHAIN_SEPOLIA = "${aws_secretsmanager_secret.runtime[0].arn}:CLAIM_SOURCE_UNICHAIN_SEPOLIA::"
+          IDENTITY_STATE_SEPOLIA        = "${aws_secretsmanager_secret.runtime[0].arn}:IDENTITY_STATE_SEPOLIA::"
+          DEPLOYER_PRIVATE_KEY          = "${aws_secretsmanager_secret.runtime[0].arn}:DEPLOYER_PRIVATE_KEY::"
+          OPERATOR_ADDRESS              = "${aws_secretsmanager_secret.runtime[0].arn}:OPERATOR_ADDRESS::"
+          DEMO_SUBJECT                  = "${aws_secretsmanager_secret.runtime[0].arn}:DEMO_SUBJECT::"
+          LLM_API_KEY                   = "${aws_secretsmanager_secret.runtime[0].arn}:LLM_API_KEY::"
+          REPLAY_BEARER                 = "${aws_secretsmanager_secret.runtime[0].arn}:REPLAY_BEARER::"
+          CORS_ORIGINS                  = "${aws_secretsmanager_secret.runtime[0].arn}:CORS_ORIGINS::"
         }
       }
     }
@@ -115,7 +128,7 @@ resource "aws_apprunner_service" "api" {
   instance_configuration {
     cpu               = "1 vCPU"
     memory            = "2 GB"
-    instance_role_arn = aws_iam_role.runtime.arn
+    instance_role_arn = aws_iam_role.runtime[0].arn
   }
   health_check_configuration {
     protocol            = "HTTP"
@@ -138,6 +151,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 output "ecr_url" { value = aws_ecr_repository.synapse.repository_url }
-output "service_url" { value = aws_apprunner_service.api.service_url }
-output "service_arn" { value = aws_apprunner_service.api.arn }
-output "secret_arn" { value = aws_secretsmanager_secret.runtime.arn }
+output "service_url" { value = try(aws_apprunner_service.api[0].service_url, null) }
+output "service_arn" { value = try(aws_apprunner_service.api[0].arn, null) }
+output "secret_arn" { value = try(aws_secretsmanager_secret.runtime[0].arn, null) }
+output "enable_runtime" { value = var.enable_runtime }

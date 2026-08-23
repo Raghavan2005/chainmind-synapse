@@ -99,23 +99,17 @@ If Unichain Sepolia itself goes down (not just one RPC endpoint, both `UNICHAIN_
 
 - `.github/workflows/ci.yml` — Foundry, pytest + train, dashboard build, Docker image.
 - `.github/workflows/aws-deploy.yml` — after CI succeeds on `master`/`main`, or `workflow_dispatch`. Deploy is skipped (neutral) unless repository variables `AWS_DEPLOY_ENABLED=true`, `AWS_ROLE_ARN`, and `ECR_REPOSITORY` are set. App Runner rolls only when `APPRUNNER_SERVICE_ARN` is set. Local check: `bash scripts/aws_preflight.sh`.
+- `.github/workflows/vercel-deploy.yml` — same gate shape. Skipped unless `VERCEL_DEPLOY_ENABLED=true` and a `VERCEL_TOKEN` exist. Prefer the Vercel GitHub app on `dashboard/` instead of a token.
 - Dependabot for pip, npm, Actions, Docker.
 
-## AWS
+## Hosting
 
-`infra/aws` is Terraform for ECR, Secrets Manager, App Runner, and GitHub OIDC. Do not `terraform apply` the App Runner service until contracts are funded and you want a live URL.
-
-Cheap GitHub Actions pieces (OIDC + `chainmind-synapse-gha` role + ECR) can be created without Terraform:
+Spec: [`instructions/DEVOPS.html`](instructions/DEVOPS.html). Live UI: [chainmind-synapse.vercel.app](https://chainmind-synapse.vercel.app) (Vite dashboard; paste a local or tunneled API base). AWS default is OIDC + ECR in `us-east-1` — no App Runner, no Secrets Manager, no hosted database. `infra/aws` Terraform sets `enable_runtime=false` so apply cannot create compute by accident. Prefer `scripts/aws_preflight.sh` for the cheap objects.
 
 ```bash
 bash scripts/aws_preflight.sh --create   # us-east-1 unless AWS_REGION is set
 # later: bash scripts/aws_preflight.sh --teardown
-```
-
-```bash
-cd infra/aws
-terraform init
-terraform plan -var="region=us-east-1"   # plan only until App Runner is intentional
+cd dashboard && vercel link --yes --project chainmind-synapse && vercel --prod --yes
 ```
 
 Same image runs locally via `docker compose up --build`. Ingest and API share `data/overlay.json`. No hosted database is the source of truth.
