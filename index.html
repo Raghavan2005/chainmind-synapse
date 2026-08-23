@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ChainMind Synapse - Real-Time AI-Driven Multi-Chain Identity Claim Reconciler with Subjective Logic Fusion & On-Chain State Commit">
+  <title>ChainMind Synapse — Watch Floor & Consensus Dashboard</title>
+  
+  <!-- Modern Clean Fonts: Plus Jakarta Sans & Space Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <a class="skip" href="#main-content">Skip to content</a>
+
+  <!-- Masthead Navigation Bar -->
+  <header class="masthead">
+    <div class="brand-wrap">
+      <span class="mark-logo">◎</span>
+      <div class="brand-text-block">
+        <span class="brand-title">ChainMind Synapse</span>
+        <span class="brand-kicker">Cross-Chain Identity Ingestion & Subjective Logic Consensus</span>
+      </div>
+    </div>
+
+    <!-- Health Chips -->
+    <div class="health-strip">
+      <span class="chip ok" id="chip-sepolia" title="Sepolia 11155111 Block Head">
+        <span class="chip-dot"></span> Sepolia: <strong id="val-sepolia-head">#19824</strong>
+      </span>
+      <span class="chip ok" id="chip-amoy" title="Polygon Amoy 80002 Block Head">
+        <span class="chip-dot"></span> Amoy: <strong id="val-amoy-head">#58210</strong>
+      </span>
+      <span class="chip ok" id="chip-model" title="sklearn Credibility Model Holdout Accuracy">
+        <span class="chip-dot"></span> ML Acc: <strong>83.2%</strong> (Brier: 0.14)
+      </span>
+    </div>
+
+    <!-- Actions -->
+    <div class="header-actions">
+      <button class="btn btn-sm" id="btn-api-modal">
+        REST API JSON
+      </button>
+      <button class="btn btn-sm btn-danger" id="btn-inject-conflict-action">
+        Simulate Conflict
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Watchfloor Dashboard Layout -->
+  <main class="watchfloor-layout" id="main-content">
+
+    <!-- Top Visual Panel: Multi-Chain Synapses & Subjective Logic Simplex -->
+    <section class="hero-visual-panel">
+      
+      <!-- Canvas Topology Left -->
+      <div class="canvas-container">
+        <div class="canvas-overlay-bar">
+          <div class="canvas-title-group">
+            <span class="panel-kicker">Topology Watch</span>
+            <div class="panel-heading">Ingestion Synapses & Evidence Flow</div>
+          </div>
+          
+          <!-- Scenario Selector -->
+          <div class="scenario-pill-bar">
+            <button class="pill-btn active" data-scenario="revocation-conflict" id="pill-scenario-conflict">
+              Conflict on kyc.adult
+            </button>
+            <button class="pill-btn" data-scenario="clean" id="pill-scenario-clean">
+              Clean Multi-Chain Sync
+            </button>
+            <button class="pill-btn" data-scenario="expired-credit" id="pill-scenario-expired">
+              Stale Claim (TTL Expiry)
+            </button>
+          </div>
+        </div>
+
+        <canvas id="synapse-canvas"></canvas>
+      </div>
+
+      <!-- Jøsang Opinion Simplex Widget (Right) -->
+      <aside class="simplex-container">
+        <div class="simplex-header">
+          <h3>Subjective Logic Simplex</h3>
+          <span class="panel-kicker">b + d + u = 1</span>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+          Barycentric projection of belief ($b$), disbelief ($d$), and uncertainty ($u$). High conflict penalizes confidence score without false certainty.
+        </p>
+        <div class="simplex-canvas-wrap">
+          <canvas id="simplex-canvas"></canvas>
+        </div>
+        <div class="simplex-coords">
+          <div class="simplex-prop prop-b">
+            <span>b (Belief)</span>
+            <strong id="simplex-val-b">0.44</strong>
+          </div>
+          <div class="simplex-prop prop-d">
+            <span>d (Disbelief)</span>
+            <strong id="simplex-val-d">0.44</strong>
+          </div>
+          <div class="simplex-prop prop-u">
+            <span>u (Uncertainty)</span>
+            <strong id="simplex-val-u">0.12</strong>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Three Column Layout -->
+    <div class="three-column-grid">
+
+      <!-- Column 1: Rail -->
+      <section class="panel-box" id="rail-col">
+        <div class="panel-header">
+          <h2 class="panel-title">Rail & On-Chain State</h2>
+          <span class="panel-kicker">Sepolia Commit</span>
+        </div>
+
+        <!-- Subject Input Form -->
+        <form class="subject-search-form" id="form-subject-search">
+          <input type="text" class="input-field" id="input-subject" value="0x742d35Cc6634C0532925a3b844Bc454e4438f44e" placeholder="0x... subject address" required>
+          <button type="submit" class="btn btn-sm btn-primary">Inspect</button>
+        </form>
+
+        <!-- Settlement Commit Details -->
+        <dl class="metadata-dl">
+          <div class="meta-item">
+            <span class="meta-label">Subject DID:</span>
+            <span class="meta-val" id="meta-subject-did" style="font-size: 10.5px;">did:ethr:sepolia:0x742d...f44e</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Settlement Chain:</span>
+            <span class="meta-val">Sepolia (11155111)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Commit ID:</span>
+            <div class="meta-hash-row">
+              <span class="hash-text" id="meta-commit-id">0xef02...4f11</span>
+              <button class="btn-icon" id="btn-copy-commit" title="Copy Commit ID">⧉</button>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">State Hash:</span>
+            <div class="meta-hash-row">
+              <span class="hash-text" id="meta-state-hash">0x221a...7999</span>
+              <button class="btn-icon" id="btn-copy-state" title="Copy State Hash">⧉</button>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Preimage Verify:</span>
+            <a href="#" id="link-verify-preimage" style="font-size: 11.5px;">verify_hash.py ↗</a>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Settlement Tx:</span>
+            <a href="https://sepolia.etherscan.io" target="_blank" rel="noopener" id="meta-tx-link" style="font-family: var(--font-mono); font-size: 11.5px;">0x71ba...3e01 ↗</a>
+          </div>
+        </dl>
+
+        <!-- Conflict Banner Component -->
+        <div class="conflict-banner" id="conflict-alert-box">
+          <span class="conflict-banner-title">⚠ Conflict on kyc.adult</span>
+          <p class="conflict-banner-body" id="conflict-alert-desc">
+            Two unexpired claims from Sepolia and Amoy disagree on polarity (+1 vs -1). Jøsang conflict penalty applied.
+          </p>
+        </div>
+
+        <!-- Rail Actions -->
+        <div style="display: flex; gap: 6px; margin-top: auto;">
+          <button class="btn btn-sm w-full" id="btn-replay-logs">
+            Replay from Logs
+          </button>
+          <button class="btn btn-sm btn-danger w-full" id="btn-tamper-toggle">
+            Tamper Hash
+          </button>
+        </div>
+      </section>
+
+      <!-- Column 2: Claims Stream -->
+      <section class="panel-box" id="claims-col">
+        <div class="panel-header">
+          <h2 class="panel-title">Ingested Claims</h2>
+          <span class="panel-kicker" id="claims-count-badge">3 Normalized</span>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-muted);">
+          Chronological normalized claims ingested via web3 log listeners on Sepolia & Amoy.
+        </p>
+
+        <!-- Claims List Container -->
+        <div class="claims-list" id="claims-list-container">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Column 3: Fusion & Explanation -->
+      <section class="panel-box" id="fusion-col">
+        <div class="panel-header">
+          <h2 class="panel-title">Subjective Logic Fusion & SHAP</h2>
+          <span class="panel-kicker">Consensus Core</span>
+        </div>
+
+        <!-- Large Mono Confidence & Verdict Block -->
+        <div class="fusion-headline-box">
+          <div class="fusion-score-wrap">
+            <span class="score-number-large" id="val-score-bps">4100 bps</span>
+            <span class="score-sub-label">Confidence: <strong id="val-confidence-float">0.41</strong> / 1.0</span>
+          </div>
+          <span class="verdict-badge verdict-conflict" id="badge-verdict">CONFLICT</span>
+        </div>
+
+        <!-- Stacked Opinion Bar b / d / u -->
+        <div class="opinion-bar-wrap">
+          <div class="opinion-bar-label">
+            <span>Topic: <strong style="color: var(--text-pure);">kyc.adult</strong></span>
+            <span>Conflict mass $K = $ <strong id="val-mass-k" style="color: var(--text-pure);">0.62</strong></span>
+          </div>
+          <div class="stacked-opinion-bar">
+            <div class="bar-b" id="bar-b" style="width: 44%;" title="Belief (b): 0.44"></div>
+            <div class="bar-d" id="bar-d" style="width: 44%;" title="Disbelief (d): 0.44"></div>
+            <div class="bar-u" id="bar-u" style="width: 12%;" title="Uncertainty (u): 0.12"></div>
+          </div>
+        </div>
+
+        <!-- SHAP Feature Reasons List -->
+        <div>
+          <span class="panel-kicker" style="display: block; margin-bottom: 6px;">SHAP Feature Attributions</span>
+          <div class="shap-reasons-list" id="shap-reasons-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Caveats -->
+        <div class="caveats-box">
+          <span>• LLM did not compute the credibility score (sklearn + subjective-logic).</span>
+          <span>• Operator key committed stateHash on Sepolia block #19825.</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: REST API JSON / Verify Hash Inspector -->
+  <div class="modal-backdrop hidden" id="modal-api-inspector">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-header-title">GET /v1/identity/{subject} JSON Response</h3>
+        <button class="btn btn-sm" id="btn-close-modal">✕</button>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
+        HTTP/1.1 200 OK · Content-Type: application/json · Strict Schema Match
+      </div>
+      <pre class="code-pre-box" id="json-modal-content"><code>// Loading...</code></pre>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-sm" id="btn-copy-modal-json">Copy JSON</button>
+        <button class="btn btn-sm btn-primary" id="btn-close-modal-confirm">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
