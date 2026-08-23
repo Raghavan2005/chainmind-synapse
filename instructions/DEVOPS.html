@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — DevOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Hosted demo · GitHub · Vercel · AWS</p>
+      <h1>DevOps — linked, gated, cheap</h1>
+      <p class="lede">The product is a Vite dashboard on Vercel (Hobby) plus a Python brain that stays on a laptop, Codespaces, or Compose until a human explicitly pays for AWS compute. GitHub Actions is the coupler: CI always runs; image push and Vercel-from-Actions stay behind repository variables. Overlay JSON is a cache. The ledger is the record. No hosted database.</p>
+      <div class="meta-row">
+        <span class="chip ok">Vercel = dashboard only</span>
+        <span class="chip ok">AWS default = OIDC + ECR</span>
+        <span class="chip warn">App Runner held</span>
+        <span class="chip bad">No RDS · no NAT · no always-on 1 vCPU</span>
+      </div>
+
+      <h2 id="lock">Hosting lock</h2>
+      <table>
+        <thead><tr><th>Surface</th><th>Where</th><th>How</th><th>Forbidden substitute</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard (<code>dashboard/</code>)</td><td>Vercel Hobby</td><td><code>vercel</code> CLI from <code>dashboard/</code>, or Vercel Git integration with Root Directory <code>dashboard</code></td><td>S3+CloudFront “because AWS”, Next.js rewrite of the API, putting FastAPI on Vercel serverless</td></tr>
+          <tr><td>Watch floor (<code>index.html</code>)</td><td>Local / optional second static host</td><td>Not the Vercel project</td><td>Deploying the repo root to Vercel (that file is theatre, not the product UI)</td></tr>
+          <tr><td>API + ingest</td><td>Laptop, Compose, or Codespaces</td><td><code>uvicorn</code> + <code>python -m services.ingest.watch</code>, same image as <code>Dockerfile</code></td><td>Always-on App Runner / ECS / EKS / Lightsail as the default; Lambda+API Gateway; a hosted DB as SoT</td></tr>
+          <tr><td>Image registry</td><td>ECR <code>us-east-1</code> / <code>chainmind-synapse</code></td><td>OIDC from GitHub, or <code>aws ecr</code> after <code>scripts/aws_preflight.sh</code></td><td>Long-lived <code>AKIA…</code> in GitHub secrets; Docker Hub as the only registry</td></tr>
+          <tr><td>Contracts</td><td>Sepolia + watched L2s</td><td>Foundry; see INTEGRATION.html</td><td>Redeploying because a host changed; mainnet</td></tr>
+          <tr><td>CI</td><td>GitHub Actions</td><td><code>.github/workflows/ci.yml</code> on every push/PR</td><td>Skipping CI to “just ship the image”</td></tr>
+        </tbody>
+      </table>
+      <div class="forbid">
+        <p><strong>Do not</strong> <code>terraform apply</code> <code>infra/aws</code> with <code>enable_runtime=true</code>, set <code>AWS_DEPLOY_ENABLED=true</code>, or set <code>APPRUNNER_SERVICE_ARN</code> unless a human asked for a public API URL and accepted the bill. The Terraform file used to create App Runner + Secrets Manager on every apply — that is now opt-in. Prefer <code>scripts/aws_preflight.sh</code> for the cheap objects.</p>
+        <p><strong>Do not</strong> put <code>DEPLOYER_PRIVATE_KEY</code>, issuer keys, or <code>LLM_API_KEY</code> in Vercel env. Browser BYOK is localStorage + per-request. Operator keys stay on the machine that runs ingest+writer.</p>
+      </div>
+
+      <h2 id="spend">Resource allocation (be stingy)</h2>
+      <p>Public repo + Hobby + idle registry is the intended steady state. Compute is a demo-day decision, not a bootstrap decision.</p>
+      <table>
+        <thead><tr><th>Thing</th><th>Steady state</th><th>Money</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>GitHub Actions CI (Foundry, pytest, dashboard build, <code>docker build</code>)</td><td>On</td><td>Included minutes on a public repo</td><td>Keep. It is the quality gate.</td></tr>
+          <tr><td>Vercel Hobby for <code>dashboard/</code></td><td>On</td><td>$0 at hackathon traffic</td><td>One project. Production + PR previews. No Vercel Pro, no extra teams, no Edge Functions, no serverless Python.</td></tr>
+          <tr><td>IAM OIDC provider + <code>chainmind-synapse-gha</code></td><td>On</td><td>$0</td><td>Already created. Trust must allow <code>repo:OWNER/NAME:*</code> <em>and</em> <code>repo:OWNER@id/NAME@id:*</code>.</td></tr>
+          <tr><td>ECR <code>chainmind-synapse</code> in <code>us-east-1</code></td><td>On (empty or CI tags only)</td><td>Pennies if you actually push; $0 if empty</td><td>Keep the repo. Do not enable pull-through caches, replication, or a second region.</td></tr>
+          <tr><td>GitHub environment <code>aws</code></td><td>On</td><td>$0</td><td>Vars only: <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>, <code>ECR_REPOSITORY</code>. No secrets. <code>AWS_DEPLOY_ENABLED</code> unset.</td></tr>
+          <tr><td>App Runner (1 vCPU / 2 GB in the old Terraform)</td><td><strong>Off</strong></td><td>Roughly a coffee-a-day always-on tax</td><td>Held. <code>enable_runtime</code> defaults false. No <code>APPRUNNER_SERVICE_ARN</code>.</td></tr>
+          <tr><td>Secrets Manager</td><td><strong>Off</strong></td><td>~$0.40 / secret / month plus API</td><td>Held. Demo keys live in gitignored <code>.env</code> on the writer host.</td></tr>
+          <tr><td>NAT, ALB, ECS/Fargate service, EKS, RDS, ElastiCache, CloudFront, extra VPC</td><td>Never for this MVP</td><td>Tens to hundreds</td><td>Forbidden. Overlay is a file. Reads are in-process.</td></tr>
+          <tr><td>Demo-day public API</td><td>Optional, hours not months</td><td>Prefer a tunnel to the laptop</td><td>Cloudflare Tunnel or ngrok in front of <code>:8000</code>. Tear it down after the video. Do not leave App Runner up “just in case.”</td></tr>
+        </tbody>
+      </table>
+      <div class="okbox">
+        <p>Verified 2026-08-23 on account <code>555431941144</code>: ECR <code>555431941144.dkr.ecr.us-east-1.amazonaws.com/chainmind-synapse</code> exists. No ChainMind App Runner. No <code>chainmind</code> secret. GitHub vars <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>, <code>ECR_REPOSITORY</code> are set on the repo and on environment <code>aws</code>. <code>AWS_DEPLOY_ENABLED</code> is unset, so <code>Deploy AWS</code> stays green/neutral. An unrelated failed App Runner named <code>breach-server</code> is not ours — do not start it, do not attach it.</p>
+        <p>Vercel (team <code>aaryanguglanics21-3349s-projects</code>): project <code>chainmind-synapse</code> (<code>prj_dotWBCvhUgL9oqvOVgqo3g5PmlGS</code>). Production alias <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a>. <code>VITE_API_BASE</code> unset — paste the API origin in the UI. <code>VERCEL_DEPLOY_ENABLED</code> unset.</p>
+      </div>
+
+      <h2 id="topo">Topology</h2>
+      <div class="figure">
+<pre><code>GitHub  Raghavan2005/chainmind-synapse
+   │
+   ├─ CI          foundry · pytest · vite build · docker build
+   │                always on push / PR
+   ├─ Deploy AWS  OIDC → ecr:GetAuthorizationToken + push
+   │                skipped unless AWS_DEPLOY_ENABLED=true
+   │                App Runner roll only if APPRUNNER_SERVICE_ARN set
+   └─ Deploy Vercel
+                    preferred: Vercel Git app, Root Directory = dashboard
+                    fallback:  vercel --prod  (CLI) or gated GHA + VERCEL_TOKEN
+
+browser ──► Vercel (static Vite) ──fetch──► API :8000
+                                              │
+                         ingest+writer (one process, one key)
+                                              │
+                         overlay.json (cache) + Sepolia IdentityState (SoT)
+</code></pre>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Vercel owns pixels</h3>
+          <p>SPA. <code>VITE_API_BASE</code> is compile-time and optional. The dashboard already has a BYOK “API base” field in localStorage. An empty production build is valid: the judge pastes <code>http://127.0.0.1:8000</code> or a tunnel URL.</p>
+        </div>
+        <div class="card">
+          <h3>AWS owns a box we might run later</h3>
+          <p>Same <code>Dockerfile</code> as CI. Port 8000. Health <code>GET /v1/health</code>. Ingest is a second command on the same image (<code>python -m services.ingest.watch</code>), not a second billed service unless you are sure you need it.</p>
+        </div>
+        <div class="card">
+          <h3>GitHub owns the gate</h3>
+          <p>OIDC, not access keys. Environments <code>aws</code> (and optional <code>vercel</code>) hold variables. Required reviewers on those environments are allowed; they are free.</p>
+        </div>
+        <div class="card">
+          <h3>Chains stay public RPCs</h3>
+          <p>Hosting does not change FR-01 (Sepolia + Unichain Sepolia) or the extra Superchain L2s. Do not add a vendor RPC just because you opened an AWS account.</p>
+        </div>
+      </div>
+
+      <h2 id="github">GitHub coupling</h2>
+      <p>Repo: <a href="https://github.com/Raghavan2005/chainmind-synapse">Raghavan2005/chainmind-synapse</a>. Default branch <code>master</code>.</p>
+      <table>
+        <thead><tr><th>Workflow</th><th>Trigger</th><th>Spend</th><th>Gate</th></tr></thead>
+        <tbody>
+          <tr><td><code>ci.yml</code></td><td>push + PR</td><td>Minutes</td><td>None — this is the product test.</td></tr>
+          <tr><td><code>aws-deploy.yml</code></td><td>push (no-op), <code>workflow_run</code> after CI, <code>workflow_dispatch</code></td><td>OIDC STS + optional ECR push</td><td><code>vars.AWS_DEPLOY_ENABLED == true</code> plus role + ECR name. Dispatch <code>preflight</code> is the safe probe.</td></tr>
+          <tr><td><code>vercel-deploy.yml</code></td><td>same shape</td><td>Hobby deploy</td><td><code>vars.VERCEL_DEPLOY_ENABLED == true</code> plus <code>VERCEL_TOKEN</code> in environment <code>vercel</code>. Prefer the Vercel GitHub app so this workflow never needs a token.</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>Repository variables (not secrets): <code>AWS_REGION=us-east-1</code>, <code>AWS_ROLE_ARN=arn:aws:iam::555431941144:role/chainmind-synapse-gha</code>, <code>ECR_REPOSITORY=chainmind-synapse</code>. After the first Vercel link you may add <code>VERCEL_ORG_ID</code> / <code>VERCEL_PROJECT_ID</code> the same way.</li>
+        <li>Do <strong>not</strong> store <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code> on this repo. The GHA role is ECR-only. That is intentional least privilege (defensive IAM: no <code>iam:*</code>, no <code>secretsmanager:*</code>, no <code>apprunner:*</code> on the OIDC role).</li>
+        <li>Dependabot stays. Do not merge Instructor 1.15 / OpenAI 3.</li>
+        <li>Required status: keep CI required on <code>master</code> if the GitHub owner turns on branch protection. Do not require the AWS or Vercel deploy jobs — they are supposed to skip.</li>
+      </ul>
+      <div class="warnbox">
+        <p>GitHub’s current OIDC <code>sub</code> is often <code>repo:OWNER@OWNER_ID/NAME@REPO_ID:…</code>, not only <code>repo:OWNER/NAME:…</code>. The role trust in <code>infra/aws/gha_oidc.tf</code> and <code>scripts/aws_preflight.sh --create</code> already lists both. If assume-role fails with a valid-looking role ARN, that is the first thing to check — not “add an access key.”</p>
+      </div>
+
+      <h2 id="vercel">Vercel (CLI first)</h2>
+      <p>Install and identity (already used on this workstation): <code>vercel --version</code> ≥ 54, <code>vercel whoami</code>. Scope is the logged-in team, not a second Vercel org “for AWS.”</p>
+      <p>The Vercel deploy skill (claimable tarball, no login) is the fallback when an agent has no <code>vercel</code> session: it returns a preview URL and a claim URL. Prefer the logged-in CLI so the project lands on the team and can attach GitHub. Do not run the claimable path against the repo root — that would publish the watch floor.</p>
+
+      <h3 id="vercel-cli">Commands</h3>
+<pre><code># always from dashboard/ — never the repo root
+cd dashboard
+npm ci && npm run build          # same as CI
+
+vercel link --yes --project chainmind-synapse
+# writes dashboard/.vercel/project.json (orgId + projectId, not a token)
+
+vercel env ls                    # should be empty of keys
+# optional compile-time API (only if you have a stable public URL):
+#   printf '%s' 'https://YOUR-TUNNEL-OR-API' | vercel env add VITE_API_BASE production
+# leaving it unset is the judicious default
+
+vercel --prod --yes              # production
+vercel --yes                     # preview
+
+# couple to GitHub (Vercel GitHub app must be installed on that repo)
+vercel git connect https://github.com/Raghavan2005/chainmind-synapse
+</code></pre>
+      <p><code>dashboard/vercel.json</code> pins Vite, <code>npm ci</code>, and <code>dist</code>. Hash routes (<code>#/0x…</code>) need no rewrite. Do not add serverless functions, cron, or a second Vercel project for the API.</p>
+      <p>Git integration settings if you click the dashboard instead of the CLI: Framework Preset Vite, Root Directory <code>dashboard</code>, Production Branch <code>master</code>, skip the rest of the monorepo. Ignored build step is fine for docs-only commits; do not ignore <code>dashboard/**</code>.</p>
+
+      <h3 id="vercel-gha">Actions fallback (token)</h3>
+      <p>Only if the GitHub app cannot be installed (fork, missing org perms). Create a Vercel token in the account UI, store it as environment secret <code>VERCEL_TOKEN</code> on environment <code>vercel</code>, set repository vars <code>VERCEL_ORG_ID</code> and <code>VERCEL_PROJECT_ID</code> from <code>dashboard/.vercel/project.json</code>, then set <code>VERCEL_DEPLOY_ENABLED=true</code>. Until that flag is true, <code>Deploy Vercel</code> is a no-op like AWS. Revoke the token when the Git app is connected.</p>
+<pre><code>bash scripts/vercel_preflight.sh           # whoami + project.json present
+# in CI, with token:
+vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+vercel build --prod --token "$VERCEL_TOKEN"
+vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+</code></pre>
+
+      <h3 id="vercel-env">What Vercel may hold</h3>
+      <table>
+        <thead><tr><th>Name</th><th>Where</th><th>Allowed?</th></tr></thead>
+        <tbody>
+          <tr><td><code>VITE_API_BASE</code></td><td>Production / Preview</td><td>Yes, a public HTTPS origin only. Never <code>http://127.0.0.1</code> in Production if you expect judges off your laptop.</td></tr>
+          <tr><td><code>LLM_*</code>, private keys, RPC URLs with API keys</td><td>—</td><td>No. Vite inlines <code>VITE_*</code> into the JS bundle. Non-<code>VITE_</code> secrets on a static project do nothing useful and still leak via the dashboard.</td></tr>
+        </tbody>
+      </table>
+      <p>CORS: API default remains <code>*</code> for the workstation demo. Before a public API, set <code>CORS_ORIGINS</code> to the Vercel production host (and the <code>*.vercel.app</code> preview host if you need it). See <a href="ARCHITECTURE.html">ARCHITECTURE.html</a> failure table — BYOK in a browser plus <code>*</code> is demo-only.</p>
+
+      <h2 id="aws">AWS (CLI first)</h2>
+      <p>Region lock: <strong><code>us-east-1</code></strong>. The old Terraform default <code>eu-west-1</code> was a footgun; it is no longer the default. Do not create a second ECR “in the region the laptop happens to be.”</p>
+      <p>Identity on this workstation has been the account root. That is fine for a one-off preflight. It is not fine as the GitHub credential. Actions must assume <code>chainmind-synapse-gha</code>.</p>
+
+      <h3 id="aws-cli">Cheap objects (the only apply you should run)</h3>
+<pre><code>aws sts get-caller-identity
+export AWS_REGION=us-east-1
+export ECR_REPOSITORY=chainmind-synapse
+export GITHUB_REPOSITORY=Raghavan2005/chainmind-synapse
+
+bash scripts/aws_preflight.sh            # check OIDC, role, ECR
+# bash scripts/aws_preflight.sh --create  # only if something is missing
+# bash scripts/aws_preflight.sh --teardown
+# in Actions: scripts/aws_preflight.sh --ci   (ECR + ecr:GetAuthorizationToken only)
+</code></pre>
+      <p><code>--create</code> makes the OIDC provider, the GHA role + inline ECR policy, and the repository. It does not make App Runner, a secret, a VPC, or a log group. <code>--teardown</code> deletes those same objects and nothing else.</p>
+
+      <h3 id="aws-image">Image (only when a human enabled deploy)</h3>
+<pre><code>aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin \
+    555431941144.dkr.ecr.us-east-1.amazonaws.com
+docker build -t 555431941144.dkr.ecr.us-east-1.amazonaws.com/chainmind-synapse:local .
+# docker push …   # only after AWS_DEPLOY_ENABLED or an explicit human ask
+</code></pre>
+      <p>Local run that costs no AWS compute:</p>
+<pre><code>docker compose up --build
+# api :8000  ·  ingest uses the same image, same .env, shared data/
+</code></pre>
+      <p>Ingest and API must share <code>data/overlay.json</code>. Two App Runner services that cannot see each other’s filesystem are the wrong shape. If you ever host the brain, run <strong>one</strong> task that either (a) is API-only while ingest stays on the laptop, or (b) is a Compose-shaped host (EC2/Lightsail single box) with both processes and a disk. Do not invent EFS for a JSON file.</p>
+
+      <h3 id="aws-tf">Terraform — documentation and opt-in runtime</h3>
+<pre><code>cd infra/aws
+terraform init
+terraform plan -var='enable_runtime=false'
+# expect: ECR + OIDC + GHA role. No App Runner. No secret.
+# If preflight already created those objects, do not apply —
+# import or leave Terraform unused. Two sources of truth will fight.
+</code></pre>
+      <p><code>enable_runtime=true</code> is the loud switch for Secrets Manager + App Runner (1 vCPU / 2 GB, health <code>/v1/health</code>). It still defaults to the FR-01 pair env, not Amoy. If you flip it: update every affected <code>instructions/*.html</code> page in the same commit and say so in the commit message. Then set <code>APPRUNNER_SERVICE_ARN</code> and <code>AWS_DEPLOY_ENABLED=true</code> only after the first service exists.</p>
+      <p>Do not “fix” spend by dropping to 0.25 vCPU and leaving it on 24/7. Turn it off.</p>
+
+      <h3 id="aws-iam">IAM hygiene (defensive only)</h3>
+      <ul>
+        <li>Prefer OIDC short-lived creds. A leaked <code>AKIA</code> in this repo is an incident; rotate and delete, do not “also add it to Actions so deploy works.”</li>
+        <li>GHA role: <code>ecr:GetAuthorizationToken</code> on <code>*</code> (AWS requires that) and push/describe on this one repository ARN. Nothing else.</li>
+        <li>Never attach <code>AdministratorAccess</code> to <code>chainmind-synapse-gha</code>.</li>
+        <li>App Runner instance role, if created, gets <code>secretsmanager:GetSecretValue</code> on one ARN. No <code>kms:*</code> wildcards.</li>
+        <li>Frontend bundles are public. Treat every <code>VITE_*</code> as already published.</li>
+        <li>Do not debug hosted IAM by curling instance metadata from the API. There is no reason for this app to reach <code>169.254.169.254</code>.</li>
+      </ul>
+
+      <h2 id="env">Environment matrix</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Laptop <code>.env</code></th><th>Vercel</th><th>GitHub</th><th>AWS secret (held)</th></tr></thead>
+        <tbody>
+          <tr><td>RPC URLs, ClaimSource, IdentityState, demo subject</td><td>Yes</td><td>No</td><td>No</td><td>Only if runtime exists</td></tr>
+          <tr><td><code>DEPLOYER_PRIVATE_KEY</code> / issuer keys</td><td>Yes, gitignored</td><td>Never</td><td>Never</td><td>Only if runtime exists</td></tr>
+          <tr><td><code>LLM_API_KEY</code></td><td>Optional operator default</td><td>Never</td><td>Never</td><td>Optional</td></tr>
+          <tr><td>Browser BYOK</td><td>localStorage only</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr><td><code>VITE_API_BASE</code></td><td><code>dashboard/.env.local</code> if you want</td><td>Optional</td><td>No</td><td>No</td></tr>
+          <tr><td><code>CORS_ORIGINS</code></td><td><code>*</code> locally</td><td>No (API-side)</td><td>No</td><td>Vercel origin list if public API</td></tr>
+          <tr><td><code>REPLAY_BEARER</code></td><td>Yes if you expose replay</td><td>Never</td><td>Never</td><td>Yes if public API</td></tr>
+          <tr><td><code>AWS_ROLE_ARN</code> / <code>ECR_REPOSITORY</code></td><td>No</td><td>No</td><td>Vars</td><td>—</td></tr>
+          <tr><td><code>VERCEL_TOKEN</code></td><td>CLI login locally</td><td>—</td><td>Env secret only if GHA deploys</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <p>Canonical blanks: <code>.env.example</code>. Do not commit <code>.env</code>, <code>.env.local</code>, or Vercel tokens.</p>
+
+      <h2 id="cors">CORS, BYOK, and a public origin</h2>
+      <ol>
+        <li>Local Vite proxies <code>/v1</code> → <code>127.0.0.1:8000</code>. No CORS needed on that path.</li>
+        <li>Vercel production is a different origin. The API must allow it. Default <code>CORS_ORIGINS=*</code> keeps the hackathon moving and is <strong>workstation-demo only</strong> once BYOK keys are in play.</li>
+        <li>When the API is on a tunnel or App Runner: <code>CORS_ORIGINS=https://chainmind-synapse.vercel.app,https://*.vercel.app</code> (or the exact preview host). FastAPI does not treat a wildcard inside a comma list as a glob — list concrete origins you care about, or keep <code>*</code> for the live demo and say so out loud.</li>
+        <li>GET <code>/v1/identity</code> never calls the LLM. A public API does not need an operator LLM key.</li>
+      </ol>
+
+      <h2 id="rollout">Rollout order</h2>
+      <ol>
+        <li>CI green on <code>master</code>.</li>
+        <li><code>cd dashboard && vercel link --yes --project chainmind-synapse && vercel --prod --yes</code>.</li>
+        <li><code>vercel git connect</code> if the Vercel user can see <code>Raghavan2005/chainmind-synapse</code>. Attempted 2026-08-23 from team <code>aaryanguglanics21-3349s-projects</code>: GitHub rejected the link (Vercel identity ≠ repo owner). The GitHub owner installs the Vercel GitHub app on that repo, then rerun connect. Do not fork onto a second remote to “make link work.” Until then: CLI <code>vercel --prod</code> from <code>dashboard/</code>, or the gated token workflow.</li>
+        <li>Judge path A (default): API on localhost or Compose; dashboard on Vercel; paste API base in the UI.</li>
+        <li>Judge path B (demo day): Cloudflare Tunnel / ngrok → <code>:8000</code>; set <code>VITE_API_BASE</code> or paste it; kill the tunnel after.</li>
+        <li>Judge path C (explicit spend): human sets <code>enable_runtime</code>, applies Terraform or clicks App Runner once, sets the two GitHub flags, and writes the URL into this page. Same commit updates CLAUDE.html / ARCHITECTURE.html.</li>
+      </ol>
+
+      <h2 id="teardown">Tear-down</h2>
+<pre><code># Vercel (project + deployments)
+vercel rm chainmind-synapse --yes          # from dashboard/, after link
+# or delete in the Vercel UI
+
+# AWS cheap objects (not App Runner — there should be none)
+bash scripts/aws_preflight.sh --teardown
+
+# If someone did create runtime:
+#   aws apprunner delete-service --service-arn "$ARN"
+#   aws secretsmanager delete-secret --secret-id chainmind-synapse/runtime --force-delete-without-recovery
+# then terraform destroy -var='enable_runtime=true'   # only with a state file you trust
+</code></pre>
+      <p>ECR <code>force_delete</code> / <code>--force</code> wipes images. That is acceptable; the image is reproducible from <code>master</code>.</p>
+
+      <h2 id="playbook">Agent playbook</h2>
+      <ol>
+        <li>Read this page and <a href="CLAUDE.html">CLAUDE.html</a> before touching cloud.</li>
+        <li>Use <code>vercel</code> CLI (logged in) or the claimable Vercel deploy skill on <code>dashboard/</code> only. Use <code>aws</code> CLI + <code>scripts/aws_preflight.sh</code>. Use <code>gh</code> for variables, environments, and workflow runs — not the website unless <code>gh</code> cannot.</li>
+        <li>Do not apply Terraform, enable the deploy flags, or push to ECR as a side effect of an HTML edit.</li>
+        <li>After code changes, <code>graphify update .</code>. After a hosting lock change, update every affected HTML page in the same commit and say so loudly.</li>
+        <li>Verify the dashboard in a browser. A screenshot of the Vercel “Congratulations” page is not verification — load the app, hit health with a pasted API base, confirm empty/error/happy.</li>
+      </ol>
+
+      <h2 id="done">You are hosted when</h2>
+      <ol>
+        <li>Vercel production serves the Vite dashboard (copper/bone, not the watch-floor HTML).</li>
+        <li>A preview deployment exists for a branch or a <code>vercel</code> preview, or GitHub is connected with Root Directory <code>dashboard</code>.</li>
+        <li>CI is green. AWS deploy is skip/neutral. Vercel-from-Actions is skip/neutral unless a token path was requested.</li>
+        <li><code>GET /v1/health</code> from the machine that runs the API still shows catalog heads. Hosting did not become the source of truth.</li>
+        <li>No new always-on AWS compute, no secret, no database. Bill for this project is Hobby + idle ECR + IAM.</li>
+      </ol>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

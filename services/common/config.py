@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     replay_bearer: str = ""
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    # "*" = workstation demo. Comma-separated concrete origins for a public API.
+    cors_origins: str = "*"
 
 
 def load_settings() -> Settings:

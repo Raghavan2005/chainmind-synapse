@@ -37,9 +37,11 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="ChainMind Synapse", version="0.1.0", lifespan=lifespan)
+_cors = settings.cors_origins.strip()
+_cors_origins = ["*"] if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins or ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

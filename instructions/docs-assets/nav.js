@@ -10,6 +10,7 @@
     ["RESEARCH.html", "Research"],
     ["REPOS.html", "Repos"],
     ["INTEGRATION.html", "Integrate"],
+    ["DEVOPS.html", "DevOps"],
     ["SCHEMA.html", "Schema"],
     ["PROMPTS.html", "Prompts"],
     ["AGENTS.html", "Agents"],
