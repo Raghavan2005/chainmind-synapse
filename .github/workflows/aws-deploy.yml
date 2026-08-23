@@ -61,6 +61,7 @@ jobs:
     needs: gate
     if: ${{ needs.gate.outputs.action == 'preflight' }}
     runs-on: ubuntu-latest
+    environment: aws
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4

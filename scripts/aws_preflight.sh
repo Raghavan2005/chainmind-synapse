@@ -136,10 +136,27 @@ if ! check_oidc; then
   echo "created OIDC provider"
 fi
 
-TRUST="$(ACCOUNT="$ACCOUNT" GITHUB_REPO="$GITHUB_REPO" python3 - <<'PY'
+# GitHub Actions OIDC sub is repo:OWNER/NAME:* and, on current GitHub,
+# repo:OWNER@OWNER_ID/NAME@REPO_ID:* (see actions/oidc/customization/sub).
+OWNER_LOGIN="${GITHUB_REPOSITORY_OWNER:-${GITHUB_REPO%%/*}}"
+REPO_SLUG="${GITHUB_REPO#*/}"
+OWNER_ID="${GITHUB_REPOSITORY_OWNER_ID:-}"
+REPO_ID="${GITHUB_REPOSITORY_ID:-}"
+if [[ -z "$OWNER_ID" || -z "$REPO_ID" ]] && command -v gh >/dev/null 2>&1; then
+  OWNER_ID="$(gh api "repos/${GITHUB_REPO}" --jq .owner.id 2>/dev/null || true)"
+  REPO_ID="$(gh api "repos/${GITHUB_REPO}" --jq .id 2>/dev/null || true)"
+fi
+TRUST="$(ACCOUNT="$ACCOUNT" GITHUB_REPO="$GITHUB_REPO" OWNER_LOGIN="$OWNER_LOGIN" REPO_SLUG="$REPO_SLUG" OWNER_ID="${OWNER_ID:-}" REPO_ID="${REPO_ID:-}" python3 - <<'PY'
 import json, os
 account = os.environ["ACCOUNT"]
 repo = os.environ["GITHUB_REPO"]
+owner = os.environ["OWNER_LOGIN"]
+slug = os.environ["REPO_SLUG"]
+owner_id = os.environ.get("OWNER_ID") or ""
+repo_id = os.environ.get("REPO_ID") or ""
+subs = [f"repo:{repo}:*"]
+if owner_id and repo_id:
+    subs.append(f"repo:{owner}@{owner_id}/{slug}@{repo_id}:*")
 print(json.dumps({
     "Version": "2012-10-17",
     "Statement": [{
@@ -153,11 +170,7 @@ print(json.dumps({
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
             },
             "StringLike": {
-                "token.actions.githubusercontent.com:sub": [
-                    f"repo:{repo}:ref:refs/heads/master",
-                    f"repo:{repo}:ref:refs/heads/main",
-                    f"repo:{repo}:environment:aws",
-                ]
+                "token.actions.githubusercontent.com:sub": subs
             },
         },
     }]
