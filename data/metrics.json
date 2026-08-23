@@ -1,0 +1,22 @@
+{
+  "accuracy": 0.9,
+  "f1": 0.9108910891089109,
+  "brier": 0.08682539359082792,
+  "n_train": 720,
+  "n_test": 180,
+  "features": [
+    "issuer_prior",
+    "issuer_volume",
+    "hours_to_expiry",
+    "expired",
+    "revoked",
+    "claim_age_hours",
+    "confirmations_norm",
+    "signature_valid",
+    "conflict_count",
+    "chain_is_settlement",
+    "polarity",
+    "evidence_len_norm"
+  ],
+  "revoked_expired_p": 0.07786634540998351
+}

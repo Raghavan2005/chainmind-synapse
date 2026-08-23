@@ -1,0 +1,19 @@
+name: Bug
+description: Something the live pipeline got wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Link the GET JSON, tx hash, and which instructions/ page is violated.
+    validations:
+      required: true
+  - type: input
+    id: subject
+    attributes:
+      label: Demo subject
+  - type: input
+    id: commit
+    attributes:
+      label: commitId / tx hash
