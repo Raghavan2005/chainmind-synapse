@@ -1,3 +1,4 @@
+# App Runner is linux/amd64. From Apple Silicon: docker build --platform linux/amd64
 FROM python:3.12-slim
 
 WORKDIR /app

@@ -144,7 +144,9 @@
 
       <h2 id="explain-regen">POST /v1/identity/{subject}/explain</h2>
       <p>Regenerate the explanation from overlay + SHAP + LiteLLM. Does <em>not</em> rewrite chain state. Writes the explanation JSON cache. Body (all optional):</p>
-<pre><code>{ "apiKey": "sk-…", "baseUrl": "https://api.openai.com/v1", "model": "gpt-4.1-mini" }
+<pre><code>{ "apiKey": "", "baseUrl": "", "model": "" }
+# blank body → operator Groq default (LLM_* in .env / App Runner).
+# optional BYOK: { "apiKey": "gsk_…", "baseUrl": "https://api.groq.com/openai/v1", "model": "qwen/qwen3.6-27b" }
 </code></pre>
       <p>404 if no overlay/commit. Replay bearer is not required. The key is used for this request only and is never echoed.</p>
 
@@ -181,8 +183,8 @@
   "llm": {
     "router": "litellm",
     "envConfigured": false,
-    "model": "gpt-4.1-mini",
-    "baseUrlSet": false,
+    "model": "qwen/qwen3.6-27b",
+    "baseUrlSet": true,
     "byok": true
   }
 }

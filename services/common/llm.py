@@ -6,7 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_MODEL = "qwen/qwen3.6-27b"
+DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,8 @@ class _Hello(BaseModel):
 def resolve_model(model: str | None, base_url: str | None) -> str:
     name = (model or "").strip() or DEFAULT_MODEL
     url = (base_url or "").strip()
+    # Groq's OpenAI-compatible IDs already contain a slash (qwen/qwen3.6-27b).
+    # Do not treat that slash as a LiteLLM provider prefix.
     if url and "/" not in name:
         return f"openai/{name}"
     return name
@@ -71,17 +74,22 @@ def runtime_from(settings: Any | None = None, override: LLMOverride | None = Non
 
 
 def llm_public_status(settings: Any) -> dict[str, Any]:
+    key_set = bool(getattr(settings, "llm_api_key", ""))
+    extract_on = bool(getattr(settings, "llm_extract", False)) and key_set
     return {
         "router": "litellm",
-        "envConfigured": bool(getattr(settings, "llm_api_key", "")),
+        "envConfigured": key_set,
         "model": getattr(settings, "llm_model", None) or DEFAULT_MODEL,
         "baseUrlSet": bool(getattr(settings, "llm_base_url", "")),
         "byok": True,
+        "extractMode": "instructor" if extract_on else "rules",
+        "explainMode": "shap+litellm" if key_set else "shap+template",
     }
 
 
 def safe_error(exc: BaseException) -> str:
     text = str(exc)
+    text = re.sub(r"gsk_[A-Za-z0-9]+", "[redacted]", text)
     text = re.sub(r"sk-[A-Za-z0-9_\-]+", "[redacted]", text)
     text = re.sub(
         r"(api[_-]?key|authorization|bearer)([=:\s]+)\S+",
@@ -92,14 +100,33 @@ def safe_error(exc: BaseException) -> str:
     return text[:400]
 
 
-def _instructor_client():
+def uses_groq(runtime: LLMRuntime) -> bool:
+    url = (runtime.base_url or "").lower()
+    model = (runtime.model or "").lower()
+    return "groq.com" in url or model.startswith("groq/") or "qwen/qwen3" in model
+
+
+def structured_call_options(runtime: LLMRuntime) -> dict[str, Any]:
+    opts: dict[str, Any] = {}
+    if runtime.base_url:
+        opts["api_base"] = runtime.base_url
+        opts["custom_llm_provider"] = "openai"
+    # Groq Qwen 3.6 reasons by default; tool-calling then 400s.
+    # JSON mode + reasoning_effort=none is the working OpenAI-compat path.
+    if uses_groq(runtime):
+        opts["extra_body"] = {"reasoning_effort": "none"}
+    return opts
+
+
+def _instructor_client(runtime: LLMRuntime):
     import instructor
     import litellm
 
     litellm.drop_params = True
     litellm.telemetry = False
     litellm.suppress_debug_info = True
-    return instructor.from_litellm(litellm.completion)
+    mode = instructor.Mode.JSON if uses_groq(runtime) else instructor.Mode.TOOLS
+    return instructor.from_litellm(litellm.completion, mode=mode)
 
 
 def complete_structured(
@@ -113,7 +140,7 @@ def complete_structured(
 ) -> Any:
     if not runtime.enabled:
         raise RuntimeError("llm runtime disabled")
-    client = _instructor_client()
+    client = _instructor_client(runtime)
     kwargs: dict[str, Any] = {
         "model": runtime.resolved_model,
         "response_model": response_model,
@@ -123,10 +150,8 @@ def complete_structured(
         "api_key": runtime.api_key,
         "timeout": timeout,
         "max_retries": 1,
+        **structured_call_options(runtime),
     }
-    if runtime.base_url:
-        kwargs["api_base"] = runtime.base_url
-        kwargs["custom_llm_provider"] = "openai"
     return client.chat.completions.create(**kwargs)
 
 

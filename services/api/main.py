@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -21,6 +22,8 @@ settings = load_settings()
 scorer: Scorer | None = None
 metrics: dict[str, Any] = {}
 rpc_cache: dict[str, Any] = {"at": 0, "heads": {}, "errors": {}, "emergency": False}
+overlay_cache: dict[str, Any] = {"mtime": None, "data": {"subjects": {}}}
+history_cache: dict[str, Any] = {}
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -34,15 +37,20 @@ def _hosted_ingest_loop() -> None:
     from services.pipeline import Brain
 
     assert scorer is not None
+    # App Runner health is /v1/health with a 5s timeout. Do not start the
+    # seven-chain backfill until the service has answered a few probes.
+    time.sleep(30)
     brain = Brain(settings, scorer)
+    first = True
     while True:
         try:
-            run_once(brain, None, settings)
+            run_once(brain, None, settings, force_backfill=first)
+            first = False
         except Exception as exc:
             from services.common.log import emit
 
             emit("ingest.error", chainId=0, err=str(exc), backoffMs=4000)
-        time.sleep(4)
+        time.sleep(12)
 
 
 @asynccontextmanager
@@ -87,19 +95,32 @@ app.add_middleware(
 
 def _heads() -> tuple[dict[int, int | None], dict[int, str], bool]:
     now = time.time()
-    if now - rpc_cache["at"] < 8 and rpc_cache.get("heads"):
+    if now - rpc_cache["at"] < 15 and rpc_cache.get("heads"):
         return rpc_cache["heads"], rpc_cache["errors"], bool(rpc_cache.get("emergency"))
     heads: dict[int, int | None] = {}
     errors: dict[int, str] = {}
     emergency = False
-    for spec in CHAINS.values():
-        url = getattr(settings, spec.rpc_attr, "") or ""
-        fallback = getattr(settings, spec.rpc_fallback_attr, "") or ""
-        try:
-            heads[spec.chain_id] = connect_live(url, fallback).eth.block_number
-        except Exception as exc:
-            heads[spec.chain_id] = None
-            errors[spec.chain_id] = str(exc)
+
+    def _probe(spec):
+        last_err = "no rpc"
+        for candidate in (
+            getattr(settings, spec.rpc_attr, "") or "",
+            getattr(settings, spec.rpc_fallback_attr, "") or "",
+        ):
+            if not candidate:
+                continue
+            try:
+                w3 = Web3(Web3.HTTPProvider(candidate, request_kwargs={"timeout": 2.5}))
+                return spec.chain_id, w3.eth.block_number, None
+            except Exception as exc:
+                last_err = str(exc)
+        return spec.chain_id, None, last_err
+
+    with ThreadPoolExecutor(max_workers=len(CHAINS)) as pool:
+        for cid, head, err in pool.map(_probe, CHAINS.values()):
+            heads[cid] = head
+            if err:
+                errors[cid] = err
     if heads.get(UNICHAIN_SEPOLIA_CHAIN_ID) is None and settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency:
         try:
             heads[UNICHAIN_SEPOLIA_CHAIN_ID] = connect_live(settings.anvil_emergency_rpc_url).eth.block_number
@@ -165,8 +186,15 @@ def llm_test(body: LLMByokIn | None = None) -> dict[str, Any]:
 
 
 def _overlay(subject: str) -> dict[str, Any] | None:
-    data = read_json(settings.overlay_path, {"subjects": {}})
-    return data.get("subjects", {}).get(subject.lower())
+    path = settings.overlay_path
+    try:
+        mtime = path.stat().st_mtime
+    except FileNotFoundError:
+        return None
+    if overlay_cache["mtime"] != mtime:
+        overlay_cache["data"] = read_json(path, {"subjects": {}})
+        overlay_cache["mtime"] = mtime
+    return overlay_cache["data"].get("subjects", {}).get(subject.lower())
 
 
 @app.get("/v1/identity/{subject}", tags=["identity"])
@@ -176,8 +204,8 @@ def identity(subject: str, pending: bool = True) -> dict[str, Any]:
     row = _overlay(subject)
     if row is None:
         raise HTTPException(404, "no claims for this subject on watched chains")
+    row = dict(row)
     if not pending:
-        row = dict(row)
         row["pendingOnChain"] = False
     row.pop("vectors", None)
     return row
@@ -187,6 +215,11 @@ def identity(subject: str, pending: bool = True) -> dict[str, Any]:
 def history(subject: str) -> dict[str, Any]:
     if not settings.identity_state_sepolia:
         raise HTTPException(503, "identity contract not configured")
+    key = subject.lower()
+    now = time.time()
+    hit = history_cache.get(key)
+    if hit and now - hit["at"] < 15:
+        return hit["body"]
     w3 = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
     contract = w3.eth.contract(address=Web3.to_checksum_address(settings.identity_state_sepolia), abi=identity_abi())
     checksum_subject = Web3.to_checksum_address(subject)
@@ -196,7 +229,7 @@ def history(subject: str) -> dict[str, Any]:
             batch.add(contract.functions.historyAt(checksum_subject, i))
         batch.add(contract.functions.latest(checksum_subject))
         *ids, latest = batch.execute()
-    return {
+    body = {
         "subject": subject,
         "count": count,
         "commitIds": ["0x" + i.hex() for i in ids],
@@ -209,6 +242,8 @@ def history(subject: str) -> dict[str, Any]:
             "blockNumber": latest[5],
         },
     }
+    history_cache[key] = {"at": now, "body": body}
+    return body
 
 
 @app.get("/v1/identity/{subject}/explanation", tags=["identity"])

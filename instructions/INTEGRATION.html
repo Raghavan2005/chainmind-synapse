@@ -119,9 +119,9 @@ python -m services.ingest.watch
       <p>Ingest process owns the writer. API process is read-only plus health. Share overlay via a local JSON file <code>data/overlay.json</code> with atomic replace (<code>os.replace</code>). That file is a cache, not the source of truth.</p>
 
       <h2 id="llm">LLM wiring (LiteLLM + Instructor)</h2>
-<pre><code>export LLM_BASE_URL=https://api.openai.com/v1   # any OpenAI-compatible server
-export LLM_API_KEY=...
-export LLM_MODEL=gpt-4.1-mini
+<pre><code>export LLM_BASE_URL=https://api.groq.com/openai/v1
+export LLM_API_KEY=gsk_...                 # console.groq.com — never commit
+export LLM_MODEL=qwen/qwen3.6-27b
 </code></pre>
       <p>Operator env is the default for live ingest extract. Frontend BYOK is browser localStorage + <code>POST /v1/llm/test</code> and <code>POST /v1/identity/{subject}/explain</code> body <code>{apiKey, baseUrl, model}</code>. Never persist keys server-side.</p>
 <pre><code>import instructor, litellm
@@ -129,14 +129,16 @@ from services.normalize.schema import NormalizedClaim
 
 # If base_url is set and model has no "/", prefix openai/ so LiteLLM
 # treats Ollama / Groq OpenAI mode / Together / custom gateways as OpenAI-compatible.
-client = instructor.from_litellm(litellm.completion)
+# Groq Qwen 3.6: JSON mode + reasoning_effort=none. Tool-calling 400s.
+client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)
 claim = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="qwen/qwen3.6-27b",
     response_model=NormalizedClaim,
     temperature=0,
     api_key=os.environ["LLM_API_KEY"],
     api_base=os.environ.get("LLM_BASE_URL") or None,
     custom_llm_provider="openai",  # when a custom base_url is set
+    extra_body={"reasoning_effort": "none"},
     messages=[...],  # PROMPTS.html
 )
 </code></pre>

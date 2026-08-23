@@ -87,6 +87,8 @@ def extract_claim(
 ) -> tuple[NormalizedClaim, str]:
     """Return (claim, engine). Instructor-over-LiteLLM when a key is set; else the event/JSON parser."""
     base = from_event(event, head)
+    if settings is not None and not getattr(settings, "llm_extract", False) and override is None:
+        return base, "rules"
     runtime = runtime_from(settings, override)
     if not runtime.enabled:
         return base, "rules"

@@ -80,7 +80,7 @@ IdentityState.commit        FastAPI GET /v1/identity/{id}
         <li><strong>Fuse.</strong> Group by topic. Cumulative fuse independent issuers. Average fuse obvious duplicates (same issuer, two chains, same payload). Cross-topic: produce a vector of topic verdicts plus a scalar <code>confidence</code>.</li>
         <li><strong>Revise.</strong> If pairwise conflict K &gt; θ, discount the weaker issuer (Jøsang 2017 trust revision) and refuse to hide the conflict in the JSON.</li>
         <li><strong>Commit.</strong> If <code>commitId</code> is new, send <code>IdentityState.commit</code>. Wait for 1 confirmation. Store receipt.</li>
-        <li><strong>Serve.</strong> API returns overlay (memory) if newer than last commit, flagged <code>pendingOnChain: true</code>, plus the last finalized commit.</li>
+        <li><strong>Serve.</strong> GET <code>/v1/identity</code> is overlay JSON (mtime cache). No LLM and no live RPC on that path. <code>pendingOnChain</code> stays true on a writer-less host until Sepolia <code>latest()</code> already stores the same <code>commitId</code> / <code>stateHash</code> (laptop <code>scripts/commit_overlay.py</code> if a new fuse reminted the clock). History is a separate 15s-cached <code>eth_call</code>.</li>
         <li><strong>Explain.</strong> Built asynchronously after score. Never on the GET hot path. Cached next to the commit.</li>
       </ol>
 
@@ -362,10 +362,10 @@ stateHash commits the full preimage, not a silent winner
 
       <h2 id="scale">Scalability (honest)</h2>
       <ul>
-        <li><strong>Read path</strong> is cheap: memory / overlay JSON + optional one <code>eth_call</code> if cache age &gt; 15s. Horizontal scale = more API workers behind the same overlay file or a later cache. NFR-01 is 200 requests / 20 concurrent on one subject.</li>
+        <li><strong>Read path</strong> is cheap: overlay JSON (mtime) on GET identity; history may one <code>eth_call</code> if cache age &gt; 15s. NFR-01 is a warm <em>local</em> <code>scripts/nfr01_load.sh</code> (<code>hey -n 200 -c 20</code>) — not India→us-east-1 App Runner RTT.</li>
         <li><strong>Write path</strong> is per-subject, not global. A mutex per subject prevents double-send. Many subjects interleave.</li>
         <li><strong>Bottlenecks</strong> are public RPC rate limits and settlement gas, not fusion arithmetic (O(n) claims per subject, n is tiny in the demo).</li>
-        <li><strong>Watchers</strong> scale by chain (one process per RPC). Backfill is bounded (last 2k blocks). Do not claim “millions of QPS.”</li>
+        <li><strong>Watchers</strong> scale by chain. Cold ingest for the FR-01 pair starts at each ClaimSource deploy block (chunked 2k logs). Extra L2s use a recent window on first pass so seven full scans do not starve GET. Do not claim “millions of QPS.”</li>
         <li><strong>Explain</strong> is async and cache-keyed by commitId so it cannot take the read path down.</li>
         <li><strong>What would break first in production:</strong> one operator key, one RPC URL, one host for ingest+writer, synthetic labels. Mitigations are in the production section, not in the 6-hour binary.</li>
       </ul>

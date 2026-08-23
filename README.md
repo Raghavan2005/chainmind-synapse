@@ -131,7 +131,8 @@ Demo subject `0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221`:
 | --- | --- | --- |
 | Claim A `kyc.adult` +1 | Sepolia | [`0x258a839c…`](https://sepolia.etherscan.io/tx/0x258a839cc148b352ce1bc581dea792ae58c34b46748f95cda2d37371347a8d94) |
 | Claim B `kyc.adult` −1 | Unichain Sepolia | [`0x55e1f73e…`](https://sepolia.uniscan.xyz/tx/0x55e1f73e55556412280bf7844a4ec0a0cdf0d23776b8e7e5b05529b24106a197) |
-| Conflict `StateCommitted` | Sepolia | [`0x654ddce8…`](https://sepolia.etherscan.io/tx/0x654ddce8b47cba6b06fe9508ece0ffaf7b9aeb67d59f046bf2fcedad7bee4135) |
+| Conflict `StateCommitted` (first fight) | Sepolia | [`0x654ddce8…`](https://sepolia.etherscan.io/tx/0x654ddce8b47cba6b06fe9508ece0ffaf7b9aeb67d59f046bf2fcedad7bee4135) |
+| Conflict `StateCommitted` (live overlay) | Sepolia | [`0x0cc62feb…`](https://sepolia.etherscan.io/tx/0x0cc62febe3c876084c89b51aedf281e2b81c52c6041ee3c7266a1a35922e3c86) |
 
 Decoded `StateCommitted` from that receipt (via `process_receipt`, not a mocked value):
 
@@ -143,9 +144,14 @@ modelVersion 0x3fd4e29b2b3f0f7a1cf9b9ab687c041885cfd4c19acde734495dfd99d005c1d1
 issuedAt     1787466048
 ```
 
+Ingest watches seven chains. The hosted GET is a rolling overlay. If a curl of `/v1/identity` only lists Sepolia `kyc.adult +1`, that is the cache window, not the whole fight. Send judges **history** and the three explorer links above (`0x258a839c…`, `0x55e1f73e…`, `0x654ddce8…` / commit `0x815db98f…` at block `11548231`), not only today’s overlay.
+
 ```bash
 curl -s https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/identity/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221
+curl -s https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/identity/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221/history
 ```
+
+NFR-01 is a **warm local** `hey` run (`scripts/nfr01_load.sh`), not App Runner RTT from another continent. Hosted extract is the rules parser (`LLM_EXTRACT=0`). Operator LLM default is Groq Cloud `qwen/qwen3.6-27b` via LiteLLM — paste `LLM_API_KEY` in repo-root `.env` (laptop) or App Runner runtime env (hosted explain). Never Vercel, never Secrets Manager. Blank key keeps explain on shap+template (FR-02). Browser BYOK is optional and never owns `scoreBps`. There is no writer key on AWS — `pendingOnChain` settles when `latest().commitId` matches, or a laptop runs `scripts/commit_overlay.py` against the hosted overlay.
 
 ## Contracts (2026-08-23 throwaway deploy)
 
