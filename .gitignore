@@ -1,2 +1,42 @@
-.compozy/
+# Compozy runtime (keep committed agent roster)
+.compozy/*
+!.compozy/agents/
+!.compozy/agents/**
+
+# Local agent transcripts / scratch
 .specstory/
+local/
+
+# Secrets and machine env
+.env
+.env.local
+*.pem
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Foundry
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/lib/
+
+# Node / dashboard
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# Runtime caches (reconstruct from chain)
+data/cursors.json
+data/overlay.json
+data/explanations/
+data/*.tmp
+
+# OS
+.DS_Store
