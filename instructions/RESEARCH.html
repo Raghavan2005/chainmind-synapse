@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Research &amp; SOTA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Papers · standards · what we steal · what we refuse</p>
+      <h1>Research dossier</h1>
+      <p class="lede">SOTA methods that apply to conflicting cross-chain identity claims, mapped onto a 6-hour build. Every “use it” line is implementable with the math in MATH.html or the prompts in PROMPTS.html. Every “cite only” line is for the demo defence.</p>
+
+      <h2 id="adjacent">Adjacent products (not prior art for the PRD)</h2>
+      <p>Full table and fact-check live in <code>research-existing-solutions.md</code> (corrected 2026-08-23 against primary docs). Short version: Nomis and RubyScore score wallet <em>behavior</em>. Cred scores DeFi credit risk. Ethos and UTU are social reputation. Trusta.AI and Human Passport score humanity / Sybil risk. W3C DID/VC is a claim format. Chainlink ACE is a CCID + credential registry + policy engine (not “oracle plumbing”). ERC-8004 is a <em>Draft</em> agent-identity ERC. None fuse conflicting <em>human credential claims</em> with an explainable on-chain verdict.</p>
+      <table>
+        <thead><tr><th>Thing</th><th>Cite as</th><th>Do not say</th></tr></thead>
+        <tbody>
+          <tr><td>Trusta.AI</td><td>Sybil / MEDIA reputation / agent attestations. Docs: Linea, BSC, Scroll, TON.</td><td>“3M unique humans” or “bot detection only.”</td></tr>
+          <tr><td>Nomis, RubyScore</td><td>On-chain wallet scores.</td><td>That they reconcile issuer credentials.</td></tr>
+          <tr><td>Ethos, UTU</td><td>Social vouches / dapp reviews.</td><td>“Wallet reputation from transaction history.”</td></tr>
+          <tr><td>Cred Protocol</td><td>Lending-risk credit score.</td><td>General identity referee.</td></tr>
+          <tr><td>Human Passport</td><td>Closest multi-issuer stamp aggregator. Do not wrap.</td><td>That it arbitrates conflicting claims or explains them.</td></tr>
+          <tr><td>Chainlink ACE</td><td><a href="https://docs.chain.link/ace/concepts/cross-chain-identity">CCID docs</a>. Can require several issuers (<code>minValidations</code>).</td><td>The LLM education page at <code>chain.link/article/…</code>. “Just moves bits.”</td></tr>
+          <tr><td>ERC-8004</td><td>Draft ERC (created 2025-08-13). Agent registries. Mainnet refs 2026-01-29.</td><td>“2026 Ethereum standard” as if Final.</td></tr>
+        </tbody>
+      </table>
+      <p>Agent-identity drafts to name if a judge asks — not dependencies: <a href="https://eips.ethereum.org/EIPS/eip-8004">ERC-8004</a>; individual IETF draft <a href="https://datatracker.ietf.org/doc/html/draft-sharif-attp-01">draft-sharif-attp-01</a> (ATTP); <a href="https://github.com/visa/trusted-agent-protocol">Visa Trusted Agent Protocol</a>. “WEF Know Your Agent” is a <a href="https://www.weforum.org/stories/2026/01/ai-agents-trust/">Socure op-ed on the WEF site</a>, not a Forum standard. WEF’s paper is <a href="https://www.weforum.org/publications/ai-agents-in-action-foundations-for-evaluation-and-governance/">AI Agents in Action</a>.</p>
+      <ul>
+        <li><a href="https://trusta-labs.gitbook.io/trustaai">Trusta.AI docs</a></li>
+        <li><a href="https://docs.nomis.cc/core-primitives/nomis-math-model">Nomis math model</a></li>
+        <li><a href="https://docs.rubyscore.io/">RubyScore</a> · <a href="https://www.ethos.network/post/the-ethos-credibility-score">Ethos</a> · <a href="https://credprotocol.com/">Cred</a> · <a href="https://utu.io/">UTU</a></li>
+        <li><a href="https://passport.human.tech/">Human Passport</a> · <a href="https://github.com/passportxyz/passport">passportxyz/passport</a></li>
+        <li><a href="https://docs.chain.link/ace/concepts/cross-chain-identity">Chainlink ACE — Cross-Chain Identity</a></li>
+      </ul>
+
+      <h2 id="standards">Standards we speak</h2>
+      <table>
+        <thead><tr><th>Standard</th><th>URL</th><th>Use in Synapse</th></tr></thead>
+        <tbody>
+          <tr><td>W3C DID Core 1.0 (REC 2022-07-19)</td><td><a href="https://www.w3.org/TR/did-core/">w3.org/TR/did-core</a></td><td>Identifier shape. Repo <a href="https://github.com/w3c/did">w3c/did</a></td></tr>
+          <tr><td>W3C VC Data Model 2.0</td><td><a href="https://www.w3.org/TR/vc-data-model-2.0/">w3.org/TR/vc-data-model-2.0</a></td><td>Claim envelope. Repo <a href="https://github.com/w3c/vc-data-model">w3c/vc-data-model</a></td></tr>
+          <tr><td>Bitstring Status List 1.0</td><td><a href="https://www.w3.org/TR/vc-bitstring-status-list/">w3.org/TR/vc-bitstring-status-list</a></td><td>Cite as production revocation. MVP uses an on-chain revoked bit. Repo <a href="https://github.com/w3c/vc-bitstring-status-list">w3c/vc-bitstring-status-list</a></td></tr>
+          <tr><td>VC Overview 1.0</td><td><a href="https://www.w3.org/TR/vc-overview-1.0/">w3.org/TR/vc-overview-1.0</a></td><td>Glossary for the demo</td></tr>
+          <tr><td>ERC-1056 Lightweight Identity</td><td><a href="https://eips.ethereum.org/EIPS/eip-1056">eips.ethereum.org/EIPS/eip-1056</a></td><td>did:ethr semantics. Registry <a href="https://github.com/uport-project/ethr-did-registry">uport-project/ethr-did-registry</a></td></tr>
+          <tr><td>ERC-735 Claim Holder</td><td>EIP discussion 735</td><td>claimId = hash(issuer, topic) inspiration only</td></tr>
+          <tr><td>ERC-8004 Trustless Agents (Draft)</td><td><a href="https://eips.ethereum.org/EIPS/eip-8004">eip-8004</a> · raw <a href="https://github.com/ethereum/ERCs/blob/master/ERCS/erc-8004.md">ERCs/erc-8004.md</a></td><td>Cite as 2025/26 <em>draft</em> agent-identity parallel, not a finalized standard and not a dependency. Contracts <a href="https://github.com/erc-8004/erc-8004-contracts">erc-8004/erc-8004-contracts</a></td></tr>
+          <tr><td>EIP-712</td><td><a href="https://eips.ethereum.org/EIPS/eip-712">eip-712</a></td><td>Optional typed claim signing if you have time</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="trust-math">Trust mathematics (implement)</h2>
+      <table>
+        <thead><tr><th>Work</th><th>Year</th><th>Link</th><th>Steal</th></tr></thead>
+        <tbody>
+          <tr><td>Jøsang &amp; Ismail — The Beta Reputation System</td><td>2002</td><td><a href="https://www.mn.uio.no/ifi/english/people/aca/josang/publications/ji2002-bled.pdf">PDF</a></td><td>Issuer \(r,s\), expectation, discount, forgetting</td></tr>
+          <tr><td>Jøsang — Subjective Logic (book + FUSION tutorial)</td><td>2016 / 2022</td><td><a href="https://mn.uio.no/ifi/english/people/aca/josang/sl/subjective-logic-fusion-2022.pdf">FUSION 2022 PDF</a></td><td>Opinions, \(\oplus\), averaging, discounting</td></tr>
+          <tr><td>Jøsang, Zibetti, Wang — Multi-Source Trust Revision</td><td>2017</td><td><a href="https://www.mn.uio.no/ifi/english/people/aca/josang/publications/jzw2017-fusion.pdf">PDF</a></td><td>When sources conflict, shrink the weaker</td></tr>
+          <tr><td>Jøsang et al. — Exploring Types of Trust Propagation</td><td>2006</td><td><a href="https://www.mn.uio.no/ifi/english/people/aca/josang/publications/jpm2006-itrust.pdf">PDF</a></td><td>Transitivity vs fusion (optional chains)</td></tr>
+          <tr><td>Dempster / Shafer — A Mathematical Theory of Evidence</td><td>1967 / 1976</td><td><a href="https://en.wikipedia.org/wiki/Dempster%E2%80%93Shafer_theory">overview</a></td><td>Mass, Bel, Pl, conflict \(K\). Default engine remains SL</td></tr>
+          <tr><td>Adaptive DS trust in MAS</td><td>2022</td><td><a href="https://www.mdpi.com/2076-3417/12/15/7633">MDPI</a></td><td>Witness confidence + recency</td></tr>
+          <tr><td>Kamvar, Schlosser, Garcia-Molina — EigenTrust</td><td>2003</td><td><a href="https://www-nlp.stanford.edu/pubs/eigentrust.pdf">PDF</a></td><td>Issuer graph if we grow past a handful of issuers</td></tr>
+          <tr><td>Jøsang, Ismail, Boyd — Survey of trust and reputation</td><td>2007</td><td>Decision Support Systems 43</td><td>Vocabulary for the writeup</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="ssi">SSI, credentials, revocation (cite + thin implement)</h2>
+      <table>
+        <thead><tr><th>Work</th><th>Year</th><th>Link</th><th>Steal</th></tr></thead>
+        <tbody>
+          <tr><td>Mukta et al. — CredTrust</td><td>2022</td><td><a href="https://doi.org/10.1109/blockchain55522.2022.00053">IEEE Blockchain</a></td><td>On-chain trust registry + chain-of-trust for unofficial issuers. We score issuers statistically instead of onboarding them.</td></tr>
+          <tr><td>Eer et al. — Bottom-up Trust Registry in SSI</td><td>2022</td><td><a href="https://arxiv.org/abs/2208.04624">arXiv:2208.04624</a></td><td>Shortest path from verifier-trusted issuers. Optional later.</td></tr>
+          <tr><td>Heterogeneous cross-chain VC management</td><td>2025</td><td><a href="https://doi.org/10.3390/blockchains4030009">Blockchains 4(3):9</a></td><td>DID binding instead of address binding; hash-only anchors (~85% gas cut). We do hash-only.</td></tr>
+          <tr><td>Bidirectional bridge for cross-chain VC revocation</td><td>2025</td><td><a href="https://www.mdpi.com/1999-4893/18/12/734">Algorithms 18(12):734</a></td><td>Off-chain relay + on-chain check between segregated chains. We run a watcher instead of a bridge.</td></tr>
+          <tr><td>UPPR — Universal Privacy-Preserving Revocation</td><td>2025</td><td><a href="https://doi.org/10.1109/blockchain67634.2025.00030">IEEE Blockchain 2025</a></td><td>VRF + Bloom cascade. Cite only.</td></tr>
+          <tr><td>zkSSI / Prevoke / Merkle accumulators</td><td>2024</td><td>IEEE Blockchain / ICBC 2024</td><td>Cite as privacy next-step. No circuits in 6 hours.</td></tr>
+          <tr><td>Scalable DID + VC + zk-STARK sharing</td><td>2025</td><td><a href="https://arxiv.org/abs/2510.09715">arXiv:2510.09715</a></td><td>STARK proofs, accumulators, social recovery. Cite only. DeFi credit-score case study is a cousin of our score.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="xai">Explainability (implement SHAP, narrate with LLM)</h2>
+      <table>
+        <thead><tr><th>Work</th><th>Year</th><th>Link</th><th>Steal</th></tr></thead>
+        <tbody>
+          <tr><td>Lundberg &amp; Lee — SHAP</td><td>2017</td><td><a href="https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf">NeurIPS PDF</a> · <a href="https://github.com/shap/shap">shap/shap</a></td><td>TreeExplainer on the GBM</td></tr>
+          <tr><td>Ribeiro, Singh, Guestrin — LIME</td><td>2016</td><td>KDD 2016 · <a href="https://github.com/marcotcr/lime">marcotcr/lime</a></td><td>Fallback explainer</td></tr>
+          <tr><td>Salih et al. — Perspective on SHAP and LIME</td><td>2025</td><td><a href="https://arxiv.org/html/2305.02012v3">arXiv:2305.02012</a></td><td>Warn judges: collinear features confuse both. Our features are mostly not collinear by design.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="llm-conflict">LLM conflict reasoning (prompt patterns, no fine-tune)</h2>
+      <table>
+        <thead><tr><th>Work</th><th>Year</th><th>Link</th><th>Steal / refuse</th></tr></thead>
+        <tbody>
+          <tr><td>CRAVE — Conflicting Reasoning for Explainable Claim Verification</td><td>2025</td><td><a href="https://arxiv.org/html/2504.14905v1">arXiv:2504.14905</a></td><td><strong>Steal:</strong> dual-perspective rationales (support vs refute) on four axes (direct evidence, semantics, linguistics, logic). <strong>Refuse:</strong> the fine-tuned SLM judge. Synthesize with a frozen LLM or a template.</td></tr>
+          <tr><td>TrustJudge — Inconsistencies of LLM-as-a-Judge</td><td>2025</td><td><a href="https://arxiv.org/html/2509.21117v1">arXiv:2509.21117</a></td><td>Do not let the LLM emit the official score. If you must, use fine-grained / probabilistic scores — still unofficial.</td></tr>
+          <tr><td>DRAGged into Conflicts / CONFLICTS benchmark</td><td>2025</td><td><a href="https://arxiv.org/pdf/2506.08500">arXiv PDF</a></td><td>Taxonomy of knowledge conflicts. Prompt the explainer to name the conflict type (self-contradiction vs multi-source vs stale).</td></tr>
+          <tr><td>Conflict-Aware RAG / CARE-RAG</td><td>2025</td><td>ACM 2025 (ConScore)</td><td>Conflict signal from comparing generative probabilities. Optional, needs logits. Skip on the clock.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="sota-stack">Recommended SOTA stack for this exact PRD</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Must run</h3>
+          <p>Beta issuer prior + SL cumulative/average fusion + conflict penalty + sklearn GBM + SHAP + structured extract/explain prompts + hash-anchored IdentityState + two-chain event ingest.</p>
+        </div>
+        <div class="card">
+          <h3>Should mention</h3>
+          <p>Bitstring Status List, hash-only VC anchoring (2025), CRAVE dual perspective, TrustJudge caution, ERC-8004 as agent cousin, EigenTrust as graph upgrade, zk revocation as privacy upgrade.</p>
+        </div>
+        <div class="card">
+          <h3>Must not run</h3>
+          <p>Fine-tuned judges, Passport/Trusta APIs, CCIP/LayerZero identity bridges, ION/Ceramic/ACA-Py as runtime, STARK circuits, Dirichlet multi-class reputation.</p>
+        </div>
+        <div class="card">
+          <h3>If the clock is kind</h3>
+          <p>EIP-712 signed claims, MiniLM text embedding feature, DS engine flag, tiny issuer EigenTrust, Vite dashboard, IPFS preimage CID in the commit event.</p>
+        </div>
+      </div>
+
+      <h2 id="testnets">Testnet factual note</h2>
+      <p>PRD examples Goerli and Mumbai. Goerli LTS ended after Dencun; EF directed app developers to Sepolia (<a href="https://blog.ethereum.org/2023/11/30/goerli-lts-update">EF blog</a>). Mumbai died with Goerli because it settled to Goerli; Amoy (80002) settles to Sepolia (<a href="https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos">Polygon blog</a>, Alchemy deprecation note 13 Apr 2024).</p>
+
+      <h2 id="reading">90-minute reading if a human wants depth</h2>
+      <ol>
+        <li>Beta reputation PDF (short).</li>
+        <li>Subjective logic FUSION 2022 slides (operators).</li>
+        <li>VC Data Model 2.0 §1–3 (terminology).</li>
+        <li>CRAVE method section (prompt shape).</li>
+        <li>2025 heterogeneous VC paper abstract (hash anchors).</li>
+      </ol>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

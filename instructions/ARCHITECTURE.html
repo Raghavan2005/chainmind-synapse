@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">C4 · pipeline · contracts · latency</p>
+      <h1>Architecture</h1>
+      <p class="lede">One settlement contract, two claim sources, a linear off-chain brain, and a read API that never waits on an LLM. Every write is idempotent. Every served state is re-derivable from public logs plus a hash preimage.</p>
+      <div class="meta-row">
+        <span class="chip ok">Sepolia settlement</span>
+        <span class="chip ok">Sepolia + Amoy sources</span>
+        <span class="chip">GET &lt; 500ms</span>
+        <span class="chip">commit &lt; 2 min</span>
+      </div>
+
+      <h2 id="c4-context">Context</h2>
+      <figure class="figure">
+        <div class="flow">
+Holder / Issuer wallets
+        |  ClaimPosted / ClaimRevoked
+        v
+ClaimSource (Sepolia)     ClaimSource (Polygon Amoy)
+        \                     /
+         \                   /
+          v                 v
+     Ingest watchers (web3.py / viem)  ---- public RPC
+                    |
+                    v
+     Off-chain brain (normalize → score → fuse → explain)
+                    |
+        +-----------+-----------+
+        |                       |
+        v                       v
+IdentityState.commit        FastAPI GET /v1/identity/{id}
+   (Sepolia, append-only)      (last commit + memory overlay)
+        |                       |
+        v                       v
+  Block explorer            Relying party / dashboard
+        </div>
+        <figcaption>System context — no IdP, no hosted DB as authority</figcaption>
+      </figure>
+      <p>Actors: a holder (subject), any number of issuers, a relying party, and the Synapse operator key that is allowed to commit fused state. The operator is a hackathon concession: the scoring brain is off-chain. Integrity comes from the public preimage + hash, not from pretending the operator does not exist. Anyone can re-run the open pipeline on the same logs and check the hash.</p>
+
+      <h2 id="c4-containers">Containers</h2>
+      <table>
+        <thead><tr><th>Container</th><th>Tech</th><th>Responsibility</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>ClaimSource × 2</td><td>Solidity / Foundry</td><td>Accept signed-or-raw claims, emit logs, mark revoked</td><td>On-chain mapping claimId → meta</td></tr>
+          <tr><td>IdentityState</td><td>Solidity / Foundry</td><td>Append-only commits of fused state</td><td>On-chain latest + history</td></tr>
+          <tr><td>Ingest</td><td>Python asyncio or Node</td><td>Subscribe to logs, backfill, normalize hex → objects</td><td>In-memory cursor per chain</td></tr>
+          <tr><td>Normalize</td><td>Instructor / DSPy or rules fallback</td><td>Extract issuer, topic, expiry, polarity, evidence</td><td>Stateless</td></tr>
+          <tr><td>Score</td><td>sklearn joblib</td><td>p(credible | features)</td><td>Read-only model file</td></tr>
+          <tr><td>Fuse</td><td>Pure Python</td><td>Subjective-logic opinions → unified state</td><td>Stateless</td></tr>
+          <tr><td>Explain</td><td>SHAP + one prompt</td><td>Feature attributions + prose</td><td>Stateless</td></tr>
+          <tr><td>API</td><td>FastAPI</td><td>Health, identity GET, optional replay</td><td>Memory + last commit</td></tr>
+          <tr><td>Dashboard</td><td>Vite / React</td><td>Bonus visualization</td><td>None</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="pipeline">Runtime pipeline</h2>
+      <ol>
+        <li><strong>Post.</strong> Demo script calls <code>ClaimSource.postClaim</code> on both chains with EIP-712 typed data or a simplified <code>(subject, topic, polarity, expiresAt, evidenceURI)</code> tuple. Polarity is +1 support / −1 contradict for a named topic.</li>
+        <li><strong>Watch.</strong> Ingest decodes logs. Cursor is <code>(chainId, lastBlock)</code>. Restart is idempotent because claimIds are deterministic.</li>
+        <li><strong>Normalize.</strong> Gen-AI maps free-text <code>evidenceURI</code> bodies (or inline JSON) into <code>NormalizedClaim</code>. Schema in SCHEMA.html. On LLM failure, rules parser requires the inline JSON shape.</li>
+        <li><strong>Feature.</strong> Build the vector in SCHEMA.html: issuer beta mean, hours-to-expiry, revoked, signature-valid, confirmations, topic-conflict-count, chain-finality proxy, claim-age, issuer-volume.</li>
+        <li><strong>Score.</strong> <code>model.predict_proba</code> → p_i. Also keep the raw vector for SHAP.</li>
+        <li><strong>Opinion.</strong> Convert (p_i, evidence mass, issuer prior) to ω_i = (b, d, u, a). See MATH.html.</li>
+        <li><strong>Fuse.</strong> Group by topic. Cumulative fuse independent issuers. Average fuse obvious duplicates (same issuer, two chains, same payload). Cross-topic: produce a vector of topic verdicts plus a scalar <code>confidence</code>.</li>
+        <li><strong>Revise.</strong> If pairwise conflict K &gt; θ, discount the weaker issuer (Jøsang 2017 trust revision) and refuse to hide the conflict in the JSON.</li>
+        <li><strong>Commit.</strong> If <code>commitId</code> is new, send <code>IdentityState.commit</code>. Wait for 1 confirmation. Store receipt.</li>
+        <li><strong>Serve.</strong> API returns overlay (memory) if newer than last commit, flagged <code>pendingOnChain: true</code>, plus the last finalized commit.</li>
+        <li><strong>Explain.</strong> Built asynchronously after score. Never on the GET hot path. Cached next to the commit.</li>
+      </ol>
+
+      <h2 id="contracts">Contracts</h2>
+      <h3>ClaimSource.sol (deployed twice)</h3>
+<pre><code>/// @notice Minimal claim bulletin board. Not an IdP.
+interface IClaimSource {
+    event ClaimPosted(
+        bytes32 indexed claimId,
+        address indexed subject,
+        address indexed issuer,
+        bytes32 topic,
+        int8 polarity,
+        uint64 expiresAt,
+        string evidenceURI
+    );
+    event ClaimRevoked(bytes32 indexed claimId, address indexed issuer, uint64 at);
+
+    function postClaim(
+        address subject,
+        bytes32 topic,
+        int8 polarity,
+        uint64 expiresAt,
+        string calldata evidenceURI
+    ) external returns (bytes32 claimId);
+
+    function revokeClaim(bytes32 claimId) external;
+
+    function claimIdOf(
+        address subject,
+        address issuer,
+        bytes32 topic,
+        int8 polarity,
+        uint64 expiresAt,
+        string calldata evidenceURI
+    ) external pure returns (bytes32);
+}
+</code></pre>
+      <p><code>claimId = keccak256(abi.encode(chainid, subject, issuer, topic, polarity, expiresAt, evidenceURI))</code>. <code>msg.sender</code> is the issuer. Revoke only by issuer. Do not store the URI string in an expensive way if gas hurts — emit it and keep <code>exists/revoked/expiresAt</code> in a packed struct.</p>
+
+      <h3>IdentityState.sol (Sepolia)</h3>
+<pre><code>interface IIdentityState {
+    event StateCommitted(
+        bytes32 indexed commitId,
+        address indexed subject,
+        bytes32 stateHash,
+        uint16 scoreBps,
+        bytes32 modelVersion,
+        uint64 issuedAt
+    );
+
+    function commit(
+        address subject,
+        bytes32 commitId,
+        bytes32 stateHash,
+        uint16 scoreBps,
+        bytes32 modelVersion
+    ) external;
+
+    function latest(address subject) external view returns (
+        bytes32 commitId,
+        bytes32 stateHash,
+        uint16 scoreBps,
+        bytes32 modelVersion,
+        uint64 issuedAt,
+        uint64 blockNumber
+    );
+}
+</code></pre>
+      <ul>
+        <li>Only <code>operator</code> (constructor) may commit. Document the operator key.</li>
+        <li><code>commit</code> reverts if <code>commitId</code> already used (or returns silently — pick one and test it). Prefer revert-on-duplicate for honesty, catch in the writer.</li>
+        <li><code>scoreBps</code> is 0–10000. 10000 = certainty.</li>
+        <li>No upgradeability in 6 hours. Immutability is the point.</li>
+        <li>Use OpenZeppelin <code>Ownable</code> for the operator. Do not pull in governor or UUPS.</li>
+      </ul>
+
+      <h3>What we do not deploy</h3>
+      <p>No ERC-725 identity proxy per user. No ERC-735 claim holder as a dependency (we can <em>echo</em> its claim-id idea). No ERC-8004 registries as a hard dep. No CCIP receiver. Optional later: store <code>stateHash</code> preimage CID via a string event.</p>
+
+      <h2 id="identity-format">Identity format</h2>
+      <p>Internally we speak <code>NormalizedClaim</code>. On the wire, prefer a W3C VC 2.0-shaped JSON so judges see standards literacy:</p>
+      <ul>
+        <li>Subject and issuer as <code>did:ethr:sepolia:0x…</code> / <code>did:ethr:polygon:amoy:0x…</code> using <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> conventions and ERC-1056 semantics. You do not have to deploy EthereumDIDRegistry for the MVP; treat the address as the DID method-specific-id.</li>
+        <li>Revocation: if clock allows, a bit on ClaimSource is enough. Mention Bitstring Status List (<a href="https://www.w3.org/TR/vc-bitstring-status-list/">W3C</a>) as the production analogue. Do not implement gzip bitstrings in 6 hours unless you are ahead.</li>
+        <li>Hash-only on-chain payload follows the 2025 heterogeneous-chain VC paper: anchoring hashes, not full credentials, cuts gas ~85%.</li>
+      </ul>
+
+      <h2 id="api">API surface</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>SLA</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>GET</td><td><code>/v1/health</code></td><td>50&nbsp;ms</td><td>RPC ping cache, model loaded, accuracy, block heads</td></tr>
+          <tr><td>GET</td><td><code>/v1/identity/{subject}</code></td><td>&lt; 500&nbsp;ms</td><td>Current state. Query <code>?pending=true</code> to include overlay</td></tr>
+          <tr><td>GET</td><td><code>/v1/identity/{subject}/history</code></td><td>&lt; 500&nbsp;ms</td><td>Prior commits</td></tr>
+          <tr><td>GET</td><td><code>/v1/identity/{subject}/explanation</code></td><td>&lt; 500&nbsp;ms</td><td>Cached prose + SHAP. 404 if not ready</td></tr>
+          <tr><td>POST</td><td><code>/v1/replay/{subject}</code></td><td>slow</td><td>Operator only. Recompute from logs. Does not have to be public</td></tr>
+        </tbody>
+      </table>
+      <p>Full JSON schema: <a href="SCHEMA.html">SCHEMA.html</a>. CORS open on testnet demo. No auth on GET. POST replay gated by a bearer from env.</p>
+
+      <h2 id="latency">Latency budget</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Budget</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>GET identity</td><td>500&nbsp;ms p95</td><td>No RPC on the hot path if cache age &lt; 15s. Else one <code>latest(subject)</code> eth_call.</td></tr>
+          <tr><td>Ingest → overlay</td><td>a few seconds</td><td>Log delay + normalize. LLM timeout 8s then rules fallback.</td></tr>
+          <tr><td>Overlay → mined commit</td><td>&lt; 2 minutes</td><td>NFR. Sepolia/Amoy usually &lt; 30s. Retry with same commitId.</td></tr>
+          <tr><td>Explanation</td><td>best effort</td><td>Async. Dashboard polls.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="determinism">Determinism and idempotency</h2>
+      <ul>
+        <li>claimId and commitId are pure functions of public fields.</li>
+        <li>sklearn model is frozen at <code>modelVersion = keccak256(file bytes)</code>.</li>
+        <li>Fusion is pure. Same claims + same model → same scoreBps. Float to bps via <code>round(10000 * P)</code> with half-up documented.</li>
+        <li>Writer uses a mutex per subject so two watchers cannot double-send.</li>
+        <li>If a tx is dropped, resend the exact same calldata.</li>
+      </ul>
+
+      <h2 id="trust-boundary">Trust boundary</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Trusted for liveness</h3>
+          <p>Operator key, RPC providers, the LLM endpoint, the machine running ingest. If they die, reads still serve last commit.</p>
+        </div>
+        <div class="card">
+          <h3>Trusted for integrity</h3>
+          <p>None, if the relying party re-runs the open pipeline. The hash is a commitment, not a proof of honest scoring. Publish the model file hash on-chain via <code>modelVersion</code>.</p>
+        </div>
+      </div>
+      <p>This is honest decentralization for a 6-hour build. Do not claim zkML. ERC-8004-style validation registries and zk proofs are research follow-ons (RESEARCH.html).</p>
+
+      <h2 id="failure">Failure modes</h2>
+      <table>
+        <thead><tr><th>Failure</th><th>Detection</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>RPC timeout</td><td>health</td><td>Keep last cursor; exponential backoff; do not advance cursor</td></tr>
+          <tr><td>Amoy down</td><td>health.amoy</td><td>Serve Sepolia + last Amoy snapshot; flag <code>degradedChains</code></td></tr>
+          <tr><td>LLM down</td><td>extractor exception</td><td>Rules fallback; explanation template</td></tr>
+          <tr><td>Model missing</td><td>startup</td><td>Refuse to start API, or start in train-then-load script</td></tr>
+          <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 Sepolia, N=64 Amoy if jittery)</td></tr>
+          <tr><td>Conflict storm</td><td>K &gt; θ</td><td>Lower confidence, list all sides, still commit</td></tr>
+          <tr><td>Duplicate commit</td><td>revert</td><td>Treat as success if on-chain latest matches</td></tr>
+          <tr><td>Expired claim</td><td>feature</td><td>p collapses; fusion disbelief rises</td></tr>
+          <tr><td>Revoked claim</td><td>event</td><td>Force polarity unused; evidence becomes negative for that claimId</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="ml">ML subsystem</h2>
+      <p>Training is offline, before or at the start of the hackathon clock. Generate ≥ 800 labeled rows. Labels are functions of hidden ground-truth plus noise, not of the features themselves in a trivial copy (do not make <code>revoked=1 ⇒ label=0</code> the only rule — include issuer fraud, expiry-near, and cross-chain conflicts). Hold out 20%. Target accuracy &gt; 75% is easy if you are not sloppy; also report F1 so a 90/10 class split cannot cheat.</p>
+      <p>Model choice: <code>HistGradientBoostingClassifier(max_depth=3, max_iter=80)</code>. Fast, SHAP-friendly via TreeExplainer. LogisticRegression is the fallback if shap/trees eat the clock — LinearExplainer then.</p>
+      <p>Hugging Face: optional encoder for evidence text (<code>sentence-transformers/all-MiniLM-L6-v2</code>) as extra features. Only if CPU inference stays &lt; 50&nbsp;ms per claim. Do not download a 7B model.</p>
+
+      <h2 id="genai">Gen-AI subsystem</h2>
+      <p>Two orchestrated prompts, both structured:</p>
+      <ol>
+        <li><strong>Extract.</strong> Claim text → NormalizedClaim. Temperature 0. Tools: none.</li>
+        <li><strong>Explain.</strong> Inputs: fused state, per-claim p_i, SHAP top features, conflict list. Output: {summary, reasons[], caveats[]}. Temperature 0.2.</li>
+      </ol>
+      <p>Optional third: CRAVE-style dual perspective (“why this claim is true” / “why false”) then a non-fine-tuned synthesis. See PROMPTS.html. Orchestration runners: Instructor (verified <a href="https://github.com/567-labs/instructor">567-labs/instructor</a>), DSPy (<a href="https://github.com/stanfordnlp/dspy">stanfordnlp/dspy</a>), or Compozy for multi-agent coding (<a href="https://github.com/compozy/compozy">compozy/compozy</a>) — Compozy is for the human team’s agents, not a runtime dep of the API.</p>
+
+      <h2 id="dashboard">Dashboard (bonus)</h2>
+      <p>Three panes: timeline of claims (chain badges), fusion inspector (opinions as stacked b/d/u), commit rail (tx hash, score sparkline). Poll GET every 2s. Empty/error/loading states required. Tokens in DESIGN.html.</p>
+
+      <h2 id="security">Security notes (testnet, still real)</h2>
+      <ul>
+        <li>Issuer is <code>msg.sender</code>. Do not let the subject spoof issuer.</li>
+        <li>evidenceURI is untrusted. Never fetch it in a way that can SSRF into cloud metadata. Allow only <code>ipfs://</code>, <code>https://</code> to a demo host, or inline <code>data:application/json</code>.</li>
+        <li>Cap URI length. Cap explanation size.</li>
+        <li>Operator key on a fresh throwaway account. Faucet only.</li>
+        <li>No <code>delegatecall</code>, no upgrade proxy, no <code>tx.origin</code>.</li>
+        <li>Integer score in bps; never send floats on-chain.</li>
+      </ul>
+
+      <h2 id="why-not">Why this is not overbuilt</h2>
+      <p>A 6-hour architecture that includes zk-STARKs, a bidirectional Geth–Besu bridge, Ceramic, and a Dirichlet reputation DHT will not demo. Those papers inform the math and the story (RESEARCH.html). The running system is two contracts, one Python service, one model file, one API.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Skills</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Playbooks the coding agent can run</p>
+      <h1>Skills</h1>
+      <p class="lede">Each skill is a closed procedure. Run them in PLAN.html order. Do not start a skill whose inputs are missing.</p>
+
+      <h2 id="s-foundry">Skill: Foundry contracts</h2>
+      <ol>
+        <li>Init and install as INTEGRATION.html.</li>
+        <li>Write the two contracts from ARCHITECTURE.html. No proxies.</li>
+        <li>Tests: post+revoke, claimId stability across calls, only issuer revokes, only operator commits, duplicate commitId reverts, latest updates, scoreBps 10001 reverts.</li>
+        <li><code>forge test</code>. Then deploy. Then <code>cast logs</code> on a manual post.</li>
+      </ol>
+
+      <h2 id="s-hardhat">Skill: Hardhat fallback</h2>
+      <p>Only if <code>foundryup</code> fails. Clone <a href="https://github.com/NomicFoundation/hardhat">NomicFoundation/hardhat</a> for docs, then:</p>
+<pre><code>npm init -y
+npm i -D hardhat @nomicfoundation/hardhat-toolbox
+npx hardhat init
+</code></pre>
+      <p>Same Solidity, same addresses in .env. Do not keep both toolchains.</p>
+
+      <h2 id="s-ingest">Skill: Ingest</h2>
+      <ol>
+        <li>Build contract ABI JSON from <code>forge inspect ClaimSource abi</code>.</li>
+        <li>web3.py <code>create_filter</code> from <code>fromBlock=cursors[chain]</code>.</li>
+        <li>On log: decode, write NormalizedClaim skeleton, persist cursor only after successful decode.</li>
+        <li>Reorg: if parent hash mismatches, subtract 12 / 64 blocks and rescan.</li>
+      </ol>
+
+      <h2 id="s-data">Skill: Synthetic dataset</h2>
+      <ol>
+        <li>Sample issuer class ∈ {honest, noisy, hostile} with Beta seeds from MATH.html.</li>
+        <li>Sample revoked, expired, conflict_count from independent Bernoullis (p=0.15, 0.2, 0.25).</li>
+        <li>Hidden reliability y = 1 if issuer honest and not revoked and not expired and conflict_count&lt;2, else mix in noise so the model must use several features (flip 12% of labels).</li>
+        <li>Write 800+ rows. Split 80/20 with seed 7. Print accuracy, F1, Brier.</li>
+      </ol>
+
+      <h2 id="s-fuse">Skill: Fusion library</h2>
+      <ol>
+        <li>Implement <code>to_opinion(r,s,a=0.5,W=2)</code>, <code>expect(ω)</code>, <code>cumulative(a,b)</code>, <code>average(a,b)</code>, <code>discount(trust, ω)</code>.</li>
+        <li>Port the worked A⊕B numbers. Assert abs(err)&lt;1e-4.</li>
+        <li>Zero-uncertainty disagreement branch.</li>
+        <li>Deterministic sort by claimId before reduce.</li>
+      </ol>
+
+      <h2 id="s-api">Skill: FastAPI</h2>
+      <ol>
+        <li>Pydantic models with aliases matching SCHEMA.html.</li>
+        <li>Load overlay.json mtime. If older than 15s, optional eth_call latest().</li>
+        <li>Never import instructor in the GET handler.</li>
+        <li>CORS <code>*</code> for the demo.</li>
+      </ol>
+
+      <h2 id="s-explain">Skill: SHAP + prose</h2>
+      <ol>
+        <li>TreeExplainer once at process start.</li>
+        <li>Top 5 features by abs(φ).</li>
+        <li>P2 prompt. Fallback template.</li>
+        <li>Write <code>data/explanations/{commitId}.json</code>.</li>
+      </ol>
+
+      <h2 id="s-verify">Skill: Third-party verify</h2>
+      <ol>
+        <li>eth_abi.encode the preimage fields.</li>
+        <li>keccak == stateHash from the tx log.</li>
+        <li>Also check scoreBps in the log equals JSON.</li>
+      </ol>
+
+      <h2 id="s-ui">Skill: Dashboard</h2>
+      <ol>
+        <li>Vite React TS. No component library required.</li>
+        <li>Tokens from DESIGN.html. No Inter, no purple glow, no card-grid hero.</li>
+        <li>States: loading skeleton, empty “no claims for this subject”, error + retry, conflict banner, pendingOnChain badge.</li>
+        <li>Browser-verify the flow. A screenshot is not enough.</li>
+      </ol>
+
+      <h2 id="s-video">Skill: Demo video</h2>
+      <p>Follow PLAN.html script. 1920×1080. Terminal font large. Explorer zoom 125%. Do not play music over spoken constraints.</p>
+
+      <h2 id="s-gh">Skill: Prove a repo exists</h2>
+<pre><code>gh repo view OWNER/NAME --json nameWithOwner,url,isArchived
+# if 404, stop. search:
+gh search repos OWNER NAME --limit 5
+</code></pre>
+
+      <h2 id="s-security">Skill: Testnet hygiene</h2>
+      <ul>
+        <li>New key. No seed phrase in chat. .env gitignored.</li>
+        <li>evidence fetch: block 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, metadata IPs.</li>
+        <li>cap gas on writer. No infinite retry loops.</li>
+      </ul>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Requirements &amp; acceptance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Shall statements · testable</p>
+      <h1>Requirements and acceptance tests</h1>
+      <p class="lede">Every PRD shall-statement becomes an ID you can tick. If it is not tested, it is not done. Bonus items are marked B-.</p>
+
+      <h2 id="fr">Functional</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
+        <tbody>
+          <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Amoy for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 80002.</td></tr>
+          <tr><td>FR-02</td><td>Extract and normalize metadata with Gen-AI prompt engineering</td><td>Given a messy evidence payload, extractor returns a valid NormalizedClaim (pydantic). Unit test uses a fixture string. If LLM is absent, rules fallback still passes the same schema test on the inline-JSON fixture.</td></tr>
+          <tr><td>FR-03</td><td>Score credibility with an AI-ML model on historical + contextual features</td><td><code>python -m services.score.train</code> writes <code>data/model.joblib</code> and prints test accuracy &gt; 0.75. Feature names match SCHEMA.html.</td></tr>
+          <tr><td>FR-04</td><td>Generate a unified identity state with confidence metrics</td><td>API body includes <code>verdict</code>, <code>confidence</code> (0–1), <code>scoreBps</code>, <code>topics[]</code> each with fused expectation, <code>conflicts[]</code>.</td></tr>
+          <tr><td>FR-05</td><td>Store final state on-chain, timestamped, immutable</td><td>After demo flow, <code>cast logs</code> on IdentityState shows StateCommitted with issuedAt ≠ 0. A second commit with a new claim set creates a second log. Old log still retrievable. latest() returns the newest.</td></tr>
+          <tr><td>FR-06</td><td>REST API for current identity state</td><td><code>curl -sf localhost:8000/v1/identity/0x…</code> exits 0 and matches schema.</td></tr>
+          <tr><td>FR-07</td><td>JSON includes claim sources and trust scores</td><td>Each claims[] item has chainId, txHash or log ref, issuer, pCredible, opinion {b,d,u,a}.</td></tr>
+          <tr><td>FR-08</td><td>Idempotent chain writes</td><td>Sending the same commit twice does not create two distinct commitIds. Tested in Forge.</td></tr>
+          <tr><td>FR-09</td><td>Third-party verifiable records</td><td>Script <code>scripts/verify_hash.py</code> takes the API bundle + tx hash and checks keccak match.</td></tr>
+          <tr><td>FR-10</td><td>Real-time updates</td><td>Post a new claim; within 2 minutes latest() and GET reflect it (NFR-02).</td></tr>
+          <tr><td>B-01</td><td>Revocation monitoring</td><td>revokeClaim on a source; API marks the claim revoked; fused confidence moves; new commit emitted.</td></tr>
+          <tr><td>B-02</td><td>Human-readable Gen-AI explanation</td><td>GET explanation returns summary + ≥ 2 reasons citing named features. Not generic filler.</td></tr>
+          <tr><td>B-03</td><td>Dashboard over time</td><td>Browser: subject page shows ≥ 2 claims, a conflict marker, and the commit hash as a link.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="nfr">Non-functional</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
+        <tbody>
+          <tr><td>NFR-01</td><td>API &lt; 500&nbsp;ms under load</td><td><code>hey -n 200 -c 20 http://localhost:8000/v1/identity/{demo}</code> p95 &lt; 500&nbsp;ms. Warm cache.</td></tr>
+          <tr><td>NFR-02</td><td>On-chain update &lt; 2 minutes</td><td>demo_flow.sh prints commit latency. Fail if &gt; 120s.</td></tr>
+          <tr><td>NFR-03</td><td>Model accuracy &gt; 75% on test claims</td><td>Printed by train script. Commit the metrics JSON.</td></tr>
+          <tr><td>NFR-04</td><td>Deterministic, idempotent chain I/O</td><td>FR-08 + fusion unit tests with fixed seeds.</td></tr>
+          <tr><td>NFR-05</td><td>Verifiable by third parties</td><td>FR-09. No private API needed to check the hash.</td></tr>
+          <tr><td>NFR-06</td><td>No centralized IdP</td><td>Architecture review: no OAuth user store, no Civic/Worldcoin. Checklist in CLAUDE.html.</td></tr>
+          <tr><td>NFR-07</td><td>No centralized DB as SoT</td><td>Killing the API process and restarting still reconstructs latest from chain (replay).</td></tr>
+          <tr><td>NFR-08</td><td>Prompt orchestration only</td><td>Repo contains no training scripts for LLMs. Prompts are files.</td></tr>
+          <tr><td>NFR-09</td><td>Existing ML libraries only</td><td>requirements.txt lists scikit-learn; optional transformers. No custom CUDA kernels.</td></tr>
+          <tr><td>NFR-10</td><td>Testnets only</td><td>chainid asserts in deploy script. Mainnet ids revert.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="fixtures">Required fixtures</h2>
+      <ul>
+        <li><code>DEMO_SUBJECT</code> — one address used in the video.</li>
+        <li>Claim A (Sepolia): issuer I1, topic <code>kyc.adult</code>, polarity +1, expiry +30d, evidence “government-like” JSON.</li>
+        <li>Claim B (Amoy): issuer I2, topic <code>kyc.adult</code>, polarity −1, expiry +30d, evidence that contradicts A.</li>
+        <li>Claim C (Sepolia): issuer I1, topic <code>kyc.adult</code>, later revoked (B-01).</li>
+        <li>Labeled dataset ≥ 800 rows with a documented label function.</li>
+      </ul>
+
+      <h2 id="health">Health contract</h2>
+      <p><code>GET /v1/health</code> must include: <code>modelLoaded</code>, <code>modelAccuracy</code>, <code>sepoliaHead</code>, <code>amoyHead</code>, <code>operator</code>, <code>contracts</code>, <code>degraded</code>.</p>
+
+      <h2 id="out-of-scope-tests">You do not need to test</h2>
+      <ul>
+        <li>Mainnet gas markets.</li>
+        <li>zk proof verification.</li>
+        <li>Mobile wallets.</li>
+        <li>GDPR deletion (append-only ledger cannot delete; do not put raw PII in evidenceURI).</li>
+      </ul>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>
