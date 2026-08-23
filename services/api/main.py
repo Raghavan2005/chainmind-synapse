@@ -161,7 +161,7 @@ def replay(subject: str, authorization: str | None = Header(default=None)) -> di
             settings.identity_state_sepolia,
             settings.deployer_private_key,
         )
-    run_once(brain, writer, settings)
+    run_once(brain, writer, settings, force_backfill=True)
     row = _overlay(subject)
     if row is None:
         raise HTTPException(404, "no claims after replay")

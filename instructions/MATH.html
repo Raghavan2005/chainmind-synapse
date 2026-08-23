@@ -187,9 +187,9 @@
         \mathrm{stateHash} = \mathrm{keccak256}(\mathrm{abi.encode}(s,\ \mathrm{claimsRoot},\ \mathrm{scoreBps},\ \mathrm{modelVersion},\ \mathrm{issuedAt}))
       \]
       \[
-        \mathrm{commitId} = \mathrm{keccak256}(\mathrm{abi.encode}(s,\ \mathrm{claimsRoot},\ \mathrm{modelVersion}))
+        \mathrm{commitId} = \mathrm{keccak256}(\mathrm{abi.encode}(s,\ \mathrm{claimsRoot},\ \mathrm{scoreBps},\ \mathrm{modelVersion}))
       \]
-      <p>\(\mathrm{modelVersion}=\mathrm{keccak256}(\mathrm{bytes}(\mathrm{model.joblib}))\). issuedAt is unix seconds from the operator clock, also stored in the JSON so verifiers do not guess.</p>
+      <p>\(\mathrm{modelVersion}=\mathrm{keccak256}(\mathrm{bytes}(\mathrm{model.joblib}))\). issuedAt is unix seconds from the operator clock, also stored in the JSON so verifiers do not guess. \(\mathrm{scoreBps}\) is in the commitId preimage, not only stateHash's: a revoke keeps the same claim set but changes the fused score, and B-01 requires that to land as a genuinely new commit, not dedupe against the pre-revoke latest().</p>
 
       <h2 id="expiry">Time features</h2>
       \[

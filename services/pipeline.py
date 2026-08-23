@@ -78,7 +78,7 @@ class Brain:
         fused = fuse_subject(claims, p_by_id, self.issuer_rs, now)
         issued_at = now
         ids = [c.claim_id for c in claims]
-        cid = commit_id(subject, ids, self.scorer.version)
+        cid = commit_id(subject, ids, fused["scoreBps"], self.scorer.version)
         shash = state_hash(subject, ids, fused["scoreBps"], self.scorer.version, issued_at)
         if fused.get("conflicts"):
             emit("fuse.conflict", subject=subject, K=max((t["conflictK"] for t in fused["topics"]), default=0))
