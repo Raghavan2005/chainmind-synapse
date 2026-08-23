@@ -2,3 +2,5 @@
 !.vercel/project.json
 dist
 .vite
+.vercel
+.env*
