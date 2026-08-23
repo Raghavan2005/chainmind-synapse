@@ -25,7 +25,7 @@ class Brain:
         self.claims: dict[str, NormalizedClaim] = {}
         self.issuer_rs: dict[str, tuple[float, float]] = {}
         self.overlay: dict[str, Any] = read_json(settings.overlay_path, {"subjects": {}})
-        self.heads: dict[int, int] = {11155111: 0, 80002: 0}
+        self.heads: dict[int, int] = {11155111: 0, 1301: 0}
         self.rpc_errors: dict[int, str] = {}
 
     def seed_issuer(self, issuer: str, klass: str) -> None:

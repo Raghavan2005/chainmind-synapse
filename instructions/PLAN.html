@@ -28,7 +28,7 @@
       <ol>
         <li>Install Foundry: <code>curl -L https://foundry.paradigm.xyz | bash &amp;&amp; foundryup</code></li>
         <li><code>gh auth status</code>. Then run the bootstrap clone block in REPOS.html.</li>
-        <li>Create a fresh throwaway key. Fund Sepolia and Amoy from public faucets. Never reuse a mainnet key.</li>
+        <li>Create a fresh throwaway key. Fund Sepolia from a public faucet, then bridge to Unichain Sepolia. Never reuse a mainnet key.</li>
         <li>Copy <code>.env.example</code> → <code>.env</code>.</li>
         <li>Skim CLAUDE.html and SCHEMA.html.</li>
       </ol>
@@ -39,7 +39,7 @@
         <li>Write ClaimSource.sol + IdentityState.sol + tests: post, revoke, claimId stability, commit idempotency, latest().</li>
         <li><code>forge test -vv</code> green before deploy.</li>
         <li>Deploy script takes chain id. Reject 1 and 137.</li>
-        <li>Deploy ClaimSource to Sepolia and Amoy, IdentityState to Sepolia. Save addresses in <code>.env</code>.</li>
+        <li>Deploy ClaimSource to Sepolia and Unichain Sepolia, IdentityState to Sepolia. Save addresses in <code>.env</code>.</li>
         <li>Cut line: if deploy fails, keep Anvil for tests but do not stop trying public testnets — the deliverable needs a real tx.</li>
       </ul>
 
@@ -81,9 +81,9 @@
       <h2 id="h5">Hour 5 — Dashboard, video, hardening (T+5:00–6:00)</h2>
       <ul>
         <li>0–25 min: dashboard if and only if API is solid. DESIGN.html tokens. Browser-verify.</li>
-        <li>25–40 min: load test GET (hey or wrk). Fix obvious n+1 RPC.</li>
+        <li>25–40 min: load test GET (hey or wrk). Fix obvious n+1 RPC. Confirm <code>/v1/health</code> shows both heads and does not swallow RPC errors.</li>
         <li>40–55 min: record the 3-minute video. Script below. One take. Do not polish slides.</li>
-        <li>Last 5 min: README with addresses, tx hash, curl, accuracy, dead-testnet note.</li>
+        <li>Last 5 min: README with addresses, tx hash, curl, accuracy, Goerli/Mumbai → Sepolia/Unichain Sepolia note, operator-key concession, and the known gaps listed in ARCHITECTURE.html. Submit before the clock hits zero — late submissions are void.</li>
       </ul>
 
       <h2 id="roles">If two people</h2>
@@ -111,8 +111,8 @@
       <h2 id="video">3-minute video script</h2>
       <ol>
         <li><strong>0:00–0:20</strong> Problem. “Credentials on two chains can disagree. Providers cannot see both.”</li>
-        <li><strong>0:20–0:40</strong> Show prd constraint slide: no IdP, testnets, prompt orchestration. Mention Goerli/Mumbai → Sepolia/Amoy.</li>
-        <li><strong>0:40–1:10</strong> Cast or block explorer: post claim A Sepolia, claim B Amoy. Point at events.</li>
+        <li><strong>0:20–0:40</strong> Show prd constraint slide: no IdP, testnets, prompt orchestration. Mention Goerli/Mumbai → Sepolia/Unichain Sepolia (Amoy POL dry).</li>
+        <li><strong>0:40–1:10</strong> Cast or block explorer: post claim A Sepolia, claim B Unichain Sepolia. Point at events.</li>
         <li><strong>1:10–1:50</strong> Terminal: watcher logs, model accuracy, curl GET. Highlight conflict and scores.</li>
         <li><strong>1:50–2:20</strong> Explorer: StateCommitted. Show hash verify script.</li>
         <li><strong>2:20–2:45</strong> Explanation JSON / dashboard. SHAP: issuer_prior, revoked, conflict_count.</li>

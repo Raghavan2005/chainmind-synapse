@@ -23,7 +23,7 @@
       <ul>
         <li>macOS/Linux, git, <code>gh</code> authenticated, Python 3.11+, Node 20+ (dashboard only), curl.</li>
         <li>Foundry: <code>curl -L https://foundry.paradigm.xyz | bash</code> then <code>foundryup</code>. Confirm <code>forge --version</code>.</li>
-        <li>Throwaway key with Sepolia ETH and Amoy POL.</li>
+        <li>Throwaway key with Sepolia ETH and Unichain Sepolia ETH (bridge via <code>scripts/bridge_sepolia_to_unichain.sh</code>).</li>
       </ul>
 
       <h2 id="python">Python service</h2>
@@ -59,7 +59,7 @@ optimizer_runs = 200
 
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
-amoy = "${AMOY_RPC_URL}"
+unichain_sepolia = "${UNICHAIN_SEPOLIA_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
@@ -75,7 +75,7 @@ forge script script/DeployClaimSource.s.sol:DeployClaimSource \
   --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 
 forge script script/DeployClaimSource.s.sol:DeployClaimSource \
-  --rpc-url $AMOY_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+  --rpc-url $UNICHAIN_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 
 forge script script/DeployIdentityState.s.sol:DeployIdentityState \
   --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
@@ -87,7 +87,7 @@ forge script script/DeployIdentityState.s.sol:DeployIdentityState \
         <thead><tr><th>Chain</th><th>chainId</th><th>RPC</th><th>Explorer</th></tr></thead>
         <tbody>
           <tr><td>Sepolia</td><td>11155111</td><td><code>https://rpc.sepolia.org</code></td><td>https://sepolia.etherscan.io</td></tr>
-          <tr><td>Polygon Amoy</td><td>80002</td><td><code>https://rpc-amoy.polygon.technology/</code></td><td>https://amoy.polygonscan.com</td></tr>
+          <tr><td>Unichain Sepolia</td><td>1301</td><td><code>https://sepolia.unichain.org</code></td><td>https://sepolia.uniscan.xyz</td></tr>
         </tbody>
       </table>
       <p>Cross-check metadata in <a href="https://github.com/ethereum-lists/chains">ethereum-lists/chains</a>. If public RPCs 429, add a second URL from a faucet-friendly provider in <code>.env</code> — that is not an identity provider.</p>
@@ -95,7 +95,7 @@ forge script script/DeployIdentityState.s.sol:DeployIdentityState \
       <h2 id="faucets">Faucets (liveness, not identity)</h2>
       <ul>
         <li>Sepolia: public Ethereum faucets (Google Cloud, PoW, Alchemy public drip — any will do).</li>
-        <li>Amoy: Polygon faucet + Alchemy Amoy faucet historically dripped test POL.</li>
+        <li>Unichain Sepolia: Superchain faucet, or <code>bash scripts/bridge_sepolia_to_unichain.sh</code> against L1 proxy <code>0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2</code> on Sepolia. Never mainnet <code>0x81014F44…</code>.</li>
       </ul>
       <p>Document which faucet you used in the README. Do not login-with-Google as the product identity.</p>
 
@@ -141,8 +141,8 @@ sv = explainer.shap_values(x_row)  # x_row shape (1, d)
     addr = addr.lower()
     if chain == "sepolia":
         return f"did:ethr:sepolia:{addr}"
-    if chain == "amoy":
-        return f"did:ethr:eip155:80002:{addr}"
+    if chain == "unichain-sepolia":
+        return f"did:ethr:eip155:1301:{addr}"
     raise ValueError(chain)
 </code></pre>
       <p>Read <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> README for the network-name table. Optional: verify a JWT-VC with <a href="https://github.com/decentralized-identity/did-jwt-vc">decentralized-identity/did-jwt-vc</a> in a Node one-off. The Python path can accept unsigned JSON for the hackathon if you say so in the video — still emit VC-shaped fields.</p>
@@ -160,7 +160,7 @@ npm run dev
 <pre><code>#!/usr/bin/env bash
 set -euo pipefail
 source .env
-# 1. post claim A on Sepolia, claim B on Amoy via cast send
+# 1. post claim A on Sepolia, claim B on Unichain Sepolia via cast send
 # 2. sleep 20
 # 3. curl -sf localhost:8000/v1/identity/$DEMO_SUBJECT | tee /tmp/id.json
 # 4. python scripts/verify_hash.py /tmp/id.json
@@ -179,6 +179,16 @@ source .env
       <pre><code>graphify update .
 # after meaningful code lands
 </code></pre>
+
+      <h2 id="ops">Operate after deploy</h2>
+      <ul>
+        <li><strong>Processes.</strong> Ingest+writer owns the private key. API is read-only. Do not run two writers. Overlay: <code>data/overlay.json</code> via <code>os.replace</code>.</li>
+        <li><strong>Health.</strong> Probe <code>GET /v1/health</code> every 15s. If <code>degraded</code> is true, do not post new demo claims until the lag is explained.</li>
+        <li><strong>Logs.</strong> Keep stdout. Event names are in ARCHITECTURE.html (ingest.head, commit.mined, fuse.conflict, …).</li>
+        <li><strong>Replay.</strong> <code>POST /v1/replay/{subject}</code> with the bearer from env rebuilds overlay from logs. Use this after a crash. The chain is the record.</li>
+        <li><strong>Incidents.</strong> RPC 429 → backoff, second URL in .env. Unichain down → serve Sepolia + last Unichain snapshot, flag <code>degradedChains</code>. LLM down → rules + template explanation. Model file missing → refuse API start.</li>
+        <li><strong>Keys.</strong> Demo: throwaway faucet account. Never a mainnet key. Never commit <code>.env</code>.</li>
+      </ul>
 
       <h2 id="health-check">You are integrated when</h2>
       <ol>

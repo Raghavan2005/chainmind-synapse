@@ -65,7 +65,7 @@ contract IdentityStateTest is Test {
         vm.expectRevert(abi.encodeWithSelector(ChainGuard.MainnetForbidden.selector, 137));
         this.wrapRequire(137);
         ChainGuard.requireTestnet(11155111);
-        ChainGuard.requireTestnet(80002);
+        ChainGuard.requireTestnet(1301);
     }
 
     function wrapRequire(uint256 chainId) external pure {

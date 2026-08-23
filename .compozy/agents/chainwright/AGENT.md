@@ -18,7 +18,7 @@ Read first, in order:
 
 Hard rules:
 
-- Sepolia `11155111` and Polygon Amoy `80002` only. Deploy scripts must revert on chain id `1` and `137`.
+- Sepolia `11155111` and Unichain Sepolia `1301` only. Deploy scripts must revert on chain id `1` and `137`. Never call the mainnet Unichain bridge `0x81014F44…`.
 - `claimId = keccak256(abi.encode(chainid, subject, issuer, topic, polarity, expiresAt, evidenceURI))`.
 - IdentityState is append-only. Duplicate `commitId` reverts; the writer treats a matching on-chain latest as success.
 - Do not change fusion math. That is Brainwright / `instructions/MATH.html`.

@@ -61,6 +61,28 @@
       <h2 id="demo-story">Demo story (90 seconds of plot)</h2>
       <p>Ava has an “over 18 / KYC active” claim on Ethereum. A cheaper issuer on Polygon later posts “KYC revoked / under 18.” A relying DAO cannot pick. Synapse watches both events, extracts structured signals, scores each claim, fuses them, and commits: <em>conflict present, confidence 0.41, adult-topic unresolved, revoked-weight rising</em>. The DAO’s front end reads the API, shows the explanation, and links the tx. Ava’s first issuer revokes nothing; the Polygon issuer is down-weighted after trust revision because it contradicts a historically reliable issuer without new evidence. If the Polygon issuer later posts a revocation of its own claim, confidence recovers.</p>
 
+      <h2 id="alternatives">Alternatives we considered and did not take</h2>
+      <table>
+        <thead><tr><th>Approach</th><th>Why it is tempting</th><th>Why it is the wrong product</th></tr></thead>
+        <tbody>
+          <tr><td>Call Human Passport / Trusta / Nomis and wrap the score</td><td>Ships in an afternoon</td><td>Forbidden by the PRD. Those scores are humanity, Sybil, or wallet behavior — not conflict fusion. Fact-check in <code>research-existing-solutions.md</code>.</td></tr>
+          <tr><td>Let an LLM emit the official confidence</td><td>Looks “AI-native”</td><td>TrustJudge (2025): LLM-as-judge integers are inconsistent. The LLM extracts and narrates. sklearn + fusion own the number.</td></tr>
+          <tr><td>Fine-tune a small judge (CRAVE-style)</td><td>SOTA claim-verification paper</td><td>PRD bans fine-tuning. We steal dual-perspective <em>prompts</em>, not the trained SLM.</td></tr>
+          <tr><td>Bridge identity with CCIP or LayerZero</td><td>True cross-chain messaging</td><td>Plumbing, not scoring. Clock killer. Watchers on two RPCs are enough for two sources.</td></tr>
+          <tr><td>Run Ceramic / ION / ACA-Py</td><td>Full SSI</td><td>A runtime we will not finish. VC 2.0 is an envelope; did:ethr is a label.</td></tr>
+          <tr><td>One softmax, no fusion</td><td>Fewer formulas</td><td>p=0.5 is either “no evidence” or “two strong opposite claims.” Subjective logic’s <em>u</em> is why we are not a classifier demo.</td></tr>
+          <tr><td>Put the authoritative state in Postgres</td><td>Faster GET</td><td>Violates “no centralized DB as source of truth.” Overlay JSON is a cache. Replay must reconstruct the hash.</td></tr>
+        </tbody>
+      </table>
+      <p>Full decision table, including contract and API locks: <a href="ARCHITECTURE.html#decisions">ARCHITECTURE.html — Decisions</a>.</p>
+
+      <h2 id="impact">Success, impact, and what “good” means</h2>
+      <p>Demo-good is in <a href="PRD.html#success">PRD.html</a> and the gates in <a href="REQUIREMENTS.html#success-metrics">REQUIREMENTS.html</a>: two-chain conflict visible, accuracy &gt; 75% on the hold-out, GET under 500&nbsp;ms, commit under 2 minutes, hash verifies, explanation cites named features.</p>
+      <p>Product-good, if this lived past the clock: a relying party stops opening two explorers and asking a human which KYC claim to believe. Measure that as (1) share of identity queries that return a non-null verdict plus a matching <code>stateHash</code>, (2) drop in manual review on conflicting subjects, (3) ingest lag and commit latency SLOs from health logs. We do not claim we replace legal identity or de-anonymize anyone.</p>
+
+      <h2 id="next">If the clock were longer</h2>
+      <p>Bitstring Status List, EIP-712 signed claims, issuer EigenTrust, MiniLM evidence features, a real labeled set and model card, operator multisig, Prometheus on the structured events in ARCHITECTURE.html. We would still not wrap Passport or Trusta, still not fine-tune a judge, still not put PII on-chain. RESEARCH.html lists the steal / refuse lines.</p>
+
       <h2 id="ask">What we are building in six hours</h2>
       <p>Not a protocol for the world. A working, inspectable slice that proves the missing layer is buildable with open libraries, open math, and two testnets. The dossier you are reading is the spec the coding agents must obey.</p>
     </main>

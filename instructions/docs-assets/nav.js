@@ -65,6 +65,6 @@
 
   const foot = document.querySelector("[data-foot]");
   if (foot) {
-    foot.innerHTML = `Specs live in <code>instructions/</code> as HTML so humans stay in the loop · source notes: repo-root <code>prd.md</code> and <code>research-existing-solutions.md</code> · GitHub links verified with <code>gh repo view</code> on 2026-08-23 · Sepolia + Polygon Amoy · no commercial identity-reconciliation SDKs.`;
+    foot.innerHTML = `Specs live in <code>instructions/</code> as HTML so humans stay in the loop · source notes: repo-root <code>prd.md</code> and <code>research-existing-solutions.md</code> · GitHub links verified with <code>gh repo view</code> on 2026-08-23 · Sepolia + Unichain Sepolia · no commercial identity-reconciliation SDKs.`;
   }
 })();

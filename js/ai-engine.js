@@ -139,7 +139,7 @@ export class SubjectiveLogicEngine {
         topic: 'kyc.adult',
         claimIds: claims.map(c => c.claimId),
         type: 'multi-source',
-        note: 'Opposite polarity detected across Sepolia & Amoy with high conflict mass.'
+        note: 'Opposite polarity detected across Sepolia & Unichain Sepolia with high conflict mass.'
       });
     } else if (fused.p < 0.35) {
       verdict = 'rejected';
@@ -168,7 +168,7 @@ export class SubjectiveLogicEngine {
       reasons.push({
         feature: 'conflict_count',
         shap: 0.18,
-        text: 'Opposite-polarity live claims dominate between Sepolia (#19824) and Amoy (#58212).'
+        text: 'Opposite-polarity live claims dominate between Sepolia (#19824) and Unichain Sepolia.'
       });
       reasons.push({
         feature: 'issuer_prior',
@@ -178,7 +178,7 @@ export class SubjectiveLogicEngine {
       reasons.push({
         feature: 'revoked',
         shap: -0.22,
-        text: 'Explicit on-chain revocation event observed on Polygon Amoy.'
+        text: 'Explicit on-chain revocation event observed on Unichain Sepolia.'
       });
       reasons.push({
         feature: 'hours_to_expiry',

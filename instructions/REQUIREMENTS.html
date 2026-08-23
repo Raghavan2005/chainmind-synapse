@@ -23,7 +23,7 @@
       <table>
         <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
         <tbody>
-          <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Amoy for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 80002.</td></tr>
+          <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Unichain Sepolia for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 1301.</td></tr>
           <tr><td>FR-02</td><td>Extract and normalize metadata with Gen-AI prompt engineering</td><td>Given a messy evidence payload, extractor returns a valid NormalizedClaim (pydantic). Unit test uses a fixture string. If LLM is absent, rules fallback still passes the same schema test on the inline-JSON fixture.</td></tr>
           <tr><td>FR-03</td><td>Score credibility with an AI-ML model on historical + contextual features</td><td><code>python -m services.score.train</code> writes <code>data/model.joblib</code> and prints test accuracy &gt; 0.75. Feature names match SCHEMA.html.</td></tr>
           <tr><td>FR-04</td><td>Generate a unified identity state with confidence metrics</td><td>API body includes <code>verdict</code>, <code>confidence</code> (0–1), <code>scoreBps</code>, <code>topics[]</code> each with fused expectation, <code>conflicts[]</code>.</td></tr>
@@ -60,13 +60,46 @@
       <ul>
         <li><code>DEMO_SUBJECT</code> — one address used in the video.</li>
         <li>Claim A (Sepolia): issuer I1, topic <code>kyc.adult</code>, polarity +1, expiry +30d, evidence “government-like” JSON.</li>
-        <li>Claim B (Amoy): issuer I2, topic <code>kyc.adult</code>, polarity −1, expiry +30d, evidence that contradicts A.</li>
+        <li>Claim B (Unichain Sepolia): issuer I2, topic <code>kyc.adult</code>, polarity −1, expiry +30d, evidence that contradicts A.</li>
         <li>Claim C (Sepolia): issuer I1, topic <code>kyc.adult</code>, later revoked (B-01).</li>
         <li>Labeled dataset ≥ 800 rows with a documented label function.</li>
       </ul>
 
       <h2 id="health">Health contract</h2>
-      <p><code>GET /v1/health</code> must include: <code>modelLoaded</code>, <code>modelAccuracy</code>, <code>sepoliaHead</code>, <code>amoyHead</code>, <code>operator</code>, <code>contracts</code>, <code>degraded</code>.</p>
+      <p><code>GET /v1/health</code> must include: <code>modelLoaded</code>, <code>modelAccuracy</code>, <code>sepoliaHead</code>, <code>unichainSepoliaHead</code>, <code>operator</code>, <code>contracts</code>, <code>degraded</code>.</p>
+
+      <h2 id="strategy">Testing and validation strategy</h2>
+      <p>If it is not in this list, it is not a release gate. Run in this order so a red Forge test never hides behind a pretty curl.</p>
+      <table>
+        <thead><tr><th>Layer</th><th>Command / artifact</th><th>What it proves</th></tr></thead>
+        <tbody>
+          <tr><td>Contracts</td><td><code>forge test -vv</code></td><td>FR-05, FR-08: post, revoke, claimId stability, commit revert-on-duplicate, latest() after two commits, chain-id 1/137 rejected in script tests.</td></tr>
+          <tr><td>Fusion math</td><td><code>pytest tests/test_fuse.py</code></td><td>NFR-04: cumulative / averaging operators and revision match the numeric examples in MATH.html within 1e-9 before JSON round-trip.</td></tr>
+          <tr><td>Schema</td><td><code>pytest tests/test_schema.py</code></td><td>FR-02, FR-07: NormalizedClaim and GET body reject unknown fields and wrong polarity.</td></tr>
+          <tr><td>Model</td><td><code>python -m services.score.train</code></td><td>FR-03, NFR-03: writes joblib + <code>data/metrics.json</code> with accuracy, F1, Brier. Hold-out 20%. A revoked+expired fixture row must score p &lt; 0.4.</td></tr>
+          <tr><td>Extractor</td><td>unit + optional live LLM</td><td>FR-02: fixture string → valid model. Second test: LLM disabled → rules fallback still passes the inline-JSON fixture.</td></tr>
+          <tr><td>E2E</td><td><code>scripts/demo_flow.sh</code></td><td>FR-01, FR-04, FR-06, FR-10, NFR-02: posts A+B, waits, curls GET, prints commit latency, exits non-zero if &gt; 120s.</td></tr>
+          <tr><td>Integrity</td><td><code>python scripts/verify_hash.py</code></td><td>FR-09, NFR-05: keccak(preimage) equals on-chain stateHash.</td></tr>
+          <tr><td>Durability</td><td>kill uvicorn, run replay</td><td>NFR-07: latest hash unchanged. Overlay file is not the authority.</td></tr>
+          <tr><td>Load</td><td><code>hey -n 200 -c 20</code> on GET identity</td><td>NFR-01: p95 &lt; 500&nbsp;ms, warm cache, no LLM on the path.</td></tr>
+          <tr><td>Health</td><td>curl /v1/health</td><td>Both heads, modelLoaded, modelAccuracy, degraded flag. RPC errors must appear, not be swallowed.</td></tr>
+        </tbody>
+      </table>
+      <p>Label function for the synthetic set is documented in the train-script header. Do not make <code>revoked=1 ⇒ label=0</code> the only rule. Include issuer fraud, near-expiry, and opposite-polarity pairs so the accuracy number is not a toy.</p>
+
+      <h2 id="success-metrics">How we know it worked (demo and later)</h2>
+      <table>
+        <thead><tr><th>Question</th><th>Metric</th><th>Gate</th></tr></thead>
+        <tbody>
+          <tr><td>Did we ingest two chains?</td><td><code>sources[].chainId</code> contains 11155111 and 1301</td><td>FR-01</td></tr>
+          <tr><td>Did we detect a conflict?</td><td><code>verdict=conflict</code> and <code>conflicts.length ≥ 1</code> on the demo subject</td><td>Required fixture A vs B</td></tr>
+          <tr><td>Is the score honest under conflict?</td><td>confidence drops vs a single-claim control; both claims remain in JSON</td><td>MATH.html; do not hide a side</td></tr>
+          <tr><td>Is the number auditable?</td><td>verify_hash.py exits 0; explorer shows StateCommitted</td><td>FR-09</td></tr>
+          <tr><td>Is the API the product?</td><td>GET p95 &lt; 500&nbsp;ms; explanation may 404 until cached</td><td>NFR-01</td></tr>
+          <tr><td>Would a relying party trust the host less?</td><td>Replay from public logs reproduces stateHash</td><td>NFR-07</td></tr>
+          <tr><td>Later, in production</td><td>Share of queries served with non-null verdict + matching hash; manual-review rate; ingest lag p95; commit p95</td><td>Not a 6-hour gate — see ARCHITECTURE.html production section</td></tr>
+        </tbody>
+      </table>
 
       <h2 id="out-of-scope-tests">You do not need to test</h2>
       <ul>
