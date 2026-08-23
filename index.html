@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ChainMind Synapse - Real-Time AI-Driven Decentralized Identity Reconciliation & Trust Engine across Multi-Blockchain Networks">
+  <title>ChainMind Synapse | Decentralized AI Identity Consensus</title>
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons for Crisp Vector Elements -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="stealth-theme">
+  <!-- Interactive Dynamic Background Grid & Mouse Spotlight -->
+  <div class="cyber-grid-overlay"></div>
+  <div class="mouse-spotlight" id="mouse-spotlight"></div>
+
+  <!-- Main Navigation Header -->
+  <header class="app-header glass-card">
+    <div class="brand-section">
+      <div class="brand-logo-wrap">
+        <i class="fa-solid fa-cube brand-icon"></i>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">ChainMind <span class="gradient-text">Synapse</span></div>
+        <div class="brand-subtitle">Cross-Chain Identity Consensus Core</div>
+      </div>
+    </div>
+
+    <!-- Protocol Status Strip -->
+    <div class="header-status-strip">
+      <div class="status-badge" id="net-eth">
+        <span class="dot dot-teal"></span>
+        <span class="status-label">Ethereum: <strong class="badge-val">#19824</strong></span>
+      </div>
+      <div class="status-badge" id="net-polygon">
+        <span class="dot dot-teal"></span>
+        <span class="status-label">Polygon: <strong class="badge-val">#58210</strong></span>
+      </div>
+      <div class="status-badge" id="ai-engine-status">
+        <span class="dot dot-teal"></span>
+        <span class="status-label">AI Consensus: <strong class="badge-val text-cyan">ONLINE (38ms)</strong></span>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn btn-outline" id="btn-api-inspector" title="Inspect Current Identity State via REST API">
+        <i class="fa-solid fa-code"></i> REST API
+      </button>
+      <button class="btn btn-primary" id="btn-simulate-conflict" title="Trigger Cross-Chain Credential Conflict">
+        <i class="fa-solid fa-bolt"></i> Inject Conflict
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Layout Container -->
+  <main class="main-dashboard-grid">
+
+    <!-- Top Hero Section: Interactive Synapse Canvas & Waveform Entropy -->
+    <section class="hero-canvas-section glass-card" id="synapse-viewport">
+      <div class="canvas-header-overlay">
+        <div class="section-tag">
+          <i class="fa-solid fa-network-wired"></i> DYNAMIC SYNAPSE TOPOLOGY
+        </div>
+        <h1 class="hero-title">Multi-Chain Identity Ingestion & Neural Fusion</h1>
+        <p class="hero-desc">Interactive real-time graph mapping incoming verifiable credentials across heterogeneous chains to the central AI Trust Arbiter.</p>
+      </div>
+
+      <!-- Real-Time Waveform Entropy Visualizer -->
+      <div class="canvas-waveform-bar">
+        <canvas id="waveform-canvas" class="waveform-canvas" width="120" height="24"></canvas>
+        <span class="entropy-label" id="entropy-label">ENTROPY: 0.94</span>
+      </div>
+
+      <!-- Controls Overlay on Canvas -->
+      <div class="canvas-controls-overlay">
+        <div class="control-pill-group">
+          <button class="pill-btn active" data-scenario="clean" id="pill-clean-sync">
+            <i class="fa-solid fa-check"></i> Clean Multi-Chain Sync
+          </button>
+          <button class="pill-btn" data-scenario="revocation-conflict" id="pill-revocation-conflict">
+            <i class="fa-solid fa-triangle-exclamation"></i> Revocation Conflict
+          </button>
+          <button class="pill-btn" data-scenario="sybil-anomaly" id="pill-sybil-anomaly">
+            <i class="fa-solid fa-shield"></i> Sybil Anomaly
+          </button>
+          <button class="pill-btn" data-scenario="expired-credit" id="pill-expired-credit">
+            <i class="fa-solid fa-clock"></i> Expired Claim
+          </button>
+        </div>
+        <div class="canvas-meta-stats">
+          <span class="canvas-fps" id="canvas-fps-counter">60 FPS</span>
+          <span class="canvas-hint"><i class="fa-solid fa-arrows-up-down-left-right"></i> Drag nodes / Click to spawn shockwave</span>
+        </div>
+      </div>
+
+      <!-- High-Performance HTML5 Canvas -->
+      <canvas id="synapse-canvas"></canvas>
+
+      <!-- Active Node Tooltip -->
+      <div class="node-hover-card hidden" id="node-hover-card">
+        <div class="node-hover-header">
+          <span class="node-chain-badge" id="hover-chain-badge">Ethereum</span>
+          <span class="node-type-badge" id="hover-type-badge">KYC Proof</span>
+        </div>
+        <div class="node-hover-title" id="hover-node-title">zkKYC Level-3 Pass</div>
+        <div class="node-hover-body">
+          <div class="node-prop"><span>Issuer:</span> <strong id="hover-issuer">0x8a...3f91</strong></div>
+          <div class="node-prop"><span>Status:</span> <strong id="hover-status" class="text-cyan">Active</strong></div>
+          <div class="node-prop"><span>Trust Weight:</span> <strong id="hover-weight" class="text-cyan">94.8%</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lower Interactive Dashboard Grid -->
+    <div class="sub-dashboard-grid">
+
+      <!-- Column 1: Live Ingested Claims Stream -->
+      <section class="dashboard-col glass-card" id="claims-stream-col">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <i class="fa-solid fa-layer-group text-cyan"></i>
+            <h2>Ingested Claims</h2>
+          </div>
+          <span class="badge-count" id="claim-count-badge">4 Active</span>
+        </div>
+        <p class="col-subtitle">Verifiable credentials received via RPC event listeners and smart contract logs.</p>
+
+        <!-- Claims Feed Container -->
+        <div class="claims-stream-list" id="claims-stream-container">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Add Custom Claim Simulator Trigger -->
+        <div class="claim-builder-trigger">
+          <button class="btn btn-secondary w-full" id="btn-open-claim-modal">
+            <i class="fa-solid fa-plus"></i> Inject Custom Claim
+          </button>
+        </div>
+      </section>
+
+      <!-- Column 2: AI Trust Engine & Holographic Score Radar -->
+      <section class="dashboard-col glass-card" id="ai-trust-engine-col">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <i class="fa-solid fa-brain text-cyan"></i>
+            <h2>Trust & Decision Core</h2>
+          </div>
+          <div class="pulse-indicator">
+            <span class="live-dot"></span> Active
+          </div>
+        </div>
+        <p class="col-subtitle">Multi-factor ML scoring & Gen-AI semantic reasoning matrix.</p>
+
+        <!-- Central Holographic Score Dial -->
+        <div class="trust-score-hero">
+          <div class="radial-gauge-container">
+            <svg class="radial-svg" viewBox="0 0 200 200">
+              <circle class="radial-track" cx="100" cy="100" r="82"></circle>
+              <circle class="radial-progress" id="radial-progress-bar" cx="100" cy="100" r="82"></circle>
+            </svg>
+            <div class="radial-center-content">
+              <span class="radial-score-val" id="overall-trust-score">92.4</span>
+              <span class="radial-score-label">SCORE</span>
+              <span class="radial-grade-badge badge-high" id="trust-grade-badge">TIER 1</span>
+            </div>
+          </div>
+
+          <!-- Trust Breakdown Bars -->
+          <div class="trust-breakdown-matrix">
+            <div class="breakdown-item">
+              <div class="breakdown-label-row">
+                <span>Issuer Authority</span>
+                <strong id="score-issuer">96%</strong>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-cyan" id="fill-issuer" style="width: 96%;"></div></div>
+            </div>
+
+            <div class="breakdown-item">
+              <div class="breakdown-label-row">
+                <span>Temporal Recency</span>
+                <strong id="score-temporal">88%</strong>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-purple" id="fill-temporal" style="width: 88%;"></div></div>
+            </div>
+
+            <div class="breakdown-item">
+              <div class="breakdown-label-row">
+                <span>Cross-Chain Coherence</span>
+                <strong id="score-coherence">94%</strong>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-emerald" id="fill-coherence" style="width: 94%;"></div></div>
+            </div>
+
+            <div class="breakdown-item">
+              <div class="breakdown-label-row">
+                <span>Non-Revocation Proof</span>
+                <strong id="score-revocation">98%</strong>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-yellow" id="fill-revocation" style="width: 98%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gen-AI Explainability Live Terminal -->
+        <div class="xai-terminal-card">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="terminal-title">Explainability Stream</div>
+            <div class="terminal-model-badge">v2.4</div>
+          </div>
+          <div class="terminal-body" id="xai-terminal-text">
+            <!-- Streaming reasoning injected here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 3: On-Chain Immutable Ledger & Cryptographic Tamper Demo -->
+      <section class="dashboard-col glass-card" id="ledger-audit-col">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <i class="fa-solid fa-lock text-cyan"></i>
+            <h2>Merkle Audit & Ledger</h2>
+          </div>
+          <span class="status-pill status-verified" id="merkle-status-pill">
+            TAMPER-PROOF
+          </span>
+        </div>
+        <p class="col-subtitle">On-chain consensus output anchoring state to Ethereum & Polygon testnets.</p>
+
+        <!-- Current Merkle State Summary -->
+        <div class="merkle-state-box">
+          <div class="merkle-row">
+            <span class="merkle-key">Unified State Hash:</span>
+            <div class="hash-copy-wrap">
+              <code class="merkle-hash" id="current-state-hash">0x4f8e...c7a2</code>
+              <button class="btn-icon" id="btn-copy-hash" title="Copy Hash"><i class="fa-regular fa-copy"></i></button>
+            </div>
+          </div>
+          <div class="merkle-row">
+            <span class="merkle-key">Merkle Root:</span>
+            <code class="merkle-hash text-cyan" id="current-merkle-root">0x9d11...77c8</code>
+          </div>
+          <div class="merkle-row">
+            <span class="merkle-key">Settlement Tx:</span>
+            <a href="#" class="tx-link" id="settlement-tx-link">0x71ba...3e01 <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          </div>
+        </div>
+
+        <!-- Interactive Tamper Proof Sandbox -->
+        <div class="tamper-sandbox-box">
+          <div class="tamper-box-header">
+            <i class="fa-solid fa-shield-halved text-cyan"></i>
+            <h3>Integrity Sandbox</h3>
+          </div>
+          <p class="tamper-desc">Simulate signature modification to test automated fraud detection.</p>
+          <div class="tamper-btn-row">
+            <button class="btn btn-warning" id="btn-tamper-claim">
+              <i class="fa-solid fa-triangle-exclamation"></i> Tamper Claim
+            </button>
+            <button class="btn btn-outline" id="btn-reset-state">
+              <i class="fa-solid fa-rotate-left"></i> Restore
+            </button>
+          </div>
+          <div class="tamper-alert-banner hidden" id="tamper-alert-banner">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="tamper-alert-text">
+              <strong>CRYPTOGRAPHIC ANOMALY DETECTED</strong>
+              <span>Claim signature hash mismatch. Merkle proof failed.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Audit Blocks -->
+        <div class="audit-history-box">
+          <div class="audit-header-label">Recent State Transitions</div>
+          <div class="audit-history-list" id="audit-history-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: REST API JSON Inspector -->
+  <div class="modal-backdrop hidden" id="modal-api-inspector">
+    <div class="modal-dialog glass-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-code text-cyan"></i>
+          <span>REST API Response</span>
+        </div>
+        <button class="btn-close" id="btn-close-api-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-endpoint-bar">
+        <span class="http-method">GET</span>
+        <code class="api-url">/v1/identity/0x742d35Cc6634C0532925a3b844Bc454e4438f44e/state</code>
+      </div>
+      <div class="modal-body">
+        <pre class="json-code-block" id="api-json-content"><code>// Loading...</code></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btn-copy-json"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+        <button class="btn btn-primary" id="btn-modal-close-action">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Custom Claim Injector -->
+  <div class="modal-backdrop hidden" id="modal-custom-claim">
+    <div class="modal-dialog glass-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-plus text-cyan"></i>
+          <span>Inject Custom Blockchain Claim</span>
+        </div>
+        <button class="btn-close" id="btn-close-claim-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-custom-claim" class="modal-form">
+        <div class="form-group">
+          <label for="claim-chain">Blockchain Network</label>
+          <select id="claim-chain" class="form-control" required>
+            <option value="Ethereum">Ethereum</option>
+            <option value="Polygon">Polygon PoS</option>
+            <option value="Arbitrum">Arbitrum One</option>
+            <option value="Solana">Solana</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="claim-type">Claim Type</label>
+          <select id="claim-type" class="form-control" required>
+            <option value="KYC Verification">zkKYC Compliance</option>
+            <option value="DeFi Credit Score">DeFi Credit Score</option>
+            <option value="DAO Governance Voting">DAO Governance Authority</option>
+            <option value="Sybil Proof-of-Humanity">Proof-of-Humanity / WorldID</option>
+            <option value="Developer Credential">Smart Contract Auditor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="claim-issuer">Issuer Address</label>
+          <input type="text" id="claim-issuer" class="form-control" value="0x3b89...c991" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="claim-status">Status</label>
+            <select id="claim-status" class="form-control" required>
+              <option value="Active">Active</option>
+              <option value="Revoked">Revoked</option>
+              <option value="Expired">Expired</option>
+              <option value="Under Dispute">Under Dispute</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="claim-reputation">Issuer Reputation (1-100)</label>
+            <input type="number" id="claim-reputation" class="form-control" min="1" max="100" value="95" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-claim-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-bolt"></i> Inject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Logic Modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
