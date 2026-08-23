@@ -9,20 +9,20 @@ from web3 import Web3
 from services.chain import claim_abi, web3s
 from services.common.config import load_settings
 from services.common.log import emit
-from services.common.topics import SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID
+from services.common.chains import CHAINS, rewind_blocks
 from services.pipeline import Brain
 from services.score.predict import Scorer
 from services.store import atomic_write, read_json
 from services.writer.commit import Writer
 
-REWIND = {SETTLEMENT_CHAIN_ID: 12, UNICHAIN_SEPOLIA_CHAIN_ID: 12}
-
 
 def _sources(settings) -> dict[int, str]:
-    return {
-        SETTLEMENT_CHAIN_ID: settings.claim_source_sepolia,
-        UNICHAIN_SEPOLIA_CHAIN_ID: settings.claim_source_unichain_sepolia,
-    }
+    out: dict[int, str] = {}
+    for spec in CHAINS.values():
+        address = getattr(settings, spec.claim_source_attr, "") or ""
+        if address:
+            out[spec.chain_id] = address
+    return out
 
 
 def poll_chain(w3: Web3, chain_id: int, address: str, from_block: int, to_block: int) -> list[dict[str, Any]]:
@@ -100,7 +100,7 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
             stored = {} if force_backfill else cursors.get("chains", {}).get(cursor_key, {})
             cursor = int(stored.get("lastBlock", max(0, head - 2000)))
             if stored.get("parentHash") and stored.get("lastBlock") == head and stored.get("parentHash") != parent:
-                rewind = max(0, head - REWIND.get(chain_id, 12))
+                rewind = max(0, head - rewind_blocks(chain_id))
                 emit("ingest.reorg", chainId=chain_id, rewindTo=rewind)
                 cursor = rewind
             start = cursor + 1 if stored else max(0, head - 2000)

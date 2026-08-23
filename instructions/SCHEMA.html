@@ -157,10 +157,24 @@
   "brier": 0.14,
   "sepoliaHead": 1,
   "unichainSepoliaHead": 1,
+  "heads": {
+    "11155111": 1,
+    "1301": 1,
+    "84532": 1,
+    "11155420": 1,
+    "763373": 1,
+    "919": 1,
+    "1946": 1
+  },
   "operator": "0x…",
   "contracts": {
     "claimSourceSepolia": "0x…",
     "claimSourceUnichainSepolia": "0x…",
+    "claimSourceBaseSepolia": "0x…",
+    "claimSourceOpSepolia": "0x…",
+    "claimSourceInkSepolia": "0x…",
+    "claimSourceModeSepolia": "0x…",
+    "claimSourceSoneiumMinato": "0x…",
     "identityState": "0x…"
   },
   "degraded": false,
@@ -173,7 +187,7 @@
   }
 }
 </code></pre>
-      <p><code>llm</code> never includes secrets. GET <code>/v1/identity</code> never calls the LLM.</p>
+      <p><code>llm</code> never includes secrets. GET <code>/v1/identity</code> never calls the LLM. <code>heads</code> lists every cataloged chain id (FR-01 pair plus extra Superchain L2s). Empty extra ClaimSource fields are <code>null</code> until <code>deploy_extra_l2s.sh</code>.</p>
 
       <h2 id="llm-status">GET /v1/llm</h2>
       <p>Same public <code>llm</code> object as health. No secrets.</p>

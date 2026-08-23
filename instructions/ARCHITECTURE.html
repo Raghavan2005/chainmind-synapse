@@ -20,7 +20,7 @@
       <p class="lede">One settlement contract, two claim sources, a linear off-chain brain, and a read API that never waits on an LLM. Every write is idempotent. Every served state is re-derivable from public logs plus a hash preimage.</p>
       <div class="meta-row">
         <span class="chip ok">Sepolia settlement</span>
-        <span class="chip ok">Sepolia + Unichain Sepolia sources</span>
+        <span class="chip ok">Sepolia + Unichain + extra Superchain L2s</span>
         <span class="chip">GET &lt; 500ms</span>
         <span class="chip">commit &lt; 2 min</span>
       </div>
@@ -31,7 +31,7 @@
 Holder / Issuer wallets
         |  ClaimPosted / ClaimRevoked
         v
-ClaimSource (Sepolia)     ClaimSource (Unichain Sepolia)
+ClaimSource (Sepolia)  ClaimSource (Unichain / Base / OP / Ink / Mode / Minato)
         \                     /
          \                   /
           v                 v
@@ -164,7 +164,7 @@ interface IClaimSource {
       <h2 id="identity-format">Identity format</h2>
       <p>Internally we speak <code>NormalizedClaim</code>. On the wire, prefer a W3C VC 2.0-shaped JSON so judges see standards literacy:</p>
       <ul>
-        <li>Subject and issuer as <code>did:ethr:sepolia:0x…</code> / <code>did:ethr:eip155:1301:0x…</code> using <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> conventions and ERC-1056 semantics. You do not have to deploy EthereumDIDRegistry for the MVP; treat the address as the DID method-specific-id.</li>
+        <li>Subject and issuer as <code>did:ethr:sepolia:0x…</code> on settlement and <code>did:ethr:eip155:{chainId}:0x…</code> on extra L2s (Unichain 1301, Base 84532, OP 11155420, Ink 763373, Mode 919, Soneium Minato 1946) using <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> conventions and ERC-1056 semantics. You do not have to deploy EthereumDIDRegistry for the MVP; treat the address as the DID method-specific-id. Unknown chain IDs raise.</li>
         <li>Revocation: if clock allows, a bit on ClaimSource is enough. Mention Bitstring Status List (<a href="https://www.w3.org/TR/vc-bitstring-status-list/">W3C</a>) as the production analogue. Do not implement gzip bitstrings in 6 hours unless you are ahead.</li>
         <li>Hash-only on-chain payload follows the 2025 heterogeneous-chain VC paper: anchoring hashes, not full credentials, cuts gas ~85%.</li>
       </ul>
@@ -220,10 +220,10 @@ interface IClaimSource {
         <thead><tr><th>Failure</th><th>Detection</th><th>Behavior</th></tr></thead>
         <tbody>
           <tr><td>RPC timeout</td><td>health</td><td>Keep last cursor; exponential backoff; do not advance cursor</td></tr>
-          <tr><td>Unichain down</td><td>health.unichainSepolia</td><td>Serve Sepolia + last Unichain snapshot; flag <code>degradedChains</code>. Operator may run <code>scripts/emergency_anvil_source.sh</code> for a live (not snapshot) second source — health then reports <code>emergencySource</code> instead of <code>degraded</code>.</td></tr>
+          <tr><td>Unichain or extra L2 down</td><td>health.heads / rpcErrors</td><td>Serve Sepolia + last snapshot for that chainId; flag <code>degradedChains</code>. Prefer another watched Superchain L2. Operator may run <code>scripts/emergency_anvil_source.sh</code> for a live (not snapshot) second source — health then reports <code>emergencySource</code>. Do not invent claims.</td></tr>
           <tr><td>LLM down</td><td>extractor exception</td><td>Rules fallback; explanation template</td></tr>
           <tr><td>Model missing</td><td>startup</td><td>Refuse to start API, or start in train-then-load script</td></tr>
-          <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 Sepolia, N=12 Unichain Sepolia)</td></tr>
+          <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 on every watched chain in <code>chains.py</code>)</td></tr>
           <tr><td>Conflict storm</td><td>K &gt; θ</td><td>Lower confidence, list all sides, still commit</td></tr>
           <tr><td>Duplicate commit</td><td>revert</td><td>Treat as success if on-chain latest matches</td></tr>
           <tr><td>Expired claim</td><td>feature</td><td>p collapses; fusion disbelief rises</td></tr>
@@ -315,7 +315,7 @@ stateHash commits the full preimage, not a silent winner
         <thead><tr><th>Decision</th><th>We chose</th><th>We rejected</th><th>Why</th></tr></thead>
         <tbody>
           <tr><td>Problem slice</td><td>Reconcile issuer-signed claims that conflict across two EVMs</td><td>Wrap Trusta / Nomis / Human Passport / ACE as the score</td><td>PRD forbids commercial reconciliation SDKs. Those products score wallets, humanity, or pass/fail credentials — they do not fuse conflicts. RESEARCH.html.</td></tr>
-          <tr><td>Chains</td><td>Sepolia 11155111 + Unichain Sepolia 1301</td><td>Goerli, Mumbai, Amoy (POL dry), mainnet, Anvil-only deliverable</td><td>PRD examples are dead. Amoy POL unobtainable. Human override 2026-08-23. Anvil is for Forge tests. Mainnet is forbidden.</td></tr>
+          <tr><td>Chains</td><td>FR-01 pair Sepolia 11155111 + Unichain Sepolia 1301. Extra ingest: Base 84532, OP 11155420, Ink 763373, Mode 919, Soneium Minato 1946 (SepETH via each L2’s own Sepolia L1StandardBridge; <code>scripts/bridge_sepolia_to_l2.sh</code>)</td><td>Goerli, Mumbai, Amoy (POL dry), mainnet, Anvil-only deliverable, silent pair swap, mainnet bridges</td><td>PRD examples are dead. Amoy POL unobtainable. Pair lock 2026-08-23 still stands. Extra L2s added the same day because they share Sepolia ETH as gas. Anvil is for Forge tests. Mainnet is forbidden.</td></tr>
           <tr><td>Authority</td><td>On-chain commit + replayable logs</td><td>Postgres / Firebase / Supabase as source of truth</td><td>NFR: no centralized DB as SoT. Local JSON overlay is a cache; kill-and-replay must reconstruct <code>latest</code>.</td></tr>
           <tr><td>Credibility number</td><td>sklearn p_i + subjective-logic fusion → scoreBps</td><td>LLM-as-judge integer; single softmax; fine-tuned CRAVE judge</td><td>A lone p=0.5 is ignorance or conflict. SL uncertainty mass distinguishes them. TrustJudge (2025): LLMs are inconsistent scorers. PRD: no fine-tune.</td></tr>
           <tr><td>Fusion default</td><td>Jøsang cumulative ⊕, averaging for duplicates, revision if K&gt;θ</td><td>Classical Dempster-Shafer as default; EigenTrust as MVP</td><td>DS renormalization is brittle at high conflict (Zadeh). EigenTrust needs an issuer graph we will not have in six hours.</td></tr>
@@ -338,7 +338,7 @@ stateHash commits the full preimage, not a silent winner
         <li><strong>Topics are closed.</strong> Demo topics are <code>kyc.adult</code>, <code>kyc.active</code>, optional <code>residency.eu</code>. Open-ended natural-language identity is out of scope.</li>
         <li><strong>Polarity is binary.</strong> +1 / −1 on a named proposition. Multi-class “residency = FR vs DE vs unknown” would need Dirichlet reputation — refused on the clock.</li>
         <li><strong>Evidence is not PII.</strong> <code>evidenceURI</code> is demo JSON or a capped URL. No government-ID images. Append-only ledgers cannot honor GDPR deletion.</li>
-        <li><strong>Finality is a proxy.</strong> <code>confirmations_norm</code> is not economic finality. Reorg rewind is N=12 Sepolia and Unichain Sepolia.</li>
+        <li><strong>Finality is a proxy.</strong> <code>confirmations_norm</code> is not economic finality. Reorg rewind is N=12 on every cataloged chain.</li>
         <li><strong>Model generalization is unproven off the synthetic set.</strong> Accuracy &gt; 75% is on a held-out slice of data we generated. Production would need labeled real claims and a model card.</li>
         <li><strong>Integrity is reproducible, not trustless execution.</strong> A relying party who re-runs the open pipeline and checks <code>stateHash</code> does not need to trust our API host. They still trust that our published model file is the one we used — that is what <code>modelVersion</code> is for.</li>
       </ul>
@@ -378,7 +378,7 @@ stateHash commits the full preimage, not a silent winner
         <li><strong>Run.</strong> Two processes: ingest+writer, API. Overlay via <code>os.replace</code> on <code>data/overlay.json</code>. Systemd or a compose file with healthcheck on <code>/v1/health</code>.</li>
         <li><strong>Keys.</strong> Throwaway faucet key for the demo. Production: operator behind a 2-of-3 multisig or a timelock; never a funded mainnet key in env on a laptop.</li>
         <li><strong>RPC.</strong> At least two URLs per chain. Fail over on 429/5xx. Document rate limits.</li>
-        <li><strong>Support.</strong> Replay <code>POST /v1/replay/{subject}</code> reconstructs state from logs. <code>scripts/verify_hash.py</code> is the customer-facing “did you cheat?” tool. Incident playbook: if Unichain dies, serve Sepolia + last Unichain snapshot with <code>degradedChains</code>; do not invent claims. If it stays down, <code>scripts/emergency_anvil_source.sh</code> stands up a local Anvil devnet as a live second source — flagged loudly via <code>emergencySource</code>, never presented as real Unichain data.</li>
+        <li><strong>Support.</strong> Replay <code>POST /v1/replay/{subject}</code> reconstructs state from logs. <code>scripts/verify_hash.py</code> is the customer-facing “did you cheat?” tool. Incident playbook: if any extra L2 dies, serve Sepolia + last snapshot for that chainId with <code>degradedChains</code>; do not invent claims. If Unichain stays down, prefer another watched Superchain L2; <code>scripts/emergency_anvil_source.sh</code> is the last-resort live second source — flagged via <code>emergencySource</code>, never presented as real Unichain. Do not silently revert to Amoy.</li>
         <li><strong>Change control.</strong> No upgrade proxy on IdentityState. A new contract is a new deployment and a documented cutover. ClaimSource can be redeployed per chain; watchers pick up addresses from env.</li>
       </ol>
 

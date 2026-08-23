@@ -5,6 +5,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
+from services.common.chains import ALLOWED_CHAIN_IDS
 from services.common.hashing import commit_id, state_hash, to_hex
 from services.common.llm import LLMOverride, runtime_from
 from services.common.log import emit
@@ -26,7 +27,7 @@ class Brain:
         self.claims: dict[str, NormalizedClaim] = {}
         self.issuer_rs: dict[str, tuple[float, float]] = {}
         self.overlay: dict[str, Any] = read_json(settings.overlay_path, {"subjects": {}})
-        self.heads: dict[int, int] = {11155111: 0, 1301: 0}
+        self.heads: dict[int, int] = {cid: 0 for cid in ALLOWED_CHAIN_IDS}
         self.rpc_errors: dict[int, str] = {}
 
     def seed_issuer(self, issuer: str, klass: str) -> None:

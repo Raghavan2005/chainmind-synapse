@@ -23,7 +23,7 @@
       <table>
         <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
         <tbody>
-          <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Unichain Sepolia for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 1301.</td></tr>
+          <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Unichain Sepolia for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 1301. Extra Superchain L2s (Base / OP / Ink / Mode / Minato) may also appear when their ClaimSource is configured; they do not replace the pair.</td></tr>
           <tr><td>FR-02</td><td>Extract and normalize metadata with Gen-AI prompt engineering</td><td>Given a messy evidence payload, extractor returns a valid NormalizedClaim (pydantic). Unit test uses a fixture string. Instructor-over-LiteLLM when a key is present; if LLM is absent, rules fallback still passes the same schema test on the inline-JSON fixture.</td></tr>
           <tr><td>FR-03</td><td>Score credibility with an AI-ML model on historical + contextual features</td><td><code>python -m services.score.train</code> writes <code>data/model.joblib</code> and prints test accuracy &gt; 0.75. Feature names match SCHEMA.html.</td></tr>
           <tr><td>FR-04</td><td>Generate a unified identity state with confidence metrics</td><td>API body includes <code>verdict</code>, <code>confidence</code> (0–1), <code>scoreBps</code>, <code>topics[]</code> each with fused expectation, <code>conflicts[]</code>.</td></tr>
@@ -66,7 +66,7 @@
       </ul>
 
       <h2 id="health">Health contract</h2>
-      <p><code>GET /v1/health</code> must include: <code>modelLoaded</code>, <code>modelAccuracy</code>, <code>sepoliaHead</code>, <code>unichainSepoliaHead</code>, <code>operator</code>, <code>contracts</code>, <code>degraded</code>.</p>
+      <p><code>GET /v1/health</code> must include: <code>modelLoaded</code>, <code>modelAccuracy</code>, <code>sepoliaHead</code>, <code>unichainSepoliaHead</code>, <code>heads</code> (all cataloged chain ids), <code>operator</code>, <code>contracts</code> (every ClaimSource plus IdentityState), <code>degraded</code>.</p>
 
       <h2 id="strategy">Testing and validation strategy</h2>
       <p>If it is not in this list, it is not a release gate. Run in this order so a red Forge test never hides behind a pretty curl.</p>

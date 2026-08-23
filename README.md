@@ -1,15 +1,15 @@
 # ChainMind Synapse
 
-Two-chain identity-claim reconciler. Ingests `ClaimPosted` / `ClaimRevoked` from **Sepolia** and **Unichain Sepolia**, scores each claim with a frozen sklearn model, fuses conflicts with subjective logic, commits a hash-only identity state on Sepolia, and serves it over REST.
+Multi-chain identity-claim reconciler. Ingests `ClaimPosted` / `ClaimRevoked` from **Sepolia** + **Unichain Sepolia** (FR-01 pair) and optional Superchain L2s (**Base**, **OP**, **Ink**, **Mode**, **Soneium Minato**), scores each claim with a frozen sklearn model, fuses conflicts with subjective logic, commits a hash-only identity state on Sepolia, and serves it over REST.
 
 The living spec is HTML: [`instructions/INDEX.html`](instructions/INDEX.html). `AGENTS.md` / `CLAUDE.md` only point there.
 
-PRD named Goerli and Mumbai. Both were sunset in April 2024. Amoy was the first substitute; POL faucets dried. Human override: Sepolia `11155111` + Unichain Sepolia `1301` (ETH gas).
+PRD named Goerli and Mumbai. Both were sunset in April 2024. Amoy was the first substitute; POL faucets dried. Human override: Sepolia `11155111` + Unichain Sepolia `1301` remain the FR-01 pair (ETH gas). Extra ingest sources share Sepolia ETH via each L2’s own `L1StandardBridge` (`scripts/bridge_sepolia_to_l2.sh`).
 
 ## What is live (no stubbed scores)
 
 - Solidity bulletin boards + append-only `IdentityState` (Foundry tests in CI).
-- Real RPC ingest via web3.py against the two public testnets.
+- Real RPC ingest via web3.py against Sepolia, Unichain Sepolia, and the extra Superchain L2s in `services/common/chains.py`.
 - HistGradientBoosting credibility model; held-out accuracy printed in `/v1/health`.
 - Jøsang cumulative / averaging fusion with the MATH.html worked example locked in pytest.
 - GET never calls an LLM. Explanation is async (Instructor if `LLM_API_KEY` is set, otherwise SHAP + template numbers).
@@ -17,7 +17,7 @@ PRD named Goerli and Mumbai. Both were sunset in April 2024. Amoy was the first 
 
 Operator key can commit. That is a documented liveness concession, not a hidden IdP. Anyone can re-run the pipeline and check `stateHash`.
 
-Public RPCs used here: `ethereum-sepolia-rpc.publicnode.com` and `sepolia.unichain.org`. Bridge Sepolia ETH to Unichain with `bash scripts/bridge_sepolia_to_unichain.sh` (L1 proxy `0xea58fcA6…` on Sepolia — never mainnet `0x81014F44…`).
+Public RPCs and L1 bridges are in `.env.example`. Fund an L2 with `bash scripts/bridge_sepolia_to_l2.sh <unichain|base|op|ink|mode|soneium>`. Never a mainnet L1StandardBridge (`0x81014F44…` / `0x3154Cf16…` / `0x99C9fc46…`).
 
 Model accuracy (`data/metrics.json`): **90% held-out accuracy**, F1 0.911, Brier 0.087, trained on 720 rows / tested on 180.
 
@@ -28,7 +28,7 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cd contracts && forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0 --no-git --shallow && forge test -vv && cd ..
 python -m services.score.train
-cp .env.example .env   # deployed addresses already filled in; paste in 3 keys from a teammate, not from git; fund Sepolia ETH, bridge to Unichain Sepolia
+cp .env.example .env   # deployed addresses already filled in; paste in 3 keys from a teammate, not from git; fund Sepolia ETH, then bridge_sepolia_to_l2.sh
 uvicorn services.api.main:app --host 0.0.0.0 --port 8000
 # other terminal
 python -m services.ingest.watch
@@ -55,6 +55,8 @@ Deploy scripts revert on chain id `1` and `137`.
 cd contracts
 forge script script/DeployClaimSource.s.sol:DeployClaimSource --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 forge script script/DeployClaimSource.s.sol:DeployClaimSource --rpc-url $UNICHAIN_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+# extra L2s after SepETH credit:
+# bash ../scripts/deploy_extra_l2s.sh
 forge script script/DeployIdentityState.s.sol:DeployIdentityState --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 ```
 
@@ -66,9 +68,10 @@ Live throwaway deploy (2026-08-23):
 | --- | --- | --- |
 | ClaimSource | Sepolia | [`0x16366eaeEddB90C990704ee6d12C43B30D9CF614`](https://sepolia.etherscan.io/address/0x16366eaeEddB90C990704ee6d12C43B30D9CF614) |
 | ClaimSource | Unichain Sepolia | [`0x5c2749F63fC6f50C600DA04f0Fd87bF8299c2c59`](https://sepolia.uniscan.xyz/address/0x5c2749F63fC6f50C600DA04f0Fd87bF8299c2c59) |
+| ClaimSource | Base / OP / Ink / Mode / Minato | [`0x5c2749F63fC6f50C600DA04f0Fd87bF8299c2c59`](https://sepolia.basescan.org/address/0x5c2749F63fC6f50C600DA04f0Fd87bF8299c2c59) (same CREATE address — deployer nonce 0 on each L2) |
 | IdentityState | Sepolia | [`0xE11CD3Bb815ED4CA95692907ABa6fB3180F84894`](https://sepolia.etherscan.io/address/0xE11CD3Bb815ED4CA95692907ABa6fB3180F84894) |
 
-Gas path: Sepolia → Unichain via L1StandardBridge [`0xea58fcA6…`](https://sepolia.etherscan.io/address/0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2) (`scripts/bridge_sepolia_to_unichain.sh`). Never the mainnet Unichain bridge.
+Gas path: Sepolia → each L2 via that L2’s own L1StandardBridge (`scripts/bridge_sepolia_to_l2.sh`). Unichain [`0xea58fcA6…`](https://sepolia.etherscan.io/address/0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2). Never mainnet Unichain / Base / OP bridges.
 
 Demo fixture (same subject `0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221`):
 

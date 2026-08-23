@@ -56,7 +56,7 @@
       <h2 id="dashboard">Dashboard architecture</h2>
       <p>One route: <code>/#/{subject}</code>. Query string also fine. Three columns on desktop, stacked on 375px:</p>
       <ol>
-        <li><strong>Rail.</strong> Subject input, health chips (Sepolia head, Unichain Sepolia head, accuracy), last commit hash → explorer.</li>
+        <li><strong>Rail.</strong> Subject input, health chips (Sepolia, Unichain, Base, OP, Ink, Mode, Minato heads + accuracy), last commit hash → explorer.</li>
         <li><strong>Claims.</strong> Chronological list. Each row: chain chip, issuer, topic, polarity, pCredible, revoked/expired marks. Opposite polarities on the same topic get a shared brick rule.</li>
         <li><strong>Fusion.</strong> For each topic, a stacked bar of b / d / u (copper / brick / mute). Confidence as a single large mono number, not a speedometer.</li>
       </ol>

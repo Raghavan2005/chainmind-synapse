@@ -23,6 +23,26 @@ class Settings(BaseSettings):
     anvil_emergency_rpc_url: str = ""
     claim_source_anvil_emergency: str = ""
 
+    base_sepolia_rpc_url: str = "https://sepolia.base.org"
+    base_sepolia_rpc_url_fallback: str = "https://base-sepolia-rpc.publicnode.com"
+    base_l1_bridge_sepolia: str = "0xfd0Bf71F60660E2f608ed56e1659C450eB113120"
+
+    op_sepolia_rpc_url: str = "https://sepolia.optimism.io"
+    op_sepolia_rpc_url_fallback: str = "https://optimism-sepolia-rpc.publicnode.com"
+    op_l1_bridge_sepolia: str = "0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1"
+
+    ink_sepolia_rpc_url: str = "https://rpc-gel-sepolia.inkonchain.com"
+    ink_sepolia_rpc_url_fallback: str = "https://rpc-gel-sepolia.inkonchain.com"
+    ink_l1_bridge_sepolia: str = "0x33f60714BbD74d62b66D79213C348614DE51901C"
+
+    mode_sepolia_rpc_url: str = "https://sepolia.mode.network"
+    mode_sepolia_rpc_url_fallback: str = "https://sepolia.mode.network"
+    mode_l1_bridge_sepolia: str = "0xbC5C679879B2965296756CD959C3C739769995E2"
+
+    soneium_minato_rpc_url: str = "https://rpc.minato.soneium.org"
+    soneium_minato_rpc_url_fallback: str = "https://rpc.minato.soneium.org"
+    soneium_l1_bridge_sepolia: str = "0x5f5a404A5edabcDD80DB05E8e54A78c9EBF000C2"
+
     deployer_private_key: str = ""
     operator_address: str = ""
     issuer_a_private_key: str = ""
@@ -31,6 +51,11 @@ class Settings(BaseSettings):
 
     claim_source_sepolia: str = ""
     claim_source_unichain_sepolia: str = ""
+    claim_source_base_sepolia: str = ""
+    claim_source_op_sepolia: str = ""
+    claim_source_ink_sepolia: str = ""
+    claim_source_mode_sepolia: str = ""
+    claim_source_soneium_minato: str = ""
     identity_state_sepolia: str = ""
 
     llm_base_url: str = ""
