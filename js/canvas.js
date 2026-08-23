@@ -1,8 +1,8 @@
 /**
- * ChainMind Synapse — Minimalist Monochrome Visualizers
- * - High-contrast monochromatic particle topology
- * - Geometric radar grid & pulse rings
- * - Pure ternary simplex coordinate tracer (b + d + u = 1)
+ * ChainMind Synapse — Neutral Slate Dynamic Visualizers
+ * - Plus Jakarta Sans & Space Mono typography
+ * - Neutral photon topology with spring physics
+ * - Jøsang Barycentric Simplex coordinate tracer (b + d + u = 1)
  */
 
 export class SynapseCanvas {
@@ -207,7 +207,7 @@ export class SynapseCanvas {
     const cx = this.coreNode.x;
     const cy = this.coreNode.y;
 
-    // 1. Monochromatic Radar Circles
+    // 1. Neutral Radar Circles
     [80, 160, 240].forEach(r => {
       this.ctx.beginPath();
       this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -216,7 +216,7 @@ export class SynapseCanvas {
       this.ctx.stroke();
     });
 
-    // 2. Sweeping Scanner Line
+    // 2. Sweeping Radar Line
     const scanX = cx + Math.cos(this.radarAngle) * 240;
     const scanY = cy + Math.sin(this.radarAngle) * 180;
     const radarGrad = this.ctx.createLinearGradient(cx, cy, scanX, scanY);
@@ -268,14 +268,14 @@ export class SynapseCanvas {
 
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, this.coreNode.radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = '#101010';
+    this.ctx.fillStyle = '#13171f';
     this.ctx.strokeStyle = '#ffffff';
     this.ctx.lineWidth = 1.5;
     this.ctx.fill();
     this.ctx.stroke();
 
     this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = '600 11px "IBM Plex Mono"';
+    this.ctx.font = '700 11px "Space Mono"';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText('CORE', cx, cy);
@@ -286,20 +286,20 @@ export class SynapseCanvas {
       this.ctx.save();
       this.ctx.beginPath();
       this.ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#171717';
+      this.ctx.fillStyle = '#1a202b';
       this.ctx.strokeStyle = n.isConflict ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.25)';
       this.ctx.lineWidth = 1.5;
       this.ctx.fill();
       this.ctx.stroke();
 
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = '600 10px "IBM Plex Mono"';
+      this.ctx.font = '700 10px "Space Mono"';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
       this.ctx.fillText(n.chainName.substring(0, 3).toUpperCase(), n.x, n.y);
 
-      this.ctx.font = '10.5px "IBM Plex Sans"';
-      this.ctx.fillStyle = '#71717a';
+      this.ctx.font = '500 11px "Plus Jakarta Sans"';
+      this.ctx.fillStyle = '#94a3b8';
       this.ctx.fillText(n.topic, n.x, n.y + n.radius + 13);
       this.ctx.restore();
     });
@@ -342,9 +342,9 @@ export class SynapseCanvas {
     sCtx.stroke();
 
     // Corner Labels
-    sCtx.font = '500 10px "IBM Plex Mono"';
+    sCtx.font = '500 10px "Space Mono"';
     sCtx.textAlign = 'center';
-    sCtx.fillStyle = '#71717a';
+    sCtx.fillStyle = '#94a3b8';
     sCtx.fillText('u=1 (Uncertainty)', topX, topY - 6);
     sCtx.fillText('d=1 (Disbelief)', leftX + 15, leftY + 14);
     sCtx.fillText('b=1 (Belief)', rightX - 15, rightY + 14);
