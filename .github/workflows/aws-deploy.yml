@@ -107,4 +107,12 @@ jobs:
         if: ${{ vars.APPRUNNER_SERVICE_ARN != '' }}
         env:
           ARN: ${{ vars.APPRUNNER_SERVICE_ARN }}
-        run: aws apprunner start-deployment --service-arn "$ARN"
+        run: |
+          set -euo pipefail
+          status="$(aws apprunner describe-service --service-arn "$ARN" --query 'Service.Status' --output text 2>/dev/null || echo MISSING)"
+          echo "apprunner status=${status}"
+          if [[ "$status" != "RUNNING" ]]; then
+            echo "Skip roll: service is not RUNNING (deleted, creating, or failed)."
+            exit 0
+          fi
+          aws apprunner start-deployment --service-arn "$ARN"
