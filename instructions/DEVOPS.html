@@ -20,9 +20,9 @@
       <p class="lede">The product is a Vite dashboard on Vercel (Hobby) plus a Python brain that stays on a laptop, Codespaces, or Compose until a human explicitly pays for AWS compute. GitHub Actions is the coupler: CI always runs; image push and Vercel-from-Actions stay behind repository variables. Overlay JSON is a cache. The ledger is the record. No hosted database.</p>
       <div class="meta-row">
         <span class="chip ok">Vercel = dashboard only</span>
-        <span class="chip ok">AWS default = OIDC + ECR</span>
-        <span class="chip warn">App Runner held</span>
-        <span class="chip bad">No RDS · no NAT · no always-on 1 vCPU</span>
+        <span class="chip ok">AWS OIDC + ECR + image push</span>
+        <span class="chip warn">Read API on App Runner (no operator key)</span>
+        <span class="chip bad">No RDS · no NAT · no writer key on AWS</span>
       </div>
 
       <h2 id="lock">Hosting lock</h2>
@@ -38,7 +38,7 @@
         </tbody>
       </table>
       <div class="forbid">
-        <p><strong>Do not</strong> <code>terraform apply</code> <code>infra/aws</code> with <code>enable_runtime=true</code>, set <code>AWS_DEPLOY_ENABLED=true</code>, or set <code>APPRUNNER_SERVICE_ARN</code> unless a human asked for a public API URL and accepted the bill. The Terraform file used to create App Runner + Secrets Manager on every apply — that is now opt-in. Prefer <code>scripts/aws_preflight.sh</code> for the cheap objects.</p>
+        <p><strong>Human override 2026-08-23:</strong> <code>AWS_DEPLOY_ENABLED=true</code> and <code>VERCEL_DEPLOY_ENABLED=true</code> so GitHub actually ships. The public API is a single App Runner service (image CMD runs ingest beside uvicorn; no <code>DEPLOYER_PRIVATE_KEY</code>). Do not <code>terraform apply</code> <code>enable_runtime=true</code> — that still creates Secrets Manager. Create/roll App Runner from the CLI + the gated workflow. Prefer <code>scripts/aws_preflight.sh</code> for OIDC/ECR.</p>
         <p><strong>Do not</strong> put <code>DEPLOYER_PRIVATE_KEY</code>, issuer keys, or <code>LLM_API_KEY</code> in Vercel env. Browser BYOK is localStorage + per-request. Operator keys stay on the machine that runs ingest+writer.</p>
       </div>
 
@@ -51,16 +51,16 @@
           <tr><td>Vercel Hobby for <code>dashboard/</code></td><td>On</td><td>$0 at hackathon traffic</td><td>One project. Production + PR previews. No Vercel Pro, no extra teams, no Edge Functions, no serverless Python.</td></tr>
           <tr><td>IAM OIDC provider + <code>chainmind-synapse-gha</code></td><td>On</td><td>$0</td><td>Already created. Trust must allow <code>repo:OWNER/NAME:*</code> <em>and</em> <code>repo:OWNER@id/NAME@id:*</code>.</td></tr>
           <tr><td>ECR <code>chainmind-synapse</code> in <code>us-east-1</code></td><td>On (empty or CI tags only)</td><td>Pennies if you actually push; $0 if empty</td><td>Keep the repo. Do not enable pull-through caches, replication, or a second region.</td></tr>
-          <tr><td>GitHub environment <code>aws</code></td><td>On</td><td>$0</td><td>Vars only: <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>, <code>ECR_REPOSITORY</code>. No secrets. <code>AWS_DEPLOY_ENABLED</code> unset.</td></tr>
-          <tr><td>App Runner (1 vCPU / 2 GB in the old Terraform)</td><td><strong>Off</strong></td><td>Roughly a coffee-a-day always-on tax</td><td>Held. <code>enable_runtime</code> defaults false. No <code>APPRUNNER_SERVICE_ARN</code>.</td></tr>
+          <tr><td>GitHub environment <code>aws</code></td><td>On</td><td>$0</td><td>Vars: region, role, ECR, <code>AWS_DEPLOY_ENABLED=true</code>. Still no long-lived AWS keys.</td></tr>
+          <tr><td>App Runner (1 vCPU / 2 GB, API+ingest, no writer key)</td><td>On after first image</td><td>Always-on compute — pause or delete after the demo</td><td>Human asked 2026-08-23. No Secrets Manager. Tear down when the clock is done.</td></tr>
           <tr><td>Secrets Manager</td><td><strong>Off</strong></td><td>~$0.40 / secret / month plus API</td><td>Held. Demo keys live in gitignored <code>.env</code> on the writer host.</td></tr>
           <tr><td>NAT, ALB, ECS/Fargate service, EKS, RDS, ElastiCache, CloudFront, extra VPC</td><td>Never for this MVP</td><td>Tens to hundreds</td><td>Forbidden. Overlay is a file. Reads are in-process.</td></tr>
           <tr><td>Demo-day public API</td><td>Optional, hours not months</td><td>Prefer a tunnel to the laptop</td><td>Cloudflare Tunnel or ngrok in front of <code>:8000</code>. Tear it down after the video. Do not leave App Runner up “just in case.”</td></tr>
         </tbody>
       </table>
       <div class="okbox">
-        <p>Verified 2026-08-23 on account <code>555431941144</code>: ECR <code>555431941144.dkr.ecr.us-east-1.amazonaws.com/chainmind-synapse</code> exists. No ChainMind App Runner. No <code>chainmind</code> secret. GitHub vars <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>, <code>ECR_REPOSITORY</code> are set on the repo and on environment <code>aws</code>. <code>AWS_DEPLOY_ENABLED</code> is unset, so <code>Deploy AWS</code> stays green/neutral. An unrelated failed App Runner named <code>breach-server</code> is not ours — do not start it, do not attach it.</p>
-        <p>Vercel (team <code>aaryanguglanics21-3349s-projects</code>): project <code>chainmind-synapse</code> (<code>prj_dotWBCvhUgL9oqvOVgqo3g5PmlGS</code>). Production alias <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a>. <code>VITE_API_BASE</code> unset — paste the API origin in the UI. <code>VERCEL_DEPLOY_ENABLED</code> unset.</p>
+        <p>Verified 2026-08-23 on account <code>555431941144</code>: OIDC assume-role from GitHub Actions works (<code>chainmind-synapse-gha</code> / <code>AROAYCUSS2QMFQCVQRMEH</code>). ECR exists. <code>AWS_DEPLOY_ENABLED=true</code> so CI success pushes <code>:latest</code>. App Runner access role <code>chainmind-synapse-apprunner</code> is IAM-only until the first image lands. No Secrets Manager. Unrelated failed App Runner <code>breach-server</code> is not ours.</p>
+        <p>Vercel (team <code>aaryanguglanics21-3349s-projects</code>): project <code>chainmind-synapse</code> (<code>prj_dotWBCvhUgL9oqvOVgqo3g5PmlGS</code>). Production alias <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a>. GitHub App is <em>not</em> installed on <code>Raghavan2005</code> — repo admin cannot install a GitHub App on another user’s account. Coupler is environment <code>vercel</code> + <code>VERCEL_TOKEN</code> + <code>VERCEL_DEPLOY_ENABLED=true</code>. Owner still can install <a href="https://github.com/apps/vercel">github.com/apps/vercel</a> for native PR previews.</p>
       </div>
 
       <h2 id="topo">Topology</h2>
@@ -247,7 +247,7 @@ terraform plan -var='enable_runtime=false'
       <ol>
         <li>CI green on <code>master</code>.</li>
         <li><code>cd dashboard && vercel link --yes --project chainmind-synapse && vercel --prod --yes</code>.</li>
-        <li><code>vercel git connect</code> if the Vercel user can see <code>Raghavan2005/chainmind-synapse</code>. Attempted 2026-08-23 from team <code>aaryanguglanics21-3349s-projects</code>: GitHub rejected the link (Vercel identity ≠ repo owner). The GitHub owner installs the Vercel GitHub app on that repo, then rerun connect. Do not fork onto a second remote to “make link work.” Until then: CLI <code>vercel --prod</code> from <code>dashboard/</code>, or the gated token workflow.</li>
+        <li>GitHub → Vercel: native git needs the Vercel GitHub App on the <em>account that owns the repo</em> (<code>Raghavan2005</code>). Repo admin is not enough. Until that install: <code>Deploy Vercel</code> uses <code>VERCEL_TOKEN</code> on environment <code>vercel</code>.</li>
         <li>Judge path A (default): API on localhost or Compose; dashboard on Vercel; paste API base in the UI.</li>
         <li>Judge path B (demo day): Cloudflare Tunnel / ngrok → <code>:8000</code>; set <code>VITE_API_BASE</code> or paste it; kill the tunnel after.</li>
         <li>Judge path C (explicit spend): human sets <code>enable_runtime</code>, applies Terraform or clicks App Runner once, sets the two GitHub flags, and writes the URL into this page. Same commit updates CLAUDE.html / ARCHITECTURE.html.</li>

@@ -60,6 +60,16 @@ resource "aws_iam_role_policy" "github_actions_ecr" {
         ]
         Resource = aws_ecr_repository.synapse.arn
       },
+      {
+        Sid    = "AppRunnerRoll"
+        Effect = "Allow"
+        Action = [
+          "apprunner:StartDeployment",
+          "apprunner:DescribeService",
+          "apprunner:ListOperations",
+        ]
+        Resource = "arn:aws:apprunner:${var.region}:${data.aws_caller_identity.me.account_id}:service/${var.name}/*"
+      },
     ]
   })
 }

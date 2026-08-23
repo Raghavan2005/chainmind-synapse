@@ -104,7 +104,7 @@ If Unichain Sepolia itself goes down (not just one RPC endpoint, both `UNICHAIN_
 
 ## Hosting
 
-Spec: [`instructions/DEVOPS.html`](instructions/DEVOPS.html). Live UI: [chainmind-synapse.vercel.app](https://chainmind-synapse.vercel.app) (Vite dashboard; paste a local or tunneled API base). AWS default is OIDC + ECR in `us-east-1` — no App Runner, no Secrets Manager, no hosted database. `infra/aws` Terraform sets `enable_runtime=false` so apply cannot create compute by accident. Prefer `scripts/aws_preflight.sh` for the cheap objects.
+Spec: [`instructions/DEVOPS.html`](instructions/DEVOPS.html). Live UI: [chainmind-synapse.vercel.app](https://chainmind-synapse.vercel.app). GitHub Actions pushes the API image to ECR after CI (`AWS_DEPLOY_ENABLED=true`). Native Vercel Git needs the Vercel GitHub App on `Raghavan2005`; until then deploys use the `vercel` environment token. No Secrets Manager, no hosted database. `terraform apply` still defaults `enable_runtime=false`.
 
 ```bash
 bash scripts/aws_preflight.sh --create   # us-east-1 unless AWS_REGION is set
