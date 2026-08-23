@@ -157,7 +157,7 @@ MODEL_PATH=data/model.joblib
       <ol>
         <li>Cut bonus, not MVP.</li>
         <li>Replace the LLM extractor with the rules fallback; keep the prompt file for the demo narration.</li>
-        <li>If Unichain Sepolia RPC dies, still ingest Sepolia and a second source via a locally deployed Anvil chain <em>documented as the emergency second source</em>, then retry Unichain. The PRD wants two blockchains, not two happy RPCs. Do not silently revert to Amoy. Never call the mainnet Unichain bridge <code>0x81014F44…</code>.</li>
+        <li>If Unichain Sepolia RPC dies, still ingest Sepolia and a second source via a locally deployed Anvil chain — implemented in <code>scripts/emergency_anvil_source.sh</code> + <code>services/chain.py:web3s()</code>, never auto-started, always logged loudly (<code>chain.emergency_fallback</code> event, <code>health.emergencySource</code>) so it is never mistaken for real Unichain data, then retry Unichain. The PRD wants two blockchains, not two happy RPCs. Do not silently revert to Amoy. Never call the mainnet Unichain bridge <code>0x81014F44…</code>.</li>
         <li>If Foundry cannot install, use the Hardhat fallback in SKILL.html.</li>
       </ol>
 

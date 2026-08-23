@@ -47,11 +47,24 @@ def connect_live(url: str, fallback: str = "") -> Web3:
     raise ConnectionError("; ".join(errors) or f"RPC failed: {url}")
 
 
-def web3s(settings: Settings) -> dict[int, Web3]:
-    return {
-        11155111: connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback),
-        1301: connect_live(settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback),
+def web3s(settings: Settings) -> dict[int, tuple[Web3, str | None]]:
+    """chainId -> (client, source_address_override). Override is set only when the
+    Unichain Sepolia RPC pair is fully unreachable and an emergency Anvil devnet has
+    been stood up via scripts/emergency_anvil_source.sh — never automatic, never a
+    silent swap: callers must log this loudly (see services/ingest/watch.py)."""
+    clients: dict[int, tuple[Web3, str | None]] = {
+        11155111: (connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback), None),
     }
+    try:
+        clients[1301] = (
+            connect_live(settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback),
+            None,
+        )
+    except ConnectionError:
+        if not (settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency):
+            raise
+        clients[1301] = (connect_live(settings.anvil_emergency_rpc_url), settings.claim_source_anvil_emergency)
+    return clients
 
 
 def dump_abis() -> None:

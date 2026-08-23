@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     settlement_chain: str = "sepolia"
     unichain_l1_bridge_sepolia: str = "0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2"
 
+    # Emergency second source if Unichain Sepolia itself (not just one RPC) is down.
+    # Never auto-started — an operator runs scripts/emergency_anvil_source.sh first.
+    anvil_emergency_rpc_url: str = ""
+    claim_source_anvil_emergency: str = ""
+
     deployer_private_key: str = ""
     operator_address: str = ""
     issuer_a_private_key: str = ""

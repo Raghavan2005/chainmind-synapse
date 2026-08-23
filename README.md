@@ -88,6 +88,10 @@ issuedAt     1787466048
 
 Once the API is pointed at this deployment's `.env`, `curl http://127.0.0.1:8000/v1/identity/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221` serves the fused view of the same commit.
 
+## Emergency second source
+
+If Unichain Sepolia itself goes down (not just one RPC endpoint, both `UNICHAIN_SEPOLIA_RPC_URL` and its fallback), `bash scripts/emergency_anvil_source.sh` stands up a local Anvil devnet and deploys `ClaimSource` to it. Ingest and `/v1/health` pick this up automatically on the next poll (`chain.emergency_fallback` log event, `health.emergencySource` field) — it is never auto-started and never silently presented as real Unichain data. Say so out loud if it's active during a demo.
+
 ## GitHub
 
 - `.github/workflows/ci.yml` — Foundry, pytest + train, dashboard build, Docker image.

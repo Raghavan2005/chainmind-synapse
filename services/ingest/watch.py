@@ -69,10 +69,21 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
     cursors = read_json(settings.cursors_path, {"chains": {}})
     clients = web3s(settings)
     sources = _sources(settings)
-    for chain_id, url_w3 in clients.items():
-        address = sources.get(chain_id)
+    for chain_id, (url_w3, source_override) in clients.items():
+        address = source_override or sources.get(chain_id)
         if not address:
             continue
+        # Anvil's block numbers start at 0 and are unrelated to Unichain Sepolia's —
+        # a separate cursor key keeps emergency-mode progress from colliding with (or
+        # corrupting) the real chain's cursor, in either direction.
+        cursor_key = f"{chain_id}-emergency" if source_override else str(chain_id)
+        if source_override:
+            emit(
+                "chain.emergency_fallback",
+                chainId=chain_id,
+                source=source_override,
+                note="Unichain Sepolia RPC unreachable; serving from local Anvil emergency source. Not a public testnet.",
+            )
         try:
             head = url_w3.eth.block_number
             try:
@@ -86,10 +97,10 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
             # replay would just re-serve the stale overlay. Treat cursor as absent so
             # this run re-derives claims from the same backfill window a truly cold
             # start would use.
-            stored = {} if force_backfill else cursors.get("chains", {}).get(str(chain_id), {})
+            stored = {} if force_backfill else cursors.get("chains", {}).get(cursor_key, {})
             cursor = int(stored.get("lastBlock", max(0, head - 2000)))
             if stored.get("parentHash") and stored.get("lastBlock") == head and stored.get("parentHash") != parent:
-                rewind = max(0, head - REWIND[chain_id])
+                rewind = max(0, head - REWIND.get(chain_id, 12))
                 emit("ingest.reorg", chainId=chain_id, rewindTo=rewind)
                 cursor = rewind
             start = cursor + 1 if stored else max(0, head - 2000)
@@ -108,7 +119,7 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
             brain.heads[chain_id] = head
             brain.rpc_errors.pop(chain_id, None)
             emit("ingest.head", chainId=chain_id, block=head, cursor=start, lag=head - start, rpcMs=0)
-            cursors.setdefault("chains", {})[str(chain_id)] = {"lastBlock": head, "parentHash": parent}
+            cursors.setdefault("chains", {})[cursor_key] = {"lastBlock": head, "parentHash": parent}
             for subject in subjects:
                 body = brain.fuse(subject)
                 if writer and body.get("commit"):

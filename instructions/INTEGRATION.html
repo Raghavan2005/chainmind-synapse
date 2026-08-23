@@ -190,7 +190,7 @@ source .env
         <li><strong>Health.</strong> Probe <code>GET /v1/health</code> every 15s. If <code>degraded</code> is true, do not post new demo claims until the lag is explained.</li>
         <li><strong>Logs.</strong> Keep stdout. Event names are in ARCHITECTURE.html (ingest.head, commit.mined, fuse.conflict, …).</li>
         <li><strong>Replay.</strong> <code>POST /v1/replay/{subject}</code> with the bearer from env rebuilds overlay from logs. Use this after a crash. The chain is the record.</li>
-        <li><strong>Incidents.</strong> RPC 429 → backoff, second URL in .env. Unichain down → serve Sepolia + last Unichain snapshot, flag <code>degradedChains</code>. LLM down → rules + template explanation. Model file missing → refuse API start.</li>
+        <li><strong>Incidents.</strong> RPC 429 → backoff, second URL in .env. Unichain down → serve Sepolia + last Unichain snapshot, flag <code>degradedChains</code>; run <code>scripts/emergency_anvil_source.sh</code> for a live local fallback instead (health reports <code>emergencySource</code>). LLM down → rules + template explanation. Model file missing → refuse API start.</li>
         <li><strong>Keys.</strong> Demo: throwaway faucet account. Never a mainnet key. Never commit <code>.env</code>.</li>
       </ul>
 
