@@ -1,45 +1,42 @@
 /* ==========================================================================
-   ChainMind Synapse — Minimalist Monochrome Watch Floor Design System
-   Ultra-clean pure carbon, high-contrast titanium white, and stark monochrome optics.
+   ChainMind Synapse — Refined Neutral Slate & Modern Typography Design System
+   Featuring Plus Jakarta Sans, Space Mono, and a harmonious neutral charcoal palette.
    ========================================================================== */
 
 :root {
-  /* Monochrome Surface Hierarchy */
-  --bg-black: #080808;
-  --bg-panel: #101010;
-  --bg-surface: #171717;
-  --bg-elevated: #222222;
-  --bg-highlight: #2c2c2c;
+  /* Neutral Color Palette */
+  --bg-deep: #0c0e12;
+  --bg-panel: #13171f;
+  --bg-surface: #1a202b;
+  --bg-elevated: #222937;
+  --bg-subtle: #2b3445;
   
-  /* Hairline Borders */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.16);
-  --border-strong: rgba(255, 255, 255, 0.28);
-  --border-focus: #ffffff;
+  /* Hairline Neutral Borders */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --border-focus: #f8fafc;
   
-  /* Monochrome Typography */
+  /* High-Contrast Neutral Typography */
   --text-pure: #ffffff;
-  --text-primary: #ededed;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-dim: #52525b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
-  /* Fonts */
-  --font-serif: 'Newsreader', Georgia, serif;
-  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
+  /* Modern Font Family */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Space Mono', monospace;
 
-  /* Minimal Accents (Monochrome) */
-  --accent-white: #ffffff;
-  --accent-white-glow: rgba(255, 255, 255, 0.25);
+  /* Subtle Neutral Accents */
+  --accent-platinum: #f1f5f9;
+  --accent-platinum-glow: rgba(241, 245, 249, 0.15);
   
-  /* Muted State Semantics */
-  --state-active-bg: rgba(255, 255, 255, 0.06);
-  --state-active-border: rgba(255, 255, 255, 0.3);
-  --state-conflict-bg: rgba(255, 255, 255, 0.08);
-  --state-conflict-border: #ffffff;
-
-  /* Dimensions */
+  /* Neutral State Semantics */
+  --state-bg: rgba(255, 255, 255, 0.05);
+  --state-border: rgba(255, 255, 255, 0.25);
+  
+  /* Dimensions & Radius */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -47,8 +44,7 @@
   --radius-pill: 9999px;
 
   /* Shadows */
-  --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--border-subtle);
-  --shadow-glow: 0 0 20px rgba(255, 255, 255, 0.15);
+  --shadow-card: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-subtle);
 }
 
 /* Reset & Base */
@@ -59,30 +55,31 @@
 }
 
 body {
-  background-color: var(--bg-black);
+  background: radial-gradient(circle at 50% 0%, #161b24 0%, #0c0e12 60%, #07080a 100%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle Minimal Grid */
+/* Subtle Neutral Grid Overlay */
 .cyber-grid-overlay {
   position: fixed;
   inset: 0;
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
 }
 
 a {
-  color: var(--text-pure);
+  color: var(--text-primary);
   text-decoration: underline;
   text-decoration-color: var(--text-dim);
   text-underline-offset: 3px;
@@ -112,7 +109,7 @@ button, input, select {
 /* Masthead Header */
 .masthead {
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(16, 16, 16, 0.9);
+  background: rgba(19, 23, 31, 0.85);
   backdrop-filter: blur(16px);
   padding: 12px 28px;
   display: flex;
@@ -126,7 +123,7 @@ button, input, select {
 .brand-wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .mark-logo {
@@ -141,9 +138,9 @@ button, input, select {
 }
 
 .brand-title {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-pure);
 }
@@ -201,7 +198,7 @@ button, input, select {
 
 /* Minimalist Buttons */
 .btn {
-  padding: 6px 16px;
+  padding: 7px 16px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
@@ -211,7 +208,7 @@ button, input, select {
   align-items: center;
   gap: 6px;
   transition: all 0.2s ease;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 12.5px;
 }
 
@@ -228,13 +225,13 @@ button, input, select {
 
 .btn-primary {
   background: var(--text-pure);
-  color: #000000;
+  color: #0c0e12;
   border: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 .btn-primary:hover {
-  background: #e5e5e5;
-  color: #000000;
+  background: #e2e8f0;
+  color: #0c0e12;
 }
 
 .btn-danger {
@@ -281,14 +278,14 @@ button, input, select {
   display: grid;
   grid-template-columns: 1fr 360px;
   overflow: hidden;
-  box-shadow: var(--shadow-subtle);
+  box-shadow: var(--shadow-card);
 }
 
 .canvas-container {
   position: relative;
   height: 400px;
   border-right: 1px solid var(--border-subtle);
-  background: #0c0c0c;
+  background: #0f1218;
 }
 
 #synapse-canvas {
@@ -321,9 +318,9 @@ button, input, select {
 }
 
 .panel-heading {
-  font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-pure);
 }
@@ -332,7 +329,7 @@ button, input, select {
   pointer-events: auto;
   display: flex;
   gap: 6px;
-  background: var(--bg-black);
+  background: var(--bg-deep);
   padding: 4px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
@@ -347,6 +344,7 @@ button, input, select {
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .pill-btn:hover {
@@ -356,8 +354,8 @@ button, input, select {
 
 .pill-btn.active {
   background: var(--text-pure);
-  color: #000000;
-  font-weight: 600;
+  color: #0c0e12;
+  font-weight: 700;
 }
 
 /* Barycentric Opinion Simplex Widget */
@@ -378,9 +376,9 @@ button, input, select {
 }
 
 .simplex-header h3 {
-  font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text-pure);
 }
 
@@ -389,7 +387,7 @@ button, input, select {
   width: 100%;
   height: 220px;
   border-radius: var(--radius-sm);
-  background: #080808;
+  background: #0b0d12;
   border: 1px solid var(--border-subtle);
   overflow: hidden;
 }
@@ -436,7 +434,7 @@ button, input, select {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: var(--shadow-subtle);
+  box-shadow: var(--shadow-card);
   transition: border-color 0.2s ease;
 }
 
@@ -453,9 +451,9 @@ button, input, select {
 }
 
 .panel-title {
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-pure);
 }
@@ -592,7 +590,7 @@ button, input, select {
 }
 
 .claim-topic-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-pure);
   font-size: 13px;
 }
@@ -629,7 +627,7 @@ button, input, select {
 .score-number-large {
   font-family: var(--font-mono);
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
   color: var(--text-pure);
 }
@@ -677,9 +675,9 @@ button, input, select {
   border: 1px solid var(--border-subtle);
 }
 
-.bar-b { background: #ffffff; transition: width 0.4s ease; }
-.bar-d { background: #52525b; transition: width 0.4s ease; }
-.bar-u { background: #27272a; transition: width 0.4s ease; }
+.bar-b { background: #f8fafc; transition: width 0.4s ease; }
+.bar-d { background: #64748b; transition: width 0.4s ease; }
+.bar-u { background: #334155; transition: width 0.4s ease; }
 
 /* SHAP Definition List */
 .shap-reasons-list {
@@ -706,7 +704,7 @@ button, input, select {
   font-size: 11px;
 }
 
-.shap-feat { color: var(--text-pure); font-weight: 500; }
+.shap-feat { color: var(--text-pure); font-weight: 600; }
 .shap-val-pos, .shap-val-neg { color: var(--text-secondary); font-family: var(--font-mono); }
 
 .shap-desc {
@@ -729,8 +727,8 @@ button, input, select {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.88);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -761,14 +759,14 @@ button, input, select {
 }
 
 .modal-header h3 {
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-pure);
 }
 
 .code-pre-box {
-  background: #050505;
+  background: #08090d;
   border: 1px solid var(--border-subtle);
   padding: 12px;
   border-radius: var(--radius-sm);

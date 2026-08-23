@@ -6,10 +6,10 @@
   <meta name="description" content="ChainMind Synapse - Real-Time AI-Driven Multi-Chain Identity Claim Reconciler with Subjective Logic Fusion & On-Chain State Commit">
   <title>ChainMind Synapse — Watch Floor & Consensus Dashboard</title>
   
-  <!-- Fonts from DESIGN.html: Newsreader (headlines), IBM Plex Sans (UI), IBM Plex Mono (hashes/scores) -->
+  <!-- Modern Clean Fonts: Plus Jakarta Sans & Space Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="index.css">
 </head>
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <!-- Health Chips from SCHEMA.html GET /v1/health -->
+    <!-- Health Chips -->
     <div class="health-strip">
       <span class="chip ok" id="chip-sepolia" title="Sepolia 11155111 Block Head">
         <span class="chip-dot"></span> Sepolia: <strong id="val-sepolia-head">#19824</strong>
@@ -87,8 +87,8 @@
           <h3>Subjective Logic Simplex</h3>
           <span class="panel-kicker">b + d + u = 1</span>
         </div>
-        <p style="font-size: 11.5px; color: var(--mute); line-height: 1.4;">
-          Barycentric projection of belief ($b$), disbelief ($d$), and uncertainty ($u$). High conflict shifts mass away from apex without granting false confidence.
+        <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+          Barycentric projection of belief ($b$), disbelief ($d$), and uncertainty ($u$). High conflict penalizes confidence score without false certainty.
         </p>
         <div class="simplex-canvas-wrap">
           <canvas id="simplex-canvas"></canvas>
@@ -110,7 +110,7 @@
       </aside>
     </section>
 
-    <!-- Three Column Layout from DESIGN.html -->
+    <!-- Three Column Layout -->
     <div class="three-column-grid">
 
       <!-- Column 1: Rail -->
@@ -123,7 +123,7 @@
         <!-- Subject Input Form -->
         <form class="subject-search-form" id="form-subject-search">
           <input type="text" class="input-field" id="input-subject" value="0x742d35Cc6634C0532925a3b844Bc454e4438f44e" placeholder="0x... subject address" required>
-          <button type="submit" class="btn btn-sm btn-copper">Inspect</button>
+          <button type="submit" class="btn btn-sm btn-primary">Inspect</button>
         </form>
 
         <!-- Settlement Commit Details -->
@@ -164,7 +164,7 @@
         <div class="conflict-banner" id="conflict-alert-box">
           <span class="conflict-banner-title">⚠ Conflict on kyc.adult</span>
           <p class="conflict-banner-body" id="conflict-alert-desc">
-            Two unexpired claims from Sepolia and Amoy disagree on polarity (+1 vs -1). Jøsang conflict penalty applied to confidence score.
+            Two unexpired claims from Sepolia and Amoy disagree on polarity (+1 vs -1). Jøsang conflict penalty applied.
           </p>
         </div>
 
@@ -185,7 +185,7 @@
           <h2 class="panel-title">Ingested Claims</h2>
           <span class="panel-kicker" id="claims-count-badge">3 Normalized</span>
         </div>
-        <p style="font-size: 11.5px; color: var(--mute);">
+        <p style="font-size: 11.5px; color: var(--text-muted);">
           Chronological normalized claims ingested via web3 log listeners on Sepolia & Amoy.
         </p>
 
@@ -199,7 +199,7 @@
       <section class="panel-box" id="fusion-col">
         <div class="panel-header">
           <h2 class="panel-title">Subjective Logic Fusion & SHAP</h2>
-          <span class="panel-kicker">Normative Consensus</span>
+          <span class="panel-kicker">Consensus Core</span>
         </div>
 
         <!-- Large Mono Confidence & Verdict Block -->
@@ -214,8 +214,8 @@
         <!-- Stacked Opinion Bar b / d / u -->
         <div class="opinion-bar-wrap">
           <div class="opinion-bar-label">
-            <span>Topic: <strong style="color: var(--bone);">kyc.adult</strong></span>
-            <span>Conflict mass $K = $ <strong id="val-mass-k" style="color: var(--danger);">0.62</strong></span>
+            <span>Topic: <strong style="color: var(--text-pure);">kyc.adult</strong></span>
+            <span>Conflict mass $K = $ <strong id="val-mass-k" style="color: var(--text-pure);">0.62</strong></span>
           </div>
           <div class="stacked-opinion-bar">
             <div class="bar-b" id="bar-b" style="width: 44%;" title="Belief (b): 0.44"></div>
@@ -249,13 +249,13 @@
         <h3 id="modal-header-title">GET /v1/identity/{subject} JSON Response</h3>
         <button class="btn btn-sm" id="btn-close-modal">✕</button>
       </div>
-      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--moss-2);">
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
         HTTP/1.1 200 OK · Content-Type: application/json · Strict Schema Match
       </div>
       <pre class="code-pre-box" id="json-modal-content"><code>// Loading...</code></pre>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button class="btn btn-sm" id="btn-copy-modal-json">Copy JSON</button>
-        <button class="btn btn-sm btn-copper" id="btn-close-modal-confirm">Done</button>
+        <button class="btn btn-sm btn-primary" id="btn-close-modal-confirm">Done</button>
       </div>
     </div>
   </div>
