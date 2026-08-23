@@ -31,8 +31,8 @@
       <h2 id="read-first">Read before you write code</h2>
       <ol>
         <li>This file.</li>
-        <li><a href="prd.html">prd.html</a> — shall-statements.</li>
-        <li><a href="architecture.html">architecture.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — shapes.</li>
+        <li><a href="PRD.html">PRD.html</a> — shall-statements.</li>
+        <li><a href="ARCHITECTURE.html">ARCHITECTURE.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — shapes.</li>
         <li><a href="PLAN.html">PLAN.html</a> — clock.</li>
         <li><a href="REPOS.html">REPOS.html</a> — only clone what is listed and verified.</li>
       </ol>
@@ -74,9 +74,27 @@
   dashboard/                 # bonus
   tests/
   .env.example
-  prd.md
-  *.html                     # this dossier
+  prd.md                     # original brief (do not fork a third spec)
+  research-existing-solutions.md
+  AGENTS.md                  # pointer → instructions/
+  CLAUDE.md                  # pointer → instructions/
+  instructions/              # THE spec. HTML only. Agents start here.
+    INDEX.html
+    CLAUDE.html
+    ARCHITECTURE.html
+    PRD.html
+    …
+    docs-assets/
 </code></pre>
+
+      <h2 id="html-specs">HTML is the spec, not Markdown</h2>
+      <p>Long Markdown plans are how humans check out of the loop. Thariq Shihipar (Claude Code) and the June 2026 InfoQ write-up argue that HTML — color, in-page nav, tailored layout — keeps a human engaged while the agent works. We follow that here.</p>
+      <ul>
+        <li>Treat every file in <code>instructions/</code> as the living spec. Update the HTML when a decision changes. Do not spawn a parallel <code>PLAN.md</code>, <code>ARCHITECTURE.md</code>, or <code>docs/*.md</code>.</li>
+        <li>When you report status to a human, prefer a short note plus a link/path to the relevant HTML section over a 200-line Markdown dump.</li>
+        <li>Repo-root <code>AGENTS.md</code> and <code>CLAUDE.md</code> are pointers only. This file wins on conflict.</li>
+      </ul>
+      <p class="small">Sources: <a href="https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/">InfoQ — HTML increasingly better than Markdown in agentic loops</a> (24 Jun 2026); Shihipar, <em>Using Claude Code: The Unreasonable Effectiveness of HTML</em>.</p>
 
       <h2 id="must">You must</h2>
       <ul>
