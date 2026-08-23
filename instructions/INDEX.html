@@ -24,7 +24,13 @@
         <span class="chip warn">PRD testnets Goerli/Mumbai are dead</span>
         <span class="chip ok">Use Sepolia + Polygon Amoy</span>
         <span class="chip bad">No fine-tuning · no Gitcoin Passport · no Trusta</span>
+        <span class="chip">Folder: instructions/</span>
       </div>
+
+      <h2 id="folder">This folder is the agent spec</h2>
+      <p>All development and agent instructions live in <code>instructions/</code>. Repo-root <code>AGENTS.md</code> and <code>CLAUDE.md</code> only point here. Agents: open this HTML pack in a browser or read the files directly. Do not recreate the same content as Markdown.</p>
+      <p>Why HTML, not a pile of <code>.md</code> files: as agents take longer workflows, Markdown specs past ~100 lines become something humans stop reading. Shihipar (Claude Code lead) argued HTML — color, navigation, a UI tailored to the job — keeps the human in the loop for goals, spec refinement, and review. InfoQ summarized that thesis in June 2026. This dossier is that workspace: one folder, linked pages, copper/bone contrast, a sticky TOC. When a decision changes, edit the HTML page. Do not add <code>docs/architecture.md</code> again.</p>
+      <p class="small"><a href="https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/">InfoQ: Anthropic lead — HTML increasingly better than Markdown at keeping humans engaged in agentic loops</a> (24 Jun 2026).</p>
 
       <h2 id="what">What this product is</h2>
       <p>Users hold credentials on multiple chains. Those claims expire, get revoked, and sometimes contradict each other. A service on chain B cannot tell whether a claim from chain A is still true. ChainMind Synapse is the missing reconciliation layer: real-time ingest, Gen-AI signal extraction via prompt orchestration (not fine-tuning), an sklearn/Hugging Face credibility model, a fused identity state, an auditable on-chain commitment, and a REST API that returns sources plus scores in under 500&nbsp;ms.</p>
@@ -33,8 +39,8 @@
       <h2 id="order">Reading order for agents</h2>
       <ol>
         <li><a href="CLAUDE.html">CLAUDE.html</a> — operating rules. Read before writing any code.</li>
-        <li><a href="prd.html">prd.html</a> then <a href="REQUIREMENTS.html">REQUIREMENTS.html</a> — what must ship.</li>
-        <li><a href="architecture.html">architecture.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — how it is built.</li>
+        <li><a href="PRD.html">PRD.html</a> then <a href="REQUIREMENTS.html">REQUIREMENTS.html</a> — what must ship.</li>
+        <li><a href="ARCHITECTURE.html">ARCHITECTURE.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — how it is built.</li>
         <li><a href="PLAN.html">PLAN.html</a> — the 6-hour clock.</li>
         <li><a href="REPOS.html">REPOS.html</a> + <a href="INTEGRATION.html">INTEGRATION.html</a> — clone with <code>gh</code>, wire the stack.</li>
         <li><a href="MATH.html">MATH.html</a> + <a href="PROMPTS.html">PROMPTS.html</a> — scoring, fusion, explanations.</li>
@@ -47,10 +53,10 @@
       <table>
         <thead><tr><th>File</th><th>Job</th></tr></thead>
         <tbody>
-          <tr><td><a href="prd.html">prd.html</a></td><td>PRD restated, interpreted, and gap-filled (including dead testnets).</td></tr>
+          <tr><td><a href="PRD.html">PRD.html</a></td><td>PRD restated, interpreted, and gap-filled (including dead testnets).</td></tr>
           <tr><td><a href="PROPOSAL.html">PROPOSAL.html</a></td><td>Solution thesis, differentiator, and why this stack.</td></tr>
           <tr><td><a href="REQUIREMENTS.html">REQUIREMENTS.html</a></td><td>Functional / non-functional requirements with acceptance tests.</td></tr>
-          <tr><td><a href="architecture.html">architecture.html</a></td><td>C4, pipeline, contracts, latency budget, failure modes.</td></tr>
+          <tr><td><a href="ARCHITECTURE.html">ARCHITECTURE.html</a></td><td>C4, pipeline, contracts, latency budget, failure modes.</td></tr>
           <tr><td><a href="PLAN.html">PLAN.html</a></td><td>Hour-by-hour build, cut lines, demo video script.</td></tr>
           <tr><td><a href="MATH.html">MATH.html</a></td><td>Beta reputation, subjective logic, DS, EigenTrust, SHAP, fusion.</td></tr>
           <tr><td><a href="RESEARCH.html">RESEARCH.html</a></td><td>SOTA papers and how each method maps onto the MVP.</td></tr>
