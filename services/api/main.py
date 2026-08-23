@@ -18,7 +18,7 @@ from services.store import read_json
 settings = load_settings()
 scorer: Scorer | None = None
 metrics: dict[str, Any] = {}
-rpc_cache: dict[str, Any] = {"at": 0, "sepolia": None, "unichainSepolia": None, "errors": {}}
+rpc_cache: dict[str, Any] = {"at": 0, "sepolia": None, "unichainSepolia": None, "errors": {}, "emergency": False}
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -44,12 +44,13 @@ app.add_middleware(
 )
 
 
-def _heads() -> tuple[int | None, int | None, dict[int, str]]:
+def _heads() -> tuple[int | None, int | None, dict[int, str], bool]:
     now = time.time()
     if now - rpc_cache["at"] < 8:
-        return rpc_cache["sepolia"], rpc_cache["unichainSepolia"], rpc_cache["errors"]
+        return rpc_cache["sepolia"], rpc_cache["unichainSepolia"], rpc_cache["errors"], rpc_cache["emergency"]
     errors: dict[int, str] = {}
     sepolia = unichain = None
+    emergency = False
     try:
         sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback).eth.block_number
     except Exception as exc:
@@ -59,14 +60,26 @@ def _heads() -> tuple[int | None, int | None, dict[int, str]]:
             settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback
         ).eth.block_number
     except Exception as exc:
-        errors[1301] = str(exc)
-    rpc_cache.update({"at": now, "sepolia": sepolia, "unichainSepolia": unichain, "errors": errors})
-    return sepolia, unichain, errors
+        # Unichain Sepolia itself unreachable, not just one RPC endpoint. Only report
+        # healthy again via the local Anvil emergency source if one has actually been
+        # stood up (scripts/emergency_anvil_source.sh) — never silent.
+        if settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency:
+            try:
+                unichain = connect_live(settings.anvil_emergency_rpc_url).eth.block_number
+                emergency = True
+            except Exception as anvil_exc:
+                errors[1301] = f"unichain: {exc}; anvil emergency: {anvil_exc}"
+        else:
+            errors[1301] = str(exc)
+    rpc_cache.update(
+        {"at": now, "sepolia": sepolia, "unichainSepolia": unichain, "errors": errors, "emergency": emergency}
+    )
+    return sepolia, unichain, errors, emergency
 
 
 @app.get("/v1/health")
 def health() -> dict[str, Any]:
-    sepolia, unichain, errors = _heads()
+    sepolia, unichain, errors, emergency = _heads()
     degraded = bool(errors) or scorer is None
     return {
         "ok": not degraded and scorer is not None,
@@ -85,6 +98,7 @@ def health() -> dict[str, Any]:
         "degraded": degraded,
         "rpcErrors": {str(k): v for k, v in errors.items()},
         "llm": llm_public_status(settings),
+        "emergencySource": {"1301": "anvil-local"} if emergency else None,
     }
 
 

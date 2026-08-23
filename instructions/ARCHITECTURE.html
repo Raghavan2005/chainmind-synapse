@@ -220,7 +220,7 @@ interface IClaimSource {
         <thead><tr><th>Failure</th><th>Detection</th><th>Behavior</th></tr></thead>
         <tbody>
           <tr><td>RPC timeout</td><td>health</td><td>Keep last cursor; exponential backoff; do not advance cursor</td></tr>
-          <tr><td>Unichain down</td><td>health.unichainSepolia</td><td>Serve Sepolia + last Unichain snapshot; flag <code>degradedChains</code></td></tr>
+          <tr><td>Unichain down</td><td>health.unichainSepolia</td><td>Serve Sepolia + last Unichain snapshot; flag <code>degradedChains</code>. Operator may run <code>scripts/emergency_anvil_source.sh</code> for a live (not snapshot) second source — health then reports <code>emergencySource</code> instead of <code>degraded</code>.</td></tr>
           <tr><td>LLM down</td><td>extractor exception</td><td>Rules fallback; explanation template</td></tr>
           <tr><td>Model missing</td><td>startup</td><td>Refuse to start API, or start in train-then-load script</td></tr>
           <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 Sepolia, N=12 Unichain Sepolia)</td></tr>
@@ -378,7 +378,7 @@ stateHash commits the full preimage, not a silent winner
         <li><strong>Run.</strong> Two processes: ingest+writer, API. Overlay via <code>os.replace</code> on <code>data/overlay.json</code>. Systemd or a compose file with healthcheck on <code>/v1/health</code>.</li>
         <li><strong>Keys.</strong> Throwaway faucet key for the demo. Production: operator behind a 2-of-3 multisig or a timelock; never a funded mainnet key in env on a laptop.</li>
         <li><strong>RPC.</strong> At least two URLs per chain. Fail over on 429/5xx. Document rate limits.</li>
-        <li><strong>Support.</strong> Replay <code>POST /v1/replay/{subject}</code> reconstructs state from logs. <code>scripts/verify_hash.py</code> is the customer-facing “did you cheat?” tool. Incident playbook: if Unichain dies, serve Sepolia + last Unichain snapshot with <code>degradedChains</code>; do not invent claims.</li>
+        <li><strong>Support.</strong> Replay <code>POST /v1/replay/{subject}</code> reconstructs state from logs. <code>scripts/verify_hash.py</code> is the customer-facing “did you cheat?” tool. Incident playbook: if Unichain dies, serve Sepolia + last Unichain snapshot with <code>degradedChains</code>; do not invent claims. If it stays down, <code>scripts/emergency_anvil_source.sh</code> stands up a local Anvil devnet as a live second source — flagged loudly via <code>emergencySource</code>, never presented as real Unichain data.</li>
         <li><strong>Change control.</strong> No upgrade proxy on IdentityState. A new contract is a new deployment and a documented cutover. ClaimSource can be redeployed per chain; watchers pick up addresses from env.</li>
       </ol>
 
