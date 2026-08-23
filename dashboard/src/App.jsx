@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API = import.meta.env.VITE_API_BASE || "";
+const ENV_API = import.meta.env.VITE_API_BASE || "";
+const BYOK_KEY = "synapse.byok.v1";
 
 function shortHex(value) {
   if (!value) return "—";
@@ -11,6 +12,22 @@ function Chip({ kind, children }) {
   return <span className={`chip ${kind || ""}`}>{children}</span>;
 }
 
+function loadByok() {
+  try {
+    const raw = localStorage.getItem(BYOK_KEY);
+    if (!raw) return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: ENV_API };
+    const parsed = JSON.parse(raw);
+    return {
+      apiKey: parsed.apiKey || "",
+      baseUrl: parsed.baseUrl || "",
+      model: parsed.model || "gpt-4.1-mini",
+      apiBase: parsed.apiBase ?? ENV_API,
+    };
+  } catch {
+    return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: ENV_API };
+  }
+}
+
 export default function App() {
   const initial = window.location.hash.replace("#/", "") || localStorage.getItem("demoSubject") || "";
   const [subject, setSubject] = useState(initial);
@@ -19,6 +36,11 @@ export default function App() {
   const [explanation, setExplanation] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [byok, setByok] = useState(loadByok);
+  const [byokStatus, setByokStatus] = useState("");
+  const [byokBusy, setByokBusy] = useState("");
+
+  const api = (byok.apiBase || ENV_API).replace(/\/$/, "");
 
   async function load(next = subject) {
     if (!next) return;
@@ -27,8 +49,8 @@ export default function App() {
     window.location.hash = `/${next}`;
     try {
       const [h, i] = await Promise.all([
-        fetch(`${API}/v1/health`).then((r) => r.json()),
-        fetch(`${API}/v1/identity/${next}`).then(async (r) => {
+        fetch(`${api}/v1/health`).then((r) => r.json()),
+        fetch(`${api}/v1/identity/${next}`).then(async (r) => {
           if (r.status === 404) return null;
           if (!r.ok) throw new Error(await r.text());
           return r.json();
@@ -37,7 +59,7 @@ export default function App() {
       setHealth(h);
       setIdentity(i);
       if (i?.commit?.commitId) {
-        const exp = await fetch(`${API}/v1/identity/${next}/explanation`);
+        const exp = await fetch(`${api}/v1/identity/${next}/explanation`);
         setExplanation(exp.ok ? await exp.json() : null);
       } else {
         setExplanation(null);
@@ -54,7 +76,7 @@ export default function App() {
     const id = setInterval(() => load(subject), 2000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subject]);
+  }, [subject, api]);
 
   const explorer = (tx) => (tx ? `https://sepolia.etherscan.io/tx/${tx}` : null);
   const banner = useMemo(() => {
@@ -65,6 +87,72 @@ export default function App() {
     if (identity.pendingOnChain) return "pending";
     return "ok";
   }, [error, loading, identity]);
+
+  function saveByok() {
+    localStorage.setItem(BYOK_KEY, JSON.stringify(byok));
+    setByokStatus("Saved in this browser only. The server does not store the key.");
+  }
+
+  function byokBody() {
+    return {
+      apiKey: byok.apiKey,
+      baseUrl: byok.baseUrl,
+      model: byok.model,
+    };
+  }
+
+  async function testConnection() {
+    setByokBusy("test");
+    setByokStatus("");
+    try {
+      const res = await fetch(`${api}/v1/llm/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(byokBody()),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setByokStatus(`LiteLLM ok · ${data.model}`);
+      } else {
+        setByokStatus(data.error || "Test failed");
+      }
+    } catch (err) {
+      setByokStatus(err.message || String(err));
+    } finally {
+      setByokBusy("");
+    }
+  }
+
+  async function generateExplanation() {
+    if (!subject) {
+      setByokStatus("Enter a subject first.");
+      return;
+    }
+    setByokBusy("explain");
+    setByokStatus("");
+    try {
+      const res = await fetch(`${api}/v1/identity/${subject}/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(byokBody()),
+      });
+      if (res.status === 404) {
+        setByokStatus("No overlay/commit for this subject. Ingest first.");
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setExplanation(data);
+      setByokStatus(`Explanation ready · engine ${data.engine || "—"}`);
+    } catch (err) {
+      setByokStatus(err.message || String(err));
+    } finally {
+      setByokBusy("");
+    }
+  }
+
+  const llm = health?.llm;
+  const llmChip = llm?.envConfigured ? "ok" : "warn";
 
   return (
     <div className="floor">
@@ -89,12 +177,77 @@ export default function App() {
             Unichain {health?.unichainSepoliaHead ?? "—"}
           </Chip>
           <Chip>acc {health?.modelAccuracy ? health.modelAccuracy.toFixed(2) : "—"}</Chip>
+          <Chip kind={llmChip}>
+            LiteLLM {llm?.envConfigured ? "env set" : "env unset"}
+            {llm?.model ? ` · ${llm.model}` : ""}
+          </Chip>
+          {explanation?.engine && <Chip kind="ok">explain {explanation.engine}</Chip>}
         </div>
         {identity?.commit?.txHash && (
           <a href={explorer(identity.commit.txHash)} target="_blank" rel="noreferrer">
             Open Sepolia tx {shortHex(identity.commit.txHash)}
           </a>
         )}
+
+        <details className="byok">
+          <summary>LiteLLM / BYOK</summary>
+          <p className="byok-warn">
+            The API key stays in this browser (localStorage). It is sent only on Test and
+            Generate explanation. GET polls never include it. The server does not persist keys.
+          </p>
+          <div className="byok-grid">
+            <label>
+              Synapse API base
+              <input
+                value={byok.apiBase}
+                onChange={(e) => setByok({ ...byok, apiBase: e.target.value })}
+                placeholder="http://127.0.0.1:8000 or leave empty for same-origin"
+                aria-label="Synapse API base URL"
+              />
+            </label>
+            <label>
+              LLM base URL
+              <input
+                value={byok.baseUrl}
+                onChange={(e) => setByok({ ...byok, baseUrl: e.target.value })}
+                placeholder="https://api.openai.com/v1 or Ollama / Groq / Together"
+                aria-label="LLM base URL"
+              />
+            </label>
+            <label>
+              Model
+              <input
+                value={byok.model}
+                onChange={(e) => setByok({ ...byok, model: e.target.value })}
+                placeholder="gpt-4.1-mini or openai/llama3.2"
+                aria-label="LLM model"
+              />
+            </label>
+            <label>
+              API key
+              <input
+                type="password"
+                autoComplete="off"
+                value={byok.apiKey}
+                onChange={(e) => setByok({ ...byok, apiKey: e.target.value })}
+                placeholder="sk-… (never committed)"
+                aria-label="LLM API key"
+              />
+            </label>
+          </div>
+          <div className="byok-actions">
+            <button type="button" className="ghost" onClick={saveByok}>
+              Save locally
+            </button>
+            <button type="button" onClick={testConnection} disabled={byokBusy === "test"}>
+              {byokBusy === "test" ? "Testing…" : "Test connection"}
+            </button>
+            <button type="button" onClick={generateExplanation} disabled={byokBusy === "explain"}>
+              {byokBusy === "explain" ? "Generating…" : "Generate explanation"}
+            </button>
+          </div>
+          {byokStatus && <p className="byok-status" role="status">{byokStatus}</p>}
+        </details>
       </header>
 
       {banner === "loading" && <div className="skel" aria-hidden="true" />}
@@ -146,7 +299,7 @@ export default function App() {
               ))}
               {explanation && (
                 <dl>
-                  <dt>Summary</dt>
+                  <dt>Summary · {explanation.engine || "—"}</dt>
                   <dd>{explanation.summary}</dd>
                   {explanation.reasons?.map((r) => (
                     <div key={r.feature}>

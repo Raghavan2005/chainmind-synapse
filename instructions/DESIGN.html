@@ -60,7 +60,7 @@
         <li><strong>Claims.</strong> Chronological list. Each row: chain chip, issuer, topic, polarity, pCredible, revoked/expired marks. Opposite polarities on the same topic get a shared brick rule.</li>
         <li><strong>Fusion.</strong> For each topic, a stacked bar of b / d / u (copper / brick / mute). Confidence as a single large mono number, not a speedometer.</li>
       </ol>
-      <p>Explanation sits under fusion: summary, then reasons as a definition list (feature · shap · sentence). Caveats in mute.</p>
+      <p>Explanation sits under fusion: summary, then reasons as a definition list (feature · shap · sentence). Caveats in mute. A LiteLLM / BYOK panel (API key as password, base URL, model) persists only in <code>localStorage</code>, exposes Test connection and Generate explanation, and never puts the key on GET polls. Chip the health <code>llm.envConfigured</code> flag and last <code>explanation.engine</code>.</p>
 
       <h2 id="states">States (mandatory)</h2>
       <table>
@@ -80,7 +80,7 @@
         <li>“Conflict on kyc.adult” not “We detected an anomaly in your identity graph.”</li>
         <li>“Commit 0xabc… · 4100 bps” not “Successfully anchored your trust crystal.”</li>
         <li>“Issuer prior 0.18 (hostile seed)” not “Low vibe score.”</li>
-        <li>Buttons: “Replay from logs”, “Copy hash”, “Open Sepolia tx.”</li>
+        <li>Buttons: “Replay from logs”, “Copy hash”, “Open Sepolia tx”, “LiteLLM / BYOK”, “Test connection”, “Generate explanation.”</li>
       </ul>
 
       <h2 id="motion">Motion</h2>

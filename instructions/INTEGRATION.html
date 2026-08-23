@@ -36,11 +36,11 @@ pip install \
   scikit-learn numpy pandas joblib \
   shap \
   httpx pytest \
-  instructor openai
+  instructor openai litellm
 # optional:
 # pip install dspy-ai sentence-transformers
 </code></pre>
-      <p>Those packages map to ApeWorX/web3.py, fastapi/fastapi, scikit-learn/scikit-learn, shap/shap, 567-labs/instructor, openai/openai-python. You already cloned them into <code>vendor-ref/</code> for reading; pip still installs wheels.</p>
+      <p>Those packages map to ApeWorX/web3.py, fastapi/fastapi, scikit-learn/scikit-learn, shap/shap, 567-labs/instructor, openai/openai-python, BerriAI/litellm. You already cloned them into <code>vendor-ref/</code> for reading; pip still installs wheels. Pin <code>instructor==1.13.0</code>, <code>openai==2.16.0</code>, <code>litellm==1.74.15</code> — do not bump Instructor to 1.15 or OpenAI to 3.</p>
 
       <h2 id="foundry">Foundry project</h2>
 <pre><code>cd contracts
@@ -108,25 +108,29 @@ python -m services.ingest.watch
 </code></pre>
       <p>Ingest process owns the writer. API process is read-only plus health. Share overlay via a local JSON file <code>data/overlay.json</code> with atomic replace (<code>os.replace</code>). That file is a cache, not the source of truth.</p>
 
-      <h2 id="llm">LLM wiring</h2>
-<pre><code>export LLM_BASE_URL=https://api.openai.com/v1   # or any compatible server
+      <h2 id="llm">LLM wiring (LiteLLM + Instructor)</h2>
+<pre><code>export LLM_BASE_URL=https://api.openai.com/v1   # any OpenAI-compatible server
 export LLM_API_KEY=...
 export LLM_MODEL=gpt-4.1-mini
 </code></pre>
-      <p>Instructor:</p>
-<pre><code>from instructor import from_openai
-from openai import OpenAI
+      <p>Operator env is the default for live ingest extract. Frontend BYOK is browser localStorage + <code>POST /v1/llm/test</code> and <code>POST /v1/identity/{subject}/explain</code> body <code>{apiKey, baseUrl, model}</code>. Never persist keys server-side.</p>
+<pre><code>import instructor, litellm
 from services.normalize.schema import NormalizedClaim
 
-client = from_openai(OpenAI(base_url=os.environ["LLM_BASE_URL"], api_key=os.environ["LLM_API_KEY"]))
+# If base_url is set and model has no "/", prefix openai/ so LiteLLM
+# treats Ollama / Groq OpenAI mode / Together / custom gateways as OpenAI-compatible.
+client = instructor.from_litellm(litellm.completion)
 claim = client.chat.completions.create(
-    model=os.environ["LLM_MODEL"],
+    model="openai/gpt-4.1-mini",
     response_model=NormalizedClaim,
     temperature=0,
+    api_key=os.environ["LLM_API_KEY"],
+    api_base=os.environ.get("LLM_BASE_URL") or None,
+    custom_llm_provider="openai",  # when a custom base_url is set
     messages=[...],  # PROMPTS.html
 )
 </code></pre>
-      <p>DSPy alternative: one <code>dspy.Signature</code> per prompt file. Do not enable DSPy teleprompt / compile that trains weights if that counts as fine-tuning in your org’s reading of the PRD. Use zero-shot signatures only.</p>
+      <p>DSPy alternative: one <code>dspy.Signature</code> per prompt file. Do not enable DSPy teleprompt / compile that trains weights if that counts as fine-tuning in your org’s reading of the PRD. Use zero-shot signatures only. Runtime path is Instructor-over-LiteLLM.</p>
 
       <h2 id="shap">SHAP wiring</h2>
 <pre><code>import shap, joblib

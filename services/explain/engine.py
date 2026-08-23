@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import shap
 
+from services.common.llm import LLMOverride, LLMRuntime, complete_structured, runtime_from
 from services.normalize.schema import Explanation, Reason
 from services.score.features import FEATURE_NAMES
 from services.score.predict import Scorer
@@ -58,16 +59,17 @@ def template_explanation(fused: dict[str, Any], shap_top5: list[tuple[str, float
     )
 
 
-def llm_explanation(fused: dict[str, Any], shap_top5: list[tuple[str, float]], settings: Any) -> Explanation | None:
-    if not getattr(settings, "llm_api_key", ""):
+def llm_explanation(
+    fused: dict[str, Any],
+    shap_top5: list[tuple[str, float]],
+    settings: Any,
+    override: LLMOverride | None = None,
+    runtime: LLMRuntime | None = None,
+) -> Explanation | None:
+    rt = runtime or runtime_from(settings, override)
+    if not rt.enabled:
         return None
     try:
-        from instructor import from_openai
-        from openai import OpenAI
-
-        client = from_openai(
-            OpenAI(base_url=settings.llm_base_url or None, api_key=settings.llm_api_key, timeout=10.0)
-        )
         user = (
             f"subject: {fused.get('subjectDid')}\n"
             f"verdict: {fused['verdict']}\n"
@@ -79,15 +81,24 @@ def llm_explanation(fused: dict[str, Any], shap_top5: list[tuple[str, float]], s
             f"shap_top5: {json.dumps([{'feature': n, 'shap': v} for n, v in shap_top5])}\n"
             f"fusion_note: cumulative ⊕ then conflict penalty\n"
         )
-        return client.chat.completions.create(
-            model=settings.llm_model,
+        extracted = complete_structured(
+            runtime=rt,
             response_model=Explanation,
             temperature=0.2,
             max_tokens=500,
+            timeout=10.0,
             messages=[
                 {"role": "system", "content": PROMPT_PATH.read_text(encoding="utf-8")},
                 {"role": "user", "content": user},
             ],
+        )
+        commit_hex = (fused.get("commit") or {}).get("commitId")
+        return extracted.model_copy(
+            update={
+                "commit_id": commit_hex or extracted.commit_id,
+                "engine": "shap+litellm",
+                "prompt_version": prompt_version(),
+            }
         )
     except Exception:
         return None

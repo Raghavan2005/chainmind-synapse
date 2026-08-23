@@ -7,11 +7,32 @@ import { SynapseCanvas } from './canvas.js';
 import { SubjectiveLogicEngine } from './ai-engine.js';
 import { StateStore } from './state.js';
 
+const BYOK_KEY = "synapse.byok.v1";
+
+function loadByok() {
+  try {
+    const raw = localStorage.getItem(BYOK_KEY);
+    if (!raw) {
+      return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: "http://127.0.0.1:8000" };
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      apiKey: parsed.apiKey || "",
+      baseUrl: parsed.baseUrl || "",
+      model: parsed.model || "gpt-4.1-mini",
+      apiBase: parsed.apiBase || "http://127.0.0.1:8000",
+    };
+  } catch {
+    return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: "http://127.0.0.1:8000" };
+  }
+}
+
 class WatchFloorApp {
   constructor() {
     this.state = new StateStore();
     this.slEngine = new SubjectiveLogicEngine();
     this.canvas = null;
+    this.byok = loadByok();
 
     this.init();
   }
@@ -26,7 +47,9 @@ class WatchFloorApp {
 
     this.state.subscribe((store) => this.renderUI(store));
     this.bindEvents();
+    this.fillByokForm();
     this.renderUI(this.state);
+    this.refreshLlmChip();
   }
 
   bindEvents() {
@@ -129,6 +152,164 @@ class WatchFloorApp {
     if (btnCopyState) {
       btnCopyState.addEventListener('click', () => {
         navigator.clipboard.writeText(this.state.stateHash);
+      });
+    }
+
+    const byokModal = document.getElementById('modal-byok');
+    const btnByok = document.getElementById('btn-byok-modal');
+    const btnCloseByok = document.getElementById('btn-close-byok');
+    if (btnByok && byokModal) {
+      btnByok.addEventListener('click', () => {
+        this.fillByokForm();
+        byokModal.classList.remove('hidden');
+      });
+    }
+    if (btnCloseByok && byokModal) {
+      btnCloseByok.addEventListener('click', () => byokModal.classList.add('hidden'));
+    }
+    const btnSave = document.getElementById('btn-byok-save');
+    const btnTest = document.getElementById('btn-byok-test');
+    const btnExplain = document.getElementById('btn-byok-explain');
+    if (btnSave) btnSave.addEventListener('click', () => this.saveByok());
+    if (btnTest) btnTest.addEventListener('click', () => this.testLlm());
+    if (btnExplain) btnExplain.addEventListener('click', () => this.generateLiveExplanation());
+  }
+
+  apiBase() {
+    return (this.byok.apiBase || "http://127.0.0.1:8000").replace(/\/$/, "");
+  }
+
+  fillByokForm() {
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value || "";
+    };
+    set("byok-api-base", this.byok.apiBase);
+    set("byok-base-url", this.byok.baseUrl);
+    set("byok-model", this.byok.model);
+    set("byok-api-key", this.byok.apiKey);
+  }
+
+  readByokForm() {
+    const val = (id) => document.getElementById(id)?.value?.trim() || "";
+    this.byok = {
+      apiBase: val("byok-api-base") || "http://127.0.0.1:8000",
+      baseUrl: val("byok-base-url"),
+      model: val("byok-model") || "gpt-4.1-mini",
+      apiKey: document.getElementById("byok-api-key")?.value || "",
+    };
+    return this.byok;
+  }
+
+  setByokStatus(text) {
+    const el = document.getElementById("byok-status");
+    if (el) el.textContent = text;
+  }
+
+  saveByok() {
+    this.readByokForm();
+    localStorage.setItem(BYOK_KEY, JSON.stringify(this.byok));
+    this.setByokStatus("Saved in this browser only. The server does not store the key.");
+  }
+
+  async refreshLlmChip() {
+    const chip = document.getElementById("chip-litellm");
+    const val = document.getElementById("val-litellm");
+    try {
+      const res = await fetch(`${this.apiBase()}/v1/health`);
+      if (!res.ok) return;
+      const health = await res.json();
+      const llm = health.llm || {};
+      if (val) val.textContent = llm.envConfigured ? `env set · ${llm.model || "litellm"}` : "env unset";
+      if (chip) {
+        chip.classList.toggle("ok", Boolean(llm.envConfigured));
+        chip.classList.toggle("warn", !llm.envConfigured);
+      }
+    } catch {
+      if (val) val.textContent = "api offline";
+    }
+  }
+
+  async testLlm() {
+    this.readByokForm();
+    this.setByokStatus("Testing…");
+    try {
+      const res = await fetch(`${this.apiBase()}/v1/llm/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: this.byok.apiKey,
+          baseUrl: this.byok.baseUrl,
+          model: this.byok.model,
+        }),
+      });
+      const data = await res.json();
+      this.setByokStatus(data.ok ? `LiteLLM ok · ${data.model}` : (data.error || "Test failed"));
+      this.refreshLlmChip();
+    } catch (err) {
+      this.setByokStatus(err.message || String(err));
+    }
+  }
+
+  async generateLiveExplanation() {
+    this.readByokForm();
+    const subject = document.getElementById("input-subject")?.value?.trim() || this.state.subject;
+    if (!subject) {
+      this.setByokStatus("Enter a subject first.");
+      return;
+    }
+    this.setByokStatus("Generating…");
+    try {
+      const res = await fetch(`${this.apiBase()}/v1/identity/${subject}/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: this.byok.apiKey,
+          baseUrl: this.byok.baseUrl,
+          model: this.byok.model,
+        }),
+      });
+      if (res.status === 404) {
+        this.setByokStatus("No overlay/commit on the live API. Canned score is unchanged.");
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      this.renderLiveExplanation(data);
+      this.setByokStatus(`Explanation ready · engine ${data.engine || "—"}`);
+    } catch (err) {
+      this.setByokStatus(err.message || String(err));
+    }
+  }
+
+  renderLiveExplanation(data) {
+    const escape = (value) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    const box = document.getElementById("live-explanation-box");
+    const summary = document.getElementById("live-explain-summary");
+    const engine = document.getElementById("live-explain-engine");
+    const reasons = document.getElementById("live-explain-reasons");
+    if (!box) return;
+    box.classList.remove("hidden");
+    if (engine) engine.textContent = data.engine || "shap+prompt";
+    if (summary) summary.textContent = data.summary || "";
+    if (reasons) {
+      reasons.innerHTML = "";
+      (data.reasons || []).forEach((r) => {
+        const item = document.createElement("div");
+        item.className = "shap-item";
+        item.innerHTML = `
+          <div class="shap-top-row">
+            <span class="shap-feat">${escape(r.feature)}</span>
+            <span>${escape(r.shap ?? "")}</span>
+          </div>
+          <div class="shap-desc">${escape(r.text || "")}</div>
+        `;
+        reasons.appendChild(item);
       });
     }
   }

@@ -60,11 +60,11 @@ IdentityState.commit        FastAPI GET /v1/identity/{id}
           <tr><td>ClaimSource × 2</td><td>Solidity / Foundry</td><td>Accept signed-or-raw claims, emit logs, mark revoked</td><td>On-chain mapping claimId → meta</td></tr>
           <tr><td>IdentityState</td><td>Solidity / Foundry</td><td>Append-only commits of fused state</td><td>On-chain latest + history</td></tr>
           <tr><td>Ingest</td><td>Python asyncio or Node</td><td>Subscribe to logs, backfill, normalize hex → objects</td><td>In-memory cursor per chain</td></tr>
-          <tr><td>Normalize</td><td>Instructor / DSPy or rules fallback</td><td>Extract issuer, topic, expiry, polarity, evidence</td><td>Stateless</td></tr>
+          <tr><td>Normalize</td><td>Instructor over LiteLLM / DSPy or rules fallback</td><td>Extract issuer, topic, expiry, polarity, evidence</td><td>Stateless</td></tr>
           <tr><td>Score</td><td>sklearn joblib</td><td>p(credible | features)</td><td>Read-only model file</td></tr>
           <tr><td>Fuse</td><td>Pure Python</td><td>Subjective-logic opinions → unified state</td><td>Stateless</td></tr>
-          <tr><td>Explain</td><td>SHAP + one prompt</td><td>Feature attributions + prose</td><td>Stateless</td></tr>
-          <tr><td>API</td><td>FastAPI</td><td>Health, identity GET, optional replay</td><td>Memory + last commit</td></tr>
+          <tr><td>Explain</td><td>SHAP + LiteLLM prose (or SHAP template)</td><td>Feature attributions + prose</td><td>Stateless</td></tr>
+          <tr><td>API</td><td>FastAPI</td><td>Health, identity GET, LiteLLM test + explain regenerate, optional replay</td><td>Memory + last commit</td></tr>
           <tr><td>Dashboard</td><td>Vite / React</td><td>Bonus visualization</td><td>None</td></tr>
         </tbody>
       </table>
@@ -242,7 +242,7 @@ interface IClaimSource {
         <li><strong>Extract.</strong> Claim text → NormalizedClaim. Temperature 0. Tools: none.</li>
         <li><strong>Explain.</strong> Inputs: fused state, per-claim p_i, SHAP top features, conflict list. Output: {summary, reasons[], caveats[]}. Temperature 0.2.</li>
       </ol>
-      <p>Optional third: CRAVE-style dual perspective (“why this claim is true” / “why false”) then a non-fine-tuned synthesis. See PROMPTS.html. Orchestration runners: Instructor (verified <a href="https://github.com/567-labs/instructor">567-labs/instructor</a>), DSPy (<a href="https://github.com/stanfordnlp/dspy">stanfordnlp/dspy</a>), or Compozy for multi-agent coding (<a href="https://github.com/compozy/compozy">compozy/compozy</a>) — Compozy is for the human team’s agents, not a runtime dep of the API.</p>
+      <p>Optional third: CRAVE-style dual perspective (“why this claim is true” / “why false”) then a non-fine-tuned synthesis. See PROMPTS.html. Orchestration runner: Instructor over LiteLLM (verified <a href="https://github.com/567-labs/instructor">567-labs/instructor</a>, <a href="https://github.com/BerriAI/litellm">BerriAI/litellm</a>). DSPy (<a href="https://github.com/stanfordnlp/dspy">stanfordnlp/dspy</a>) remains an allowed alternative. Compozy is for the human team’s agents, not a runtime dep of the API. Env <code>LLM_*</code> is the operator default for ingest. Browser BYOK is localStorage + per-request; keys are never written to disk, overlay, or explanation JSON. GET identity never calls the LLM. The official score is still sklearn + Jøsang — the LLM does not emit <code>scoreBps</code> / <code>pCredible</code>.</p>
 
       <h2 id="dashboard">Dashboard (bonus)</h2>
       <p>Three panes: timeline of claims (chain badges), fusion inspector (opinions as stacked b/d/u), commit rail (tx hash, score sparkline). Poll GET every 2s. Empty/error/loading states required. Tokens in DESIGN.html.</p>
@@ -268,7 +268,7 @@ Issuer I2 → ClaimSource(UnichainSepolia).postClaim(subject, kyc.adult, +1)
 Watchers decode ClaimPosted (cursor = chainId, lastBlock)
         |
         v
-Normalize → NormalizedClaim (Instructor / rules fallback)
+Normalize → NormalizedClaim (Instructor-over-LiteLLM / rules fallback)
         |
         v
 Feature vector (SCHEMA.html order) → sklearn p_i
@@ -319,7 +319,7 @@ stateHash commits the full preimage, not a silent winner
           <tr><td>Authority</td><td>On-chain commit + replayable logs</td><td>Postgres / Firebase / Supabase as source of truth</td><td>NFR: no centralized DB as SoT. Local JSON overlay is a cache; kill-and-replay must reconstruct <code>latest</code>.</td></tr>
           <tr><td>Credibility number</td><td>sklearn p_i + subjective-logic fusion → scoreBps</td><td>LLM-as-judge integer; single softmax; fine-tuned CRAVE judge</td><td>A lone p=0.5 is ignorance or conflict. SL uncertainty mass distinguishes them. TrustJudge (2025): LLMs are inconsistent scorers. PRD: no fine-tune.</td></tr>
           <tr><td>Fusion default</td><td>Jøsang cumulative ⊕, averaging for duplicates, revision if K&gt;θ</td><td>Classical Dempster-Shafer as default; EigenTrust as MVP</td><td>DS renormalization is brittle at high conflict (Zadeh). EigenTrust needs an issuer graph we will not have in six hours.</td></tr>
-          <tr><td>Gen-AI role</td><td>Extract + narrate (Instructor / DSPy). Rules fallback.</td><td>LoRA/SFT/DPO; LangChain cloud as the product</td><td>PRD: prompt orchestration only. Demo must run if <code>LLM_API_KEY</code> is missing.</td></tr>
+          <tr><td>Gen-AI role</td><td>Extract + narrate via Instructor over LiteLLM. Rules + SHAP template fallback. Browser BYOK for test/regenerate.</td><td>LoRA/SFT/DPO; LangChain cloud as the product; persisting API keys</td><td>PRD: prompt orchestration only. Demo must run if <code>LLM_API_KEY</code> is missing (FR-02). BYOK never hits disk.</td></tr>
           <tr><td>Explainability</td><td>SHAP TreeExplainer + one prose prompt, async</td><td>Uncited “the model said so”; explain on GET</td><td>GET SLA is 500&nbsp;ms. Named features must appear in the explanation JSON.</td></tr>
           <tr><td>On-chain payload</td><td>Hash + scoreBps + modelVersion. URI in logs.</td><td>Full VC on-chain; CCIP/LayerZero sync; ERC-8004 registries</td><td>Hash-only follows 2025 VC-anchor practice (~85% gas). Bridges and 8004 are clock killers and different problems.</td></tr>
           <tr><td>Contracts</td><td>Foundry, two ClaimSource, one IdentityState, Ownable operator</td><td>Hardhat-first; UUPS; ERC-725/735 runtime; per-user proxy</td><td>Forge tests are the clock. Immutability is the point. Operator is a documented liveness concession.</td></tr>

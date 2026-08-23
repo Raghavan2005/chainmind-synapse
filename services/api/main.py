@@ -11,6 +11,7 @@ from web3 import Web3
 
 from services.chain import connect_live, identity_abi
 from services.common.config import load_settings
+from services.common.llm import LLMByokIn, llm_public_status, ping, runtime_from
 from services.score.predict import Scorer
 from services.store import read_json
 
@@ -83,7 +84,20 @@ def health() -> dict[str, Any]:
         },
         "degraded": degraded,
         "rpcErrors": {str(k): v for k, v in errors.items()},
+        "llm": llm_public_status(settings),
     }
+
+
+@app.get("/v1/llm")
+def llm_status() -> dict[str, Any]:
+    return llm_public_status(settings)
+
+
+@app.post("/v1/llm/test")
+def llm_test(body: LLMByokIn | None = None) -> dict[str, Any]:
+    payload = body or LLMByokIn()
+    runtime = runtime_from(settings, payload.as_override())
+    return ping(runtime)
 
 
 def _overlay(subject: str) -> dict[str, Any] | None:
@@ -143,6 +157,21 @@ def explanation(subject: str) -> dict[str, Any]:
     if not path.exists():
         raise HTTPException(404, "explanation not ready")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+@app.post("/v1/identity/{subject}/explain")
+def regenerate_explanation(subject: str, body: LLMByokIn | None = None) -> dict[str, Any]:
+    if scorer is None:
+        raise HTTPException(503, "model not loaded")
+    row = _overlay(subject)
+    if row is None or not row.get("commit"):
+        raise HTTPException(404, "no overlay/commit")
+    from services.pipeline import Brain
+
+    payload = body or LLMByokIn()
+    override = payload.as_override() if payload.api_key.strip() else None
+    explained = Brain(settings, scorer).explain(subject, row, override=override)
+    return json.loads(explained.model_dump_json(by_alias=True))
 
 
 @app.post("/v1/replay/{subject}")

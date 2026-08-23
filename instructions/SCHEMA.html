@@ -136,10 +136,17 @@
     {"feature": "issuer_prior", "shap": -0.09, "text": "Issuer I2 has a weak Beta prior (r=1,s=8)."}
   ],
   "caveats": ["LLM did not produce the score.", "Operator key committed the hash."],
-  "engine": "shap+prompt",
+  "engine": "shap+litellm",
   "conflictType": "multi-source"
 }
 </code></pre>
+      <p><code>engine</code> is <code>shap+litellm</code> when Instructor-over-LiteLLM ran, else <code>shap+template</code> (or the older <code>shap+prompt</code> default). Never contains API keys.</p>
+
+      <h2 id="explain-regen">POST /v1/identity/{subject}/explain</h2>
+      <p>Regenerate the explanation from overlay + SHAP + LiteLLM. Does <em>not</em> rewrite chain state. Writes the explanation JSON cache. Body (all optional):</p>
+<pre><code>{ "apiKey": "sk-…", "baseUrl": "https://api.openai.com/v1", "model": "gpt-4.1-mini" }
+</code></pre>
+      <p>404 if no overlay/commit. Replay bearer is not required. The key is used for this request only and is never echoed.</p>
 
       <h2 id="health">GET /v1/health</h2>
 <pre><code>{
@@ -156,9 +163,23 @@
     "claimSourceUnichainSepolia": "0x…",
     "identityState": "0x…"
   },
-  "degraded": false
+  "degraded": false,
+  "llm": {
+    "router": "litellm",
+    "envConfigured": false,
+    "model": "gpt-4.1-mini",
+    "baseUrlSet": false,
+    "byok": true
+  }
 }
 </code></pre>
+      <p><code>llm</code> never includes secrets. GET <code>/v1/identity</code> never calls the LLM.</p>
+
+      <h2 id="llm-status">GET /v1/llm</h2>
+      <p>Same public <code>llm</code> object as health. No secrets.</p>
+
+      <h2 id="llm-test">POST /v1/llm/test</h2>
+      <p>Body <code>{apiKey, baseUrl, model}</code> (all optional strings). One cheap LiteLLM ping. Returns <code>{ok, model, error}</code>. Never stores or echoes the key. If no key (body or env), <code>ok: false</code> without a network call.</p>
 
       <h2 id="preimage">Hash preimage JSON (verify_hash.py)</h2>
 <pre><code>{

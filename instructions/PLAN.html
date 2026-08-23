@@ -71,9 +71,9 @@
 
       <h2 id="h4">Hour 4 — Gen-AI extract + explain + revoke (T+4:00–5:00)</h2>
       <ul>
-        <li>Instructor/DSPy extract prompt. Timeout + fallback.</li>
+        <li>Instructor-over-LiteLLM extract prompt. Timeout + rules fallback. Env <code>LLM_*</code> for ingest; browser BYOK is per-request only.</li>
         <li>SHAP values on the scored vector.</li>
-        <li>Explanation prompt. Cache on disk keyed by commitId.</li>
+        <li>Explanation prompt via LiteLLM. Cache on disk keyed by commitId. Template if no key.</li>
         <li>Revocation path (B-01). This is more impressive than a pretty UI.</li>
         <li>verify_hash.py green.</li>
       </ul>
