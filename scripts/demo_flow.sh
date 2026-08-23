@@ -42,9 +42,9 @@ if (( LATENCY > 120 )); then
   exit 1
 fi
 "$PYTHON" scripts/verify_hash.py --subject "$DEMO_SUBJECT"
-echo "$BODY" | "$PYTHON" - <<'PY'
-import json, sys
-body = json.load(sys.stdin)
+BODY="$BODY" "$PYTHON" - <<'PY'
+import json, os
+body = json.loads(os.environ["BODY"])
 chains = {c["chainId"] for c in body.get("claims", [])}
 if 11155111 not in chains or 80002 not in chains:
     raise SystemExit(f"FR-01 failed: sources={chains}")
