@@ -10,8 +10,16 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: aws
     steps:
+      - name: Require repo secrets
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          if [[ -z "$AWS_ROLE_ARN" || -z "$ECR_REPOSITORY" ]]; then
+            echo "Set repo secrets AWS_ROLE_ARN and ECR_REPOSITORY (optional APPRUNNER_SERVICE_ARN), then re-run this workflow."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:

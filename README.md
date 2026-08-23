@@ -60,8 +60,8 @@ Paste addresses into `.env`.
 
 ## GitHub
 
-- `.github/workflows/ci.yml` — Foundry, pytest + train, dashboard build on every PR.
-- `.github/workflows/deploy-aws.yml` — OIDC → ECR → App Runner (needs `AWS_ROLE_ARN`, `ECR_REPOSITORY`).
+- `.github/workflows/ci.yml` — Foundry, pytest + train, dashboard build, Docker image.
+- `.github/workflows/aws-deploy.yml` — manual `workflow_dispatch` only; OIDC → ECR → App Runner (`AWS_ROLE_ARN`, `ECR_REPOSITORY`).
 - Dependabot for pip, npm, Actions, Docker.
 
 ## AWS
