@@ -21,9 +21,8 @@ resource "aws_iam_role" "github_actions" {
         }
         StringLike = {
           "token.actions.githubusercontent.com:sub" = [
-            "repo:${var.github_repository}:ref:refs/heads/master",
-            "repo:${var.github_repository}:ref:refs/heads/main",
-            "repo:${var.github_repository}:environment:aws",
+            "repo:${var.github_repository}:*",
+            "repo:Raghavan2005@78393373/chainmind-synapse@1343319008:*",
           ]
         }
       }
