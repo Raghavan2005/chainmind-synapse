@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Dossier Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Mission briefing</p>
+      <h1>Read this first. Then clone. Then build.</h1>
+      <p class="lede">ChainMind Synapse ingests identity claims from two live testnets, scores their credibility with a classical ML model, fuses conflicts with subjective-logic math, writes an immutable verdict on-chain, and explains the decision in human language. Six hours. No identity providers. No commercial reconciliation SDKs.</p>
+
+      <div class="meta-row">
+        <span class="chip ok">MVP: two chains + REST + on-chain state</span>
+        <span class="chip warn">PRD testnets Goerli/Mumbai are dead</span>
+        <span class="chip ok">Use Sepolia + Polygon Amoy</span>
+        <span class="chip bad">No fine-tuning · no Gitcoin Passport · no Trusta</span>
+        <span class="chip">Folder: instructions/</span>
+      </div>
+
+      <h2 id="folder">This folder is the agent spec</h2>
+      <p>All development and agent instructions live in <code>instructions/</code>. Repo-root <code>AGENTS.md</code> and <code>CLAUDE.md</code> only point here. Agents: open this HTML pack in a browser or read the files directly. Do not recreate the same content as Markdown.</p>
+      <p>Why HTML, not a pile of <code>.md</code> files: as agents take longer workflows, Markdown specs past ~100 lines become something humans stop reading. Shihipar (Claude Code lead) argued HTML — color, navigation, a UI tailored to the job — keeps the human in the loop for goals, spec refinement, and review. InfoQ summarized that thesis in June 2026. This dossier is that workspace: one folder, linked pages, copper/bone contrast, a sticky TOC. When a decision changes, edit the HTML page. Do not add <code>docs/architecture.md</code> again.</p>
+      <p class="small"><a href="https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/">InfoQ: Anthropic lead — HTML increasingly better than Markdown at keeping humans engaged in agentic loops</a> (24 Jun 2026).</p>
+
+      <h2 id="what">What this product is</h2>
+      <p>Users hold credentials on multiple chains. Those claims expire, get revoked, and sometimes contradict each other. A service on chain B cannot tell whether a claim from chain A is still true. ChainMind Synapse is the missing reconciliation layer: real-time ingest, Gen-AI signal extraction via prompt orchestration (not fine-tuning), an sklearn/Hugging Face credibility model, a fused identity state, an auditable on-chain commitment, and a REST API that returns sources plus scores in under 500&nbsp;ms.</p>
+      <p>Existing products score wallet <em>behavior or credit</em> (Nomis, RubyScore, Cred), <em>social credibility</em> (Ethos, UTU), or <em>humanity / Sybil risk</em> (Trusta.AI, Human Passport). DID/VC is a claim format. Chainlink ACE is a credential registry and policy engine. ERC-8004 is a draft agent-identity ERC. None of them reconcile <strong>conflicting credential claims</strong> with an explainable, tamper-proof verdict. That remaining conjunction is the product. See <a href="RESEARCH.html">RESEARCH.html</a> and the repo file <code>research-existing-solutions.md</code>.</p>
+
+      <h2 id="order">Reading order for agents</h2>
+      <ol>
+        <li><a href="CLAUDE.html">CLAUDE.html</a> — operating rules. Read before writing any code.</li>
+        <li><a href="PRD.html">PRD.html</a> then <a href="REQUIREMENTS.html">REQUIREMENTS.html</a> — what must ship.</li>
+        <li><a href="ARCHITECTURE.html">ARCHITECTURE.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — how it is built.</li>
+        <li><a href="PLAN.html">PLAN.html</a> — the 6-hour clock.</li>
+        <li><a href="REPOS.html">REPOS.html</a> + <a href="INTEGRATION.html">INTEGRATION.html</a> — clone with <code>gh</code>, wire the stack.</li>
+        <li><a href="MATH.html">MATH.html</a> + <a href="PROMPTS.html">PROMPTS.html</a> — scoring, fusion, explanations.</li>
+        <li><a href="AGENTS.html">AGENTS.html</a> + <a href="SKILL.html">SKILL.html</a> — runtime agents and coding playbooks.</li>
+        <li><a href="DESIGN.html">DESIGN.html</a> — dashboard and API presentation.</li>
+        <li><a href="PROPOSAL.html">PROPOSAL.html</a> — defence narrative if a judge asks “doesn’t X already do this?”</li>
+      </ol>
+
+      <h2 id="map">File map</h2>
+      <table>
+        <thead><tr><th>File</th><th>Job</th></tr></thead>
+        <tbody>
+          <tr><td><a href="PRD.html">PRD.html</a></td><td>PRD restated, interpreted, and gap-filled (including dead testnets).</td></tr>
+          <tr><td><a href="PROPOSAL.html">PROPOSAL.html</a></td><td>Solution thesis, differentiator, and why this stack.</td></tr>
+          <tr><td><a href="REQUIREMENTS.html">REQUIREMENTS.html</a></td><td>Functional / non-functional requirements with acceptance tests.</td></tr>
+          <tr><td><a href="ARCHITECTURE.html">ARCHITECTURE.html</a></td><td>C4, pipeline, contracts, latency budget, failure modes.</td></tr>
+          <tr><td><a href="PLAN.html">PLAN.html</a></td><td>Hour-by-hour build, cut lines, demo video script.</td></tr>
+          <tr><td><a href="MATH.html">MATH.html</a></td><td>Beta reputation, subjective logic, DS, EigenTrust, SHAP, fusion.</td></tr>
+          <tr><td><a href="RESEARCH.html">RESEARCH.html</a></td><td>SOTA papers and how each method maps onto the MVP.</td></tr>
+          <tr><td><a href="REPOS.html">REPOS.html</a></td><td>Verified GitHub URLs and exact <code>gh repo clone</code> commands.</td></tr>
+          <tr><td><a href="INTEGRATION.html">INTEGRATION.html</a></td><td>How those repos become one running system.</td></tr>
+          <tr><td><a href="SCHEMA.html">SCHEMA.html</a></td><td>Solidity structs, JSON schemas, API contracts, feature vectors.</td></tr>
+          <tr><td><a href="PROMPTS.html">PROMPTS.html</a></td><td>Prompt-orchestration templates. No fine-tuning.</td></tr>
+          <tr><td><a href="AGENTS.html">AGENTS.html</a></td><td>In-product Gen-AI agents and Compozy team layout.</td></tr>
+          <tr><td><a href="SKILL.html">SKILL.html</a></td><td>Copy-paste coding skills for Cursor.</td></tr>
+          <tr><td><a href="DESIGN.html">DESIGN.html</a></td><td>Visual system, dashboard, explanation UX.</td></tr>
+          <tr><td><a href="CLAUDE.html">CLAUDE.html</a></td><td>Hard rules for the coding agent. Do not skip.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="hard">Hard constraints (do not negotiate)</h2>
+      <div class="forbid">
+        <p><strong>Clock:</strong> 6 hours to a working testnet demo.</p>
+        <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. Implement Sepolia (11155111) and Polygon Amoy (80002). Say this out loud in the demo.</p>
+        <p><strong>No identity providers, no centralized database as source of truth.</strong> Process in memory / local files. The ledger is the record.</p>
+        <p><strong>Gen-AI = prompt orchestration only.</strong> DSPy, Instructor, Compozy, or raw structured prompts. No LoRA, no SFT, no “we fine-tuned a judge.”</p>
+        <p><strong>ML = existing libraries.</strong> scikit-learn first. Hugging Face only if it still fits the clock. Train on synthetic + historically labeled claims you generate.</p>
+        <p><strong>No pre-built identity reconciliation product.</strong> Do not wrap Trusta.AI, Nomis, RubyScore, Ethos, Cred Protocol, UTU Trust, or Gitcoin Passport (<a href="https://github.com/passportxyz/passport">passportxyz/passport</a>) and call it done. W3C DID/VC is a <em>format</em>, not a reconciliation engine — using the format is required-adjacent and allowed.</p>
+      </div>
+
+      <h2 id="deliver">Deliverables the clock must hit</h2>
+      <ul>
+        <li>Working demo on two testnets.</li>
+        <li>Live REST endpoint returning identity state + confidence + claim sources.</li>
+        <li>Gen-AI explanation of the trust decision.</li>
+        <li>A blockchain transaction that stores the final identity state.</li>
+        <li>A 3-minute demo video of the full flow.</li>
+      </ul>
+
+      <h2 id="clone">Clone the toolchain first</h2>
+      <p>Do not invent library names. Use the verified commands in <a href="REPOS.html">REPOS.html</a>. Minimum set:</p>
+<pre><code>gh repo clone foundry-rs/foundry
+gh repo clone OpenZeppelin/openzeppelin-contracts
+gh repo clone wevm/viem
+gh repo clone fastapi/fastapi
+gh repo clone scikit-learn/scikit-learn
+gh repo clone stanfordnlp/dspy
+gh repo clone shap/shap
+gh repo clone decentralized-identity/did-jwt
+gh repo clone uport-project/ethr-did
+</code></pre>
+      <p>You do not vendor all of those into the app. You clone them as reference, then depend on the published packages. Details and “do not use” repos live in REPOS.html.</p>
+
+      <h2 id="stack">Canonical stack (do not bikeshed)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>On-chain</h3>
+          <p>Foundry + Solidity + OpenZeppelin. <code>ClaimSource</code> on Sepolia and Amoy. <code>IdentityState</code> on one settlement chain (Sepolia). Hash-only commitments. Idempotent writes.</p>
+        </div>
+        <div class="card">
+          <h3>Off-chain brain</h3>
+          <p>Python 3.12. FastAPI + uvicorn. web3.py or viem (Node ingest sidecar is fine). sklearn HistGradientBoosting. Instructor/DSPy for extraction. SHAP + LLM prose for explanations.</p>
+        </div>
+        <div class="card">
+          <h3>Identity format</h3>
+          <p>W3C VC Data Model 2.0 as the claim envelope. <code>did:ethr</code> as the subject/issuer identifier. Bitstring Status List <em>semantics</em> for revocation; implement a simple on-chain revoked bit if the clock is tight.</p>
+        </div>
+        <div class="card">
+          <h3>Dashboard (bonus)</h3>
+          <p>Vite + React. Read-only. Polls the REST API. Shows claim timeline, conflicts, SHAP bars, and the on-chain tx hash. Design tokens in DESIGN.html.</p>
+        </div>
+      </div>
+
+      <h2 id="math-one-liner">Math in one breath</h2>
+      <p>Each claim becomes a subjective-logic opinion <em>(belief, disbelief, uncertainty, base-rate)</em> mapped from a Beta reputation posterior over issuer history, plus an sklearn probability that the claim is currently credible. Independent-looking evidence is fused with Jøsang cumulative fusion; dependent echoes use averaging fusion. High conflict triggers source-trust revision (Jøsang 2017). The fused expectation is the confidence score written on-chain in basis points. SHAP attributes the sklearn score; the Gen-AI layer narrates both SHAP and the fusion residual. Full treatment: <a href="MATH.html">MATH.html</a>.</p>
+
+      <h2 id="start">If you have 90 seconds, do this</h2>
+      <ol>
+        <li>Read <a href="CLAUDE.html">CLAUDE.html</a>.</li>
+        <li>Run the bootstrap block in <a href="REPOS.html">REPOS.html</a>.</li>
+        <li>Open <a href="PLAN.html">PLAN.html</a> and start Hour 0 contracts.</li>
+      </ol>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

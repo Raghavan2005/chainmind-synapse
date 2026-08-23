@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Claude / Cursor operating rules</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">CLAUDE.html · also for Cursor / Codex / Gemini CLI</p>
+      <h1>Operating rules for the coding agent</h1>
+      <p class="lede">This file is the constitution. If a later prompt conflicts with it, this file wins unless the human explicitly overrides a named clause.</p>
+      <div class="meta-row">
+        <span class="chip bad">Do not fine-tune</span>
+        <span class="chip bad">Do not use Passport / Trusta / Nomis</span>
+        <span class="chip ok">Sepolia + Amoy</span>
+        <span class="chip warn">6 hours</span>
+      </div>
+
+      <h2 id="identity">Who you are</h2>
+      <p>You are implementing ChainMind Synapse: a two-chain identity-claim reconciler with an sklearn credibility model, subjective-logic fusion, an on-chain immutable state, a FastAPI read API, and a prompt-orchestrated explanation. You are not wrapping a reputation SaaS. You are not building a full SSI wallet.</p>
+
+      <h2 id="read-first">Read before you write code</h2>
+      <ol>
+        <li>This file.</li>
+        <li><a href="PRD.html">PRD.html</a> — shall-statements.</li>
+        <li><a href="ARCHITECTURE.html">ARCHITECTURE.html</a> + <a href="SCHEMA.html">SCHEMA.html</a> — shapes.</li>
+        <li><a href="PLAN.html">PLAN.html</a> — clock.</li>
+        <li><a href="REPOS.html">REPOS.html</a> — only clone what is listed and verified.</li>
+      </ol>
+      <p>If <code>graphify-out/graph.json</code> exists, run <code>graphify query</code> before grepping the whole tree.</p>
+
+      <h2 id="stack-lock">Stack lock (do not bikeshed)</h2>
+      <table>
+        <thead><tr><th>Layer</th><th>Choice</th><th>Forbidden substitute</th></tr></thead>
+        <tbody>
+          <tr><td>Contracts</td><td>Foundry, Solidity ^0.8.24, OpenZeppelin 5</td><td>Hardhat unless Foundry install fails; then Hardhat is the fallback</td></tr>
+          <tr><td>Chains</td><td>Sepolia 11155111, Polygon Amoy 80002</td><td>Goerli, Mumbai, mainnet, Anvil-only demo (Anvil is for tests, not the deliverable)</td></tr>
+          <tr><td>API</td><td>FastAPI + uvicorn + pydantic v2</td><td>Django, Flask, Nest as the primary API</td></tr>
+          <tr><td>Ingest</td><td>web3.py asyncio or a tiny Node viem watcher</td><td>The Graph hosted, Alchemy Notify as a hard dependency</td></tr>
+          <tr><td>ML</td><td>scikit-learn HistGradientBoosting or LogisticRegression</td><td>Unsloth, custom torch nets, paid AutoML</td></tr>
+          <tr><td>Gen-AI</td><td>Instructor or DSPy structured outputs</td><td>Fine-tuning, LangChain clouds as the product</td></tr>
+          <tr><td>Explain</td><td>SHAP TreeExplainer + one prose prompt</td><td>Uncited “the model said so”</td></tr>
+          <tr><td>UI</td><td>Vite + React, tokens from DESIGN.html</td><td>Purple-gradient AI slop, Inter-on-white card grid</td></tr>
+          <tr><td>State</td><td>On-chain commit + local JSON/memory cache</td><td>Hosted Postgres / Firebase / Supabase as source of truth</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="repo-layout">Create this layout and keep it</h2>
+<pre><code>chainmind-synapse/
+  contracts/                 # Foundry project
+    src/ClaimSource.sol
+    src/IdentityState.sol
+    test/
+    script/Deploy.s.sol
+  services/
+    ingest/                  # log watchers
+    normalize/               # Gen-AI extractor
+    score/                   # sklearn + features
+    fuse/                    # subjective logic
+    explain/                 # SHAP + prose
+    api/                     # FastAPI
+  data/
+    claims_train.jsonl
+    model.joblib
+  dashboard/                 # bonus
+  tests/
+  .env.example
+  prd.md                     # original brief (do not fork a third spec)
+  research-existing-solutions.md
+  AGENTS.md                  # pointer → instructions/
+  CLAUDE.md                  # pointer → instructions/
+  instructions/              # THE spec. HTML only. Agents start here.
+    INDEX.html
+    CLAUDE.html
+    ARCHITECTURE.html
+    PRD.html
+    …
+    docs-assets/
+</code></pre>
+
+      <h2 id="html-specs">HTML is the spec, not Markdown</h2>
+      <p>Long Markdown plans are how humans check out of the loop. Thariq Shihipar (Claude Code) and the June 2026 InfoQ write-up argue that HTML — color, in-page nav, tailored layout — keeps a human engaged while the agent works. We follow that here.</p>
+      <ul>
+        <li>Treat every file in <code>instructions/</code> as the living spec. Update the HTML when a decision changes. Do not spawn a parallel <code>PLAN.md</code>, <code>ARCHITECTURE.md</code>, or <code>docs/*.md</code>.</li>
+        <li>When you report status to a human, prefer a short note plus a link/path to the relevant HTML section over a 200-line Markdown dump.</li>
+        <li>Repo-root <code>AGENTS.md</code> and <code>CLAUDE.md</code> are pointers only. This file wins on conflict.</li>
+      </ul>
+      <p class="small">Sources: <a href="https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/">InfoQ — HTML increasingly better than Markdown in agentic loops</a> (24 Jun 2026); Shihipar, <em>Using Claude Code: The Unreasonable Effectiveness of HTML</em>.</p>
+
+      <h2 id="must">You must</h2>
+      <ul>
+        <li>Keep every blockchain write idempotent. Same <code>commitId</code> → no-op, same logs.</li>
+        <li>Keep the GET path free of LLM calls and free of “wait for receipt.”</li>
+        <li>Train the model on a checked-in synthetic dataset so the demo is reproducible without a GPU.</li>
+        <li>Print held-out accuracy in the README and in the API <code>GET /v1/health</code>.</li>
+        <li>Store <code>stateHash = keccak256(abi.encode(subject, claimsRoot, scoreBps, modelVersion, issuedAt))</code> and publish the preimage JSON so third parties can verify.</li>
+        <li>Engineer at least one conflicting-claim fixture for the demo subject.</li>
+        <li>Cite SHAP feature names in the explanation JSON, not only in prose.</li>
+        <li>Use public RPCs if no key exists: <code>https://rpc.sepolia.org</code> and <code>https://rpc-amoy.polygon.technology/</code>. Document that they rate-limit.</li>
+        <li>After code changes, run <code>graphify update .</code> if graphify is installed.</li>
+        <li>Verify the API with curl. Verify the dashboard in a browser if you touch UI.</li>
+      </ul>
+
+      <h2 id="must-not">You must not</h2>
+      <ul>
+        <li>Fine-tune, LoRA, or DPO any model.</li>
+        <li>Call Trusta, Nomis, RubyScore, Ethos, Cred Protocol, UTU, Gitcoin Passport, Worldcoin, or Civic to produce scores.</li>
+        <li>Depend on Chainlink CCIP or LayerZero for the MVP (plumbing, not required, clock killer).</li>
+        <li>Put private keys in git. <code>.env</code> is gitignored. <code>.env.example</code> has blanks.</li>
+        <li>Use a funded mainnet key. Ever.</li>
+        <li>Invent GitHub repos. If it is not in <a href="REPOS.html">REPOS.html</a>, run <code>gh repo view owner/name</code> before telling a human to clone it.</li>
+        <li>Swallow RPC errors. Surface them on <code>/v1/health</code>.</li>
+        <li>Write a dashboard that is the only way to see the score. The API is the product.</li>
+        <li>Commit <code>node_modules</code>, Foundry <code>cache/</code>, <code>out/</code>, or model weights larger than needed. <code>model.joblib</code> for a tiny sklearn model is fine.</li>
+        <li>Claim “decentralized” while the only copy of the explanation lives in a closed vendor dashboard.</li>
+      </ul>
+
+      <h2 id="secrets">Environment contract</h2>
+<pre><code># .env.example
+SEPOLIA_RPC_URL=https://rpc.sepolia.org
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
+SETTLEMENT_CHAIN=sepolia
+DEPLOYER_PRIVATE_KEY=
+CLAIM_SOURCE_SEPOLIA=
+CLAIM_SOURCE_AMOY=
+IDENTITY_STATE_SEPOLIA=
+LLM_BASE_URL=
+LLM_API_KEY=
+LLM_MODEL=
+MODEL_PATH=data/model.joblib
+</code></pre>
+      <p>If <code>LLM_API_KEY</code> is missing, the extractor falls back to a deterministic rules parser so the demo still runs. The Gen-AI explanation then uses a template filled with SHAP + fusion numbers. Say this in the demo if it happens.</p>
+
+      <h2 id="quality">Quality bar under a 6-hour clock</h2>
+      <ul>
+        <li>Forge tests for commit idempotency, hash matching, and revoke → rescore.</li>
+        <li>pytest for fusion operators (compare against the formulas in MATH.html) and for API schema.</li>
+        <li>One happy-path script: <code>scripts/demo_flow.sh</code> posts two conflicting claims, waits for commit, curls the API, prints the tx.</li>
+        <li>No unused abstraction layers. Three Solidity contracts max (ClaimSource, IdentityState, maybe a shared interface file).</li>
+      </ul>
+
+      <h2 id="voice">Voice in code and UI</h2>
+      <p>Write comments that explain invariants, not narration. UI copy is short and specific: “Two claims disagree on majority” not “There is currently a discrepancy in the identity graph.” Design tokens are copper / bone / moss on ink. See <a href="DESIGN.html">DESIGN.html</a>.</p>
+
+      <h2 id="when-stuck">When stuck</h2>
+      <ol>
+        <li>Cut bonus, not MVP.</li>
+        <li>Replace the LLM extractor with the rules fallback; keep the prompt file for the demo narration.</li>
+        <li>If Amoy RPC dies, still ingest Sepolia and a second source via a locally deployed Anvil chain <em>documented as the emergency second source</em>, then retry Amoy. The PRD wants two blockchains, not two happy RPCs.</li>
+        <li>If Foundry cannot install, use the Hardhat fallback in SKILL.html.</li>
+      </ol>
+
+      <h2 id="done">Definition of done</h2>
+      <p>A stranger can run the bootstrap in REPOS.html + INTEGRATION.html, deploy with the Foundry script, run <code>scripts/demo_flow.sh</code>, and get a JSON identity state plus a block explorer link. Accuracy script prints &gt; 75%. You have a 3-minute recording script from PLAN.html. You did not add a hosted database or a commercial identity SDK.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>
