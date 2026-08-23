@@ -17,7 +17,7 @@ from services.store import read_json
 settings = load_settings()
 scorer: Scorer | None = None
 metrics: dict[str, Any] = {}
-rpc_cache: dict[str, Any] = {"at": 0, "sepolia": None, "amoy": None, "errors": {}}
+rpc_cache: dict[str, Any] = {"at": 0, "sepolia": None, "unichainSepolia": None, "errors": {}}
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -46,24 +46,26 @@ app.add_middleware(
 def _heads() -> tuple[int | None, int | None, dict[int, str]]:
     now = time.time()
     if now - rpc_cache["at"] < 8:
-        return rpc_cache["sepolia"], rpc_cache["amoy"], rpc_cache["errors"]
+        return rpc_cache["sepolia"], rpc_cache["unichainSepolia"], rpc_cache["errors"]
     errors: dict[int, str] = {}
-    sepolia = amoy = None
+    sepolia = unichain = None
     try:
         sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback).eth.block_number
     except Exception as exc:
         errors[11155111] = str(exc)
     try:
-        amoy = connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback).eth.block_number
+        unichain = connect_live(
+            settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback
+        ).eth.block_number
     except Exception as exc:
-        errors[80002] = str(exc)
-    rpc_cache.update({"at": now, "sepolia": sepolia, "amoy": amoy, "errors": errors})
-    return sepolia, amoy, errors
+        errors[1301] = str(exc)
+    rpc_cache.update({"at": now, "sepolia": sepolia, "unichainSepolia": unichain, "errors": errors})
+    return sepolia, unichain, errors
 
 
 @app.get("/v1/health")
 def health() -> dict[str, Any]:
-    sepolia, amoy, errors = _heads()
+    sepolia, unichain, errors = _heads()
     degraded = bool(errors) or scorer is None
     return {
         "ok": not degraded and scorer is not None,
@@ -72,11 +74,11 @@ def health() -> dict[str, Any]:
         "modelF1": metrics.get("f1"),
         "brier": metrics.get("brier"),
         "sepoliaHead": sepolia,
-        "amoyHead": amoy,
+        "unichainSepoliaHead": unichain,
         "operator": settings.operator_address or None,
         "contracts": {
             "claimSourceSepolia": settings.claim_source_sepolia or None,
-            "claimSourceAmoy": settings.claim_source_amoy or None,
+            "claimSourceUnichainSepolia": settings.claim_source_unichain_sepolia or None,
             "identityState": settings.identity_state_sepolia or None,
         },
         "degraded": degraded,

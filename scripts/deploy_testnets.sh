@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Deploy ClaimSource (Sepolia + Amoy) and IdentityState (Sepolia). Refuses if unfunded.
+# Deploy ClaimSource (Sepolia + Unichain Sepolia) and IdentityState (Sepolia).
+# Refuses if unfunded. Never broadcasts on chain id 1 / 137 (ChainGuard).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -13,7 +14,7 @@ source .env
 set +a
 : "${DEPLOYER_PRIVATE_KEY:?}"
 : "${SEPOLIA_RPC_URL:?}"
-: "${AMOY_RPC_URL:?}"
+: "${UNICHAIN_SEPOLIA_RPC_URL:?}"
 
 if [[ -x "$ROOT/.venv/bin/python" ]]; then
   PYTHON="$ROOT/.venv/bin/python"
@@ -25,18 +26,18 @@ ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY")
 echo "deployer=$ADDR"
 
 SEP_WEI=$(cast balance "$ADDR" --rpc-url "$SEPOLIA_RPC_URL")
-AMOY_WEI=$(cast balance "$ADDR" --rpc-url "$AMOY_RPC_URL")
+UNI_WEI=$(cast balance "$ADDR" --rpc-url "$UNICHAIN_SEPOLIA_RPC_URL")
 echo "sepolia_wei=$SEP_WEI"
-echo "amoy_wei=$AMOY_WEI"
+echo "unichain_sepolia_wei=$UNI_WEI"
 
-"$PYTHON" - "$SEP_WEI" "$AMOY_WEI" <<'PY'
+"$PYTHON" - "$SEP_WEI" "$UNI_WEI" <<'PY'
 import sys
-sep, amoy = int(sys.argv[1], 0), int(sys.argv[2], 0)
-# ~0.02 ETH / 0.05 POL covers two Sepolia deploys + one Amoy deploy with headroom.
-if sep < 20_000_000_000_000_000 or amoy < 50_000_000_000_000_000:
-    print("UNFUNDED: need >= 0.02 Sepolia ETH and >= 0.05 Amoy POL on the deployer.", file=sys.stderr)
+sep, uni = int(sys.argv[1], 0), int(sys.argv[2], 0)
+# Two Sepolia deploys + Unichain ClaimSource + later issuer top-ups.
+if sep < 20_000_000_000_000_000 or uni < 15_000_000_000_000_000:
+    print("UNFUNDED: need >= 0.02 Sepolia ETH and >= 0.015 Unichain Sepolia ETH on the deployer.", file=sys.stderr)
     print("Sepolia: https://cloud.google.com/application/web3/faucet/ethereum/sepolia", file=sys.stderr)
-    print("Amoy:    https://www.alchemy.com/faucets/polygon-amoy", file=sys.stderr)
+    print("Unichain Sepolia: bash scripts/bridge_sepolia_to_unichain.sh  (L1 bridge 0xea58fcA6… — never mainnet 0x81014F44…)", file=sys.stderr)
     raise SystemExit(2)
 print("funded=yes")
 PY
@@ -70,26 +71,26 @@ SEP_OUT=$(forge script script/DeployClaimSource.s.sol:DeployClaimSource \
 SEP_CLAIM=$(printf '%s\n' "$SEP_OUT" | awk '/ClaimSource /{print $2; exit}')
 echo "CLAIM_SOURCE_SEPOLIA=$SEP_CLAIM"
 
-AMOY_OUT=$(forge script script/DeployClaimSource.s.sol:DeployClaimSource \
-  --rpc-url "$AMOY_RPC_URL" --broadcast --private-key "$DEPLOYER_PRIVATE_KEY")
-AMOY_CLAIM=$(printf '%s\n' "$AMOY_OUT" | awk '/ClaimSource /{print $2; exit}')
-echo "CLAIM_SOURCE_AMOY=$AMOY_CLAIM"
+UNI_OUT=$(forge script script/DeployClaimSource.s.sol:DeployClaimSource \
+  --rpc-url "$UNICHAIN_SEPOLIA_RPC_URL" --broadcast --private-key "$DEPLOYER_PRIVATE_KEY")
+UNI_CLAIM=$(printf '%s\n' "$UNI_OUT" | awk '/ClaimSource /{print $2; exit}')
+echo "CLAIM_SOURCE_UNICHAIN_SEPOLIA=$UNI_CLAIM"
 
 ID_OUT=$(forge script script/DeployIdentityState.s.sol:DeployIdentityState \
   --rpc-url "$SEPOLIA_RPC_URL" --broadcast --private-key "$DEPLOYER_PRIVATE_KEY")
 IDENTITY=$(printf '%s\n' "$ID_OUT" | awk '/IdentityState /{print $2; exit}')
 echo "IDENTITY_STATE_SEPOLIA=$IDENTITY"
 
-if [[ -z "$SEP_CLAIM" || -z "$AMOY_CLAIM" || -z "$IDENTITY" ]]; then
+if [[ -z "$SEP_CLAIM" || -z "$UNI_CLAIM" || -z "$IDENTITY" ]]; then
   echo "deploy parse failed — check forge output above" >&2
   exit 1
 fi
 
 _upsert CLAIM_SOURCE_SEPOLIA "$SEP_CLAIM"
-_upsert CLAIM_SOURCE_AMOY "$AMOY_CLAIM"
+_upsert CLAIM_SOURCE_UNICHAIN_SEPOLIA "$UNI_CLAIM"
 _upsert IDENTITY_STATE_SEPOLIA "$IDENTITY"
 _upsert OPERATOR_ADDRESS "$ADDR"
 echo "wrote addresses into .env (not git)"
 echo "sepolia_claim https://sepolia.etherscan.io/address/${SEP_CLAIM}"
-echo "amoy_claim https://amoy.polygonscan.com/address/${AMOY_CLAIM}"
+echo "unichain_claim https://sepolia.uniscan.xyz/address/${UNI_CLAIM}"
 echo "identity https://sepolia.etherscan.io/address/${IDENTITY}"

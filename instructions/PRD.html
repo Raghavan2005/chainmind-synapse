@@ -54,7 +54,7 @@
           <tr>
             <td>M1</td>
             <td>Ingest identity claims from two blockchain sources (e.g. Ethereum and Polygon) via smart contract events or RPC calls</td>
-            <td>Deploy <code>ClaimSource</code> on Ethereum Sepolia and Polygon Amoy. Watch <code>ClaimPosted</code> / <code>ClaimRevoked</code> with web3.py or viem. Also support a one-shot RPC backfill of logs.</td>
+            <td>Deploy <code>ClaimSource</code> on Ethereum Sepolia and Unichain Sepolia. Watch <code>ClaimPosted</code> / <code>ClaimRevoked</code> with web3.py or viem. Also support a one-shot RPC backfill of logs.</td>
           </tr>
           <tr>
             <td>M2</td>
@@ -118,7 +118,7 @@
         <thead><tr><th>NFR</th><th>Target</th><th>Implementation note</th></tr></thead>
         <tbody>
           <tr><td>API latency</td><td>&lt; 500&nbsp;ms under load</td><td>Read path never waits on an LLM or an RPC confirmation. Serve last committed state + in-memory overlay.</td></tr>
-          <tr><td>On-chain update latency</td><td>&lt; 2 minutes</td><td>Sepolia + Amoy block times are seconds. Budget is dominated by RPC + gas. Retry with the same idempotency key.</td></tr>
+          <tr><td>On-chain update latency</td><td>&lt; 2 minutes</td><td>Sepolia + Unichain Sepolia block times are seconds. Budget is dominated by RPC + gas. Retry with the same idempotency key.</td></tr>
           <tr><td>Model accuracy</td><td>&gt; 75% on test claims</td><td>Hold out 20% of the synthetic+seeded set. Report accuracy, F1, and calibration (Brier). Do not game the split.</td></tr>
           <tr><td>Deterministic, idempotent chain I/O</td><td>Required</td><td><code>commitId = keccak256(subject, claimsRoot, modelVersion)</code>. Second write with same id is a no-op.</td></tr>
           <tr><td>Third-party verifiable records</td><td>Required</td><td>Anyone with the tx hash can recompute <code>stateHash</code> from the public JSON bundle (or IPFS CID) and match the log.</td></tr>
@@ -137,7 +137,7 @@
 
       <h3>Constraint interpretations you must follow</h3>
       <div class="warnbox">
-        <p><strong>Goerli and Mumbai are dead.</strong> Ethereum Foundation sunset Goerli after Dencun (validators exited around April 2024). Polygon Mumbai used Goerli as its root chain and was deprecated on 13 April 2024 in favor of Amoy (chain id 80002, Sepolia-anchored). Building on the named examples will fail. Use Sepolia + Amoy and state the substitution in the demo. Sources: <a href="https://blog.ethereum.org/2023/11/30/goerli-lts-update">Ethereum Foundation Goerli LTS</a>, <a href="https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos">Polygon Amoy announcement</a>.</p>
+        <p><strong>Goerli and Mumbai are dead.</strong> Ethereum Foundation sunset Goerli after Dencun (validators exited around April 2024). Polygon Mumbai used Goerli as its root chain and was deprecated on 13 April 2024 in favor of Amoy (chain id 80002, Sepolia-anchored). Amoy was the first substitute; official POL faucets then dried and USDC on Amoy cannot pay gas. Human override 2026-08-23: <strong>Sepolia 11155111 + Unichain Sepolia 1301</strong> (ETH on both; Superchain L1StandardBridge on Sepolia <code>0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2</code>). Never the mainnet Unichain bridge <code>0x81014F44…</code>. State this substitution in the demo. Sources: <a href="https://blog.ethereum.org/2023/11/30/goerli-lts-update">Ethereum Foundation Goerli LTS</a>, <a href="https://developers.uniswap.org/docs/unichain/technical-information/network-information">Unichain network information</a>.</p>
       </div>
       <div class="forbid">
         <p><strong>“No centralized databases”</strong> means the identity state is not authoritative in Postgres/Firebase/Supabase. A local JSON/SQLite cache for the API read path is allowed if every served state is recoverable from chain events + the committed hash. Do not put issuer or subject PII in a hosted DB.</p>
@@ -174,7 +174,7 @@
 
       <h2 id="non-goals">Non-goals (6-hour cut)</h2>
       <ul>
-        <li>Mainnet, bridges, or moving assets.</li>
+        <li>Mainnet, or moving <em>product</em> assets. Testnet Superchain <code>L1StandardBridge</code> (Sepolia → Unichain Sepolia) is allowed as a gas path only. Never the mainnet Unichain bridge.</li>
         <li>Full SSI wallets, DIDComm, ION, Ceramic, ACA-Py as runtime dependencies.</li>
         <li>Zero-knowledge selective disclosure (mention in RESEARCH, do not implement unless bonus time).</li>
         <li>ERC-8004 agent identity as the product (adjacent 2025/26 standard; optional footnote).</li>
@@ -183,7 +183,18 @@
       </ul>
 
       <h2 id="success">Success looks like</h2>
-      <p>A judge pastes a subject address. The API returns two-chain claims, at least one engineered conflict (e.g. “over 18” vs “under 18”, or “KYC-active” vs “KYC-revoked”), a fused confidence, a prose explanation that cites issuer reputation + expiry + revocation + conflict, and a Sepolia tx whose logs match <code>stateHash</code>. Accuracy on the held-out synthetic set prints &gt; 75%. A 3-minute take records the whole path.</p>
+      <p>A stranger pastes a subject address. The API returns two-chain claims, at least one engineered conflict (e.g. “over 18” vs “under 18”, or “KYC-active” vs “KYC-revoked”), a fused confidence, a prose explanation that cites issuer reputation + expiry + revocation + conflict, and a Sepolia tx whose logs match <code>stateHash</code>. Accuracy on the held-out synthetic set prints &gt; 75%. A 3-minute take records the whole path. Acceptance IDs: <a href="REQUIREMENTS.html">REQUIREMENTS.html</a>.</p>
+
+      <h2 id="limitations">Assumptions and limitations you must state</h2>
+      <p>Do not let the README imply more than we built. The full list is in <a href="ARCHITECTURE.html#assumptions">ARCHITECTURE.html</a>. The short list:</p>
+      <ul>
+        <li>Goerli and Mumbai were substituted, then Amoy was overridden to Unichain Sepolia because POL was unobtainable. The pair is Sepolia + Unichain Sepolia.</li>
+        <li>The operator key can commit fused state. Integrity is the public hash + replay, not a hidden operator.</li>
+        <li>Labels are synthetic. Accuracy is on a hold-out of that set, plus F1 and Brier so a class split cannot cheat.</li>
+        <li>The LLM is optional. Missing key ⇒ rules extract + templated explanation. The official score is never an LLM integer.</li>
+        <li>The on-chain record is a commitment, not a zk proof of honest scoring.</li>
+        <li>No PII in <code>evidenceURI</code>. We do not replace legal identity.</li>
+      </ul>
     </main>
   </div>
   <footer class="colophon" data-foot></footer>

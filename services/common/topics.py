@@ -6,8 +6,8 @@ from eth_utils import keccak
 
 TOPIC_NAMES = ("kyc.adult", "kyc.active", "residency.eu")
 SETTLEMENT_CHAIN_ID = 11155111
-AMOY_CHAIN_ID = 80002
-ALLOWED_CHAIN_IDS = frozenset({SETTLEMENT_CHAIN_ID, AMOY_CHAIN_ID})
+UNICHAIN_SEPOLIA_CHAIN_ID = 1301
+ALLOWED_CHAIN_IDS = frozenset({SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID})
 
 
 def topic_hash(name: str) -> bytes:
@@ -30,6 +30,6 @@ def did_ethr(chain_id: int, addr: str) -> str:
     addr = addr.lower()
     if chain_id == SETTLEMENT_CHAIN_ID:
         return f"did:ethr:sepolia:{addr}"
-    if chain_id == AMOY_CHAIN_ID:
-        return f"did:ethr:eip155:80002:{addr}"
+    if chain_id == UNICHAIN_SEPOLIA_CHAIN_ID:
+        return f"did:ethr:eip155:1301:{addr}"
     raise ValueError(f"unsupported chain {chain_id}")

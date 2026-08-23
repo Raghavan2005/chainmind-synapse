@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Posts conflicting claims A (Sepolia) and B (Amoy), waits for ingest+commit, curls GET.
+# Posts conflicting claims A (Sepolia) and B (Unichain Sepolia), waits for ingest+commit, curls GET.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -16,9 +16,10 @@ set -a
 # shellcheck disable=SC1091
 source .env
 set +a
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 : "${DEMO_SUBJECT:?}"
 : "${CLAIM_SOURCE_SEPOLIA:?}"
-: "${CLAIM_SOURCE_AMOY:?}"
+: "${CLAIM_SOURCE_UNICHAIN_SEPOLIA:?}"
 : "${IDENTITY_STATE_SEPOLIA:?}"
 
 "$PYTHON" -m services.score.train >/tmp/synapse-train.json
@@ -46,7 +47,7 @@ BODY="$BODY" "$PYTHON" - <<'PY'
 import json, os
 body = json.loads(os.environ["BODY"])
 chains = {c["chainId"] for c in body.get("claims", [])}
-if 11155111 not in chains or 80002 not in chains:
+if 11155111 not in chains or 1301 not in chains:
     raise SystemExit(f"FR-01 failed: sources={chains}")
 if body.get("verdict") != "conflict" and not body.get("conflicts"):
     raise SystemExit(f"conflict fixture missing: verdict={body.get('verdict')}")

@@ -22,7 +22,7 @@
       <div class="meta-row">
         <span class="chip ok">MVP: two chains + REST + on-chain state</span>
         <span class="chip warn">PRD testnets Goerli/Mumbai are dead</span>
-        <span class="chip ok">Use Sepolia + Polygon Amoy</span>
+        <span class="chip ok">Use Sepolia + Unichain Sepolia</span>
         <span class="chip bad">No fine-tuning · no Gitcoin Passport · no Trusta</span>
         <span class="chip">Folder: instructions/</span>
       </div>
@@ -74,7 +74,7 @@
       <h2 id="hard">Hard constraints (do not negotiate)</h2>
       <div class="forbid">
         <p><strong>Clock:</strong> 6 hours to a working testnet demo.</p>
-        <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. Implement Sepolia (11155111) and Polygon Amoy (80002). Say this out loud in the demo.</p>
+        <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. First substitute was Sepolia + Amoy; Amoy POL became unobtainable. Human override 2026-08-23: Sepolia (11155111) and Unichain Sepolia (1301). Say this out loud in the demo.</p>
         <p><strong>No identity providers, no centralized database as source of truth.</strong> Process in memory / local files. The ledger is the record.</p>
         <p><strong>Gen-AI = prompt orchestration only.</strong> DSPy, Instructor, Compozy, or raw structured prompts. No LoRA, no SFT, no “we fine-tuned a judge.”</p>
         <p><strong>ML = existing libraries.</strong> scikit-learn first. Hugging Face only if it still fits the clock. Train on synthetic + historically labeled claims you generate.</p>
@@ -108,7 +108,7 @@ gh repo clone uport-project/ethr-did
       <div class="grid-2">
         <div class="card">
           <h3>On-chain</h3>
-          <p>Foundry + Solidity + OpenZeppelin. <code>ClaimSource</code> on Sepolia and Amoy. <code>IdentityState</code> on one settlement chain (Sepolia). Hash-only commitments. Idempotent writes.</p>
+          <p>Foundry + Solidity + OpenZeppelin. <code>ClaimSource</code> on Sepolia and Unichain Sepolia. <code>IdentityState</code> on one settlement chain (Sepolia). Hash-only commitments. Idempotent writes.</p>
         </div>
         <div class="card">
           <h3>Off-chain brain</h3>
@@ -123,6 +123,9 @@ gh repo clone uport-project/ethr-did
           <p>Vite + React. Read-only. Polls the REST API. Shows claim timeline, conflicts, SHAP bars, and the on-chain tx hash. Design tokens in DESIGN.html.</p>
         </div>
       </div>
+
+      <h2 id="design-depth">System design the spec must already contain</h2>
+      <p>ARCHITECTURE.html is not only a C4 sketch. It is the decision record, the runtime sequences (agree / conflict / revoke), the failure table, the observability events, the honest scale limits, and the post-clock operate path. PROPOSAL.html states why this slice beats the rejected alternatives. REQUIREMENTS.html is the test plan and the success metrics. If a later prompt asks for a parallel design note, edit those pages — do not add a second tree.</p>
 
       <h2 id="math-one-liner">Math in one breath</h2>
       <p>Each claim becomes a subjective-logic opinion <em>(belief, disbelief, uncertainty, base-rate)</em> mapped from a Beta reputation posterior over issuer history, plus an sklearn probability that the claim is currently credible. Independent-looking evidence is fused with Jøsang cumulative fusion; dependent echoes use averaging fusion. High conflict triggers source-trust revision (Jøsang 2017). The fused expectation is the confidence score written on-chain in basis points. SHAP attributes the sklearn score; the Gen-AI layer narrates both SHAP and the fusion residual. Full treatment: <a href="MATH.html">MATH.html</a>.</p>

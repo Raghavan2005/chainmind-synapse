@@ -5,7 +5,6 @@ from functools import lru_cache
 from pathlib import Path
 
 from web3 import Web3
-from web3.middleware import ExtraDataToPOAMiddleware
 
 from services.common.config import ROOT, Settings
 
@@ -49,14 +48,9 @@ def connect_live(url: str, fallback: str = "") -> Web3:
 
 
 def web3s(settings: Settings) -> dict[int, Web3]:
-    amoy = connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback)
-    try:
-        amoy.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-    except ValueError:
-        pass  # connect() caches by URL; already injected on a prior call
     return {
         11155111: connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback),
-        80002: amoy,
+        1301: connect_live(settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback),
     }
 
 

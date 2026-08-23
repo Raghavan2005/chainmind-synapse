@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post the required A/B conflict fixture to Sepolia + Amoy."""
+"""Post the required A/B conflict fixture to Sepolia + Unichain Sepolia."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from web3 import Web3
 
 from services.chain import claim_abi, connect_live
 from services.common.config import load_settings
-from services.common.topics import AMOY_CHAIN_ID, SETTLEMENT_CHAIN_ID, topic_hash
+from services.common.topics import UNICHAIN_SEPOLIA_CHAIN_ID, topic_hash
 
 
 def _send(w3: Web3, key: str, address: str, subject: str, polarity: int, uri: str) -> str:
@@ -26,15 +26,21 @@ def _send(w3: Web3, key: str, address: str, subject: str, polarity: int, uri: st
         expires,
         uri,
     )
-    priority_fee = max(w3.to_wei(1, "gwei"), w3.eth.max_priority_fee)
+    base = max(int(w3.eth.gas_price), 1)
+    try:
+        tip = int(w3.eth.max_priority_fee)
+    except Exception:
+        tip = int(w3.to_wei(1, "gwei"))
+    # Unichain base fee can be << 1 gwei; a 1 gwei tip then exceeds maxFeePerGas.
+    priority = min(max(tip, 1), base)
     tx = fn.build_transaction(
         {
             "from": account.address,
             "nonce": w3.eth.get_transaction_count(account.address),
             "chainId": w3.eth.chain_id,
             "gas": 200_000,
-            "maxFeePerGas": w3.eth.gas_price * 2 + priority_fee,
-            "maxPriorityFeePerGas": priority_fee,
+            "maxFeePerGas": max(base * 2, priority),
+            "maxPriorityFeePerGas": priority,
         }
     )
     signed = account.sign_transaction(tx)
@@ -52,12 +58,19 @@ def main() -> None:
     if not (settings.issuer_a_private_key and settings.issuer_b_private_key and settings.demo_subject):
         raise SystemExit("set ISSUER_A_PRIVATE_KEY, ISSUER_B_PRIVATE_KEY, DEMO_SUBJECT")
     sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
-    amoy = connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback)
+    unichain = connect_live(settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback)
     uri_a = 'data:application/json,{"topic":"kyc.adult","polarity":1,"note":"government-like eligibility record"}'
     uri_b = 'data:application/json,{"topic":"kyc.adult","polarity":-1,"note":"issuer disputes adulthood attestation"}'
     tx_a = _send(sepolia, settings.issuer_a_private_key, settings.claim_source_sepolia, settings.demo_subject, 1, uri_a)
-    tx_b = _send(amoy, settings.issuer_b_private_key, settings.claim_source_amoy, settings.demo_subject, -1, uri_b)
-    print(json.dumps({"sepoliaClaim": tx_a, "amoyClaim": tx_b}, indent=2))
+    tx_b = _send(
+        unichain,
+        settings.issuer_b_private_key,
+        settings.claim_source_unichain_sepolia,
+        settings.demo_subject,
+        -1,
+        uri_b,
+    )
+    print(json.dumps({"sepoliaClaim": tx_a, "unichainSepoliaClaim": tx_b, "l2ChainId": UNICHAIN_SEPOLIA_CHAIN_ID}, indent=2))
     if args.revoke_c:
         print("revoke path uses the last Sepolia claim via cast/revoke in demo_flow")
 

@@ -9,19 +9,19 @@ from web3 import Web3
 from services.chain import claim_abi, web3s
 from services.common.config import load_settings
 from services.common.log import emit
-from services.common.topics import AMOY_CHAIN_ID, SETTLEMENT_CHAIN_ID
+from services.common.topics import SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID
 from services.pipeline import Brain
 from services.score.predict import Scorer
 from services.store import atomic_write, read_json
 from services.writer.commit import Writer
 
-REWIND = {SETTLEMENT_CHAIN_ID: 12, AMOY_CHAIN_ID: 64}
+REWIND = {SETTLEMENT_CHAIN_ID: 12, UNICHAIN_SEPOLIA_CHAIN_ID: 12}
 
 
 def _sources(settings) -> dict[int, str]:
     return {
         SETTLEMENT_CHAIN_ID: settings.claim_source_sepolia,
-        AMOY_CHAIN_ID: settings.claim_source_amoy,
+        UNICHAIN_SEPOLIA_CHAIN_ID: settings.claim_source_unichain_sepolia,
     }
 
 
@@ -75,7 +75,11 @@ def run_once(brain: Brain, writer: Writer | None, settings) -> None:
             continue
         try:
             head = url_w3.eth.block_number
-            parent = url_w3.eth.get_block(head)["parentHash"].hex()
+            try:
+                parent = url_w3.eth.get_block(head)["parentHash"].hex()
+            except Exception:
+                head = max(0, head - 2)
+                parent = url_w3.eth.get_block(head)["parentHash"].hex()
             stored = cursors.get("chains", {}).get(str(chain_id), {})
             cursor = int(stored.get("lastBlock", max(0, head - 2000)))
             if stored.get("parentHash") and stored.get("lastBlock") == head and stored.get("parentHash") != parent:

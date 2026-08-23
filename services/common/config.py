@@ -12,10 +12,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
 
     sepolia_rpc_url: str = "https://ethereum-sepolia-rpc.publicnode.com"
-    amoy_rpc_url: str = "https://polygon-amoy-bor-rpc.publicnode.com"
+    unichain_sepolia_rpc_url: str = "https://sepolia.unichain.org"
     sepolia_rpc_url_fallback: str = "https://1rpc.io/sepolia"
-    amoy_rpc_url_fallback: str = "https://polygon-amoy.drpc.org"
+    unichain_sepolia_rpc_url_fallback: str = "https://unichain-sepolia.drpc.org"
     settlement_chain: str = "sepolia"
+    unichain_l1_bridge_sepolia: str = "0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2"
 
     deployer_private_key: str = ""
     operator_address: str = ""
@@ -24,7 +25,7 @@ class Settings(BaseSettings):
     demo_subject: str = ""
 
     claim_source_sepolia: str = ""
-    claim_source_amoy: str = ""
+    claim_source_unichain_sepolia: str = ""
     identity_state_sepolia: str = ""
 
     llm_base_url: str = ""

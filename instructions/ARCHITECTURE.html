@@ -20,7 +20,7 @@
       <p class="lede">One settlement contract, two claim sources, a linear off-chain brain, and a read API that never waits on an LLM. Every write is idempotent. Every served state is re-derivable from public logs plus a hash preimage.</p>
       <div class="meta-row">
         <span class="chip ok">Sepolia settlement</span>
-        <span class="chip ok">Sepolia + Amoy sources</span>
+        <span class="chip ok">Sepolia + Unichain Sepolia sources</span>
         <span class="chip">GET &lt; 500ms</span>
         <span class="chip">commit &lt; 2 min</span>
       </div>
@@ -31,7 +31,7 @@
 Holder / Issuer wallets
         |  ClaimPosted / ClaimRevoked
         v
-ClaimSource (Sepolia)     ClaimSource (Polygon Amoy)
+ClaimSource (Sepolia)     ClaimSource (Unichain Sepolia)
         \                     /
          \                   /
           v                 v
@@ -164,7 +164,7 @@ interface IClaimSource {
       <h2 id="identity-format">Identity format</h2>
       <p>Internally we speak <code>NormalizedClaim</code>. On the wire, prefer a W3C VC 2.0-shaped JSON so judges see standards literacy:</p>
       <ul>
-        <li>Subject and issuer as <code>did:ethr:sepolia:0x…</code> / <code>did:ethr:polygon:amoy:0x…</code> using <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> conventions and ERC-1056 semantics. You do not have to deploy EthereumDIDRegistry for the MVP; treat the address as the DID method-specific-id.</li>
+        <li>Subject and issuer as <code>did:ethr:sepolia:0x…</code> / <code>did:ethr:eip155:1301:0x…</code> using <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> conventions and ERC-1056 semantics. You do not have to deploy EthereumDIDRegistry for the MVP; treat the address as the DID method-specific-id.</li>
         <li>Revocation: if clock allows, a bit on ClaimSource is enough. Mention Bitstring Status List (<a href="https://www.w3.org/TR/vc-bitstring-status-list/">W3C</a>) as the production analogue. Do not implement gzip bitstrings in 6 hours unless you are ahead.</li>
         <li>Hash-only on-chain payload follows the 2025 heterogeneous-chain VC paper: anchoring hashes, not full credentials, cuts gas ~85%.</li>
       </ul>
@@ -188,7 +188,7 @@ interface IClaimSource {
         <tbody>
           <tr><td>GET identity</td><td>500&nbsp;ms p95</td><td>No RPC on the hot path if cache age &lt; 15s. Else one <code>latest(subject)</code> eth_call.</td></tr>
           <tr><td>Ingest → overlay</td><td>a few seconds</td><td>Log delay + normalize. LLM timeout 8s then rules fallback.</td></tr>
-          <tr><td>Overlay → mined commit</td><td>&lt; 2 minutes</td><td>NFR. Sepolia/Amoy usually &lt; 30s. Retry with same commitId.</td></tr>
+          <tr><td>Overlay → mined commit</td><td>&lt; 2 minutes</td><td>NFR. Sepolia/Unichain Sepolia usually &lt; 30s. Retry with same commitId.</td></tr>
           <tr><td>Explanation</td><td>best effort</td><td>Async. Dashboard polls.</td></tr>
         </tbody>
       </table>
@@ -220,10 +220,10 @@ interface IClaimSource {
         <thead><tr><th>Failure</th><th>Detection</th><th>Behavior</th></tr></thead>
         <tbody>
           <tr><td>RPC timeout</td><td>health</td><td>Keep last cursor; exponential backoff; do not advance cursor</td></tr>
-          <tr><td>Amoy down</td><td>health.amoy</td><td>Serve Sepolia + last Amoy snapshot; flag <code>degradedChains</code></td></tr>
+          <tr><td>Unichain down</td><td>health.unichainSepolia</td><td>Serve Sepolia + last Unichain snapshot; flag <code>degradedChains</code></td></tr>
           <tr><td>LLM down</td><td>extractor exception</td><td>Rules fallback; explanation template</td></tr>
           <tr><td>Model missing</td><td>startup</td><td>Refuse to start API, or start in train-then-load script</td></tr>
-          <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 Sepolia, N=64 Amoy if jittery)</td></tr>
+          <tr><td>Reorg</td><td>parent hash mismatch</td><td>Rewind cursor N blocks (N=12 Sepolia, N=12 Unichain Sepolia)</td></tr>
           <tr><td>Conflict storm</td><td>K &gt; θ</td><td>Lower confidence, list all sides, still commit</td></tr>
           <tr><td>Duplicate commit</td><td>revert</td><td>Treat as success if on-chain latest matches</td></tr>
           <tr><td>Expired claim</td><td>feature</td><td>p collapses; fusion disbelief rises</td></tr>
@@ -256,6 +256,143 @@ interface IClaimSource {
         <li>No <code>delegatecall</code>, no upgrade proxy, no <code>tx.origin</code>.</li>
         <li>Integer score in bps; never send floats on-chain.</li>
       </ul>
+
+      <h2 id="sequences">Sequences (how the parts actually run)</h2>
+      <h3>Happy path — two agreeing claims</h3>
+      <figure class="figure">
+        <div class="flow">
+Issuer I1 → ClaimSource(Sepolia).postClaim(subject, kyc.adult, +1)
+Issuer I2 → ClaimSource(UnichainSepolia).postClaim(subject, kyc.adult, +1)
+        |
+        v
+Watchers decode ClaimPosted (cursor = chainId, lastBlock)
+        |
+        v
+Normalize → NormalizedClaim (Instructor / rules fallback)
+        |
+        v
+Feature vector (SCHEMA.html order) → sklearn p_i
+        |
+        v
+p_i + issuer Beta prior → opinion ω_i → cumulative fuse ⊕
+        |
+        v
+commitId = keccak(subject, claimsRoot, modelVersion)
+IdentityState.commit on Sepolia  →  GET /v1/identity/{subject}
+Explain (SHAP + prompt) runs after; never on the GET path
+        </div>
+        <figcaption>Agreeing issuers raise belief and lower uncertainty. scoreBps is the fused expectation, not a single-model softmax.</figcaption>
+      </figure>
+      <h3>Conflict path — the fixture the demo must show</h3>
+      <figure class="figure">
+        <div class="flow">
+I1 Sepolia: kyc.adult +1     I2 Unichain Sepolia: kyc.adult −1
+        \                       /
+         v                     v
+Same subject + topic, opposite polarity, both unexpired
+        |
+        v
+conflict_count ≥ 1 on both feature rows
+pairwise K = b_A d_B + b_B d_A
+        |
+        +-- K ≤ θ → fuse, verdict=conflict still listed
+        |
+        +-- K &gt; θ (default 0.45) → Jøsang 2017 revision:
+            shrink weaker issuer mass by 0.5, refuse, keep both claims in JSON
+        |
+        v
+confidence C drops even if one side is slightly ahead
+stateHash commits the full preimage, not a silent winner
+        </div>
+        <figcaption>Confidence is “how settled the state is,” not “probability the human is good.” High conflict ⇒ low C. MATH.html is normative.</figcaption>
+      </figure>
+      <h3>Revoke path (bonus B-01, still designed in)</h3>
+      <p>Issuer calls <code>revokeClaim</code>. Watcher sees <code>ClaimRevoked</code>, sets <code>revoked=true</code>, forces <code>p_i ← min(p_i, 0.05)</code> and adds disbelief mass. Fusion re-runs. New <code>commitId</code> (claimsRoot changed). GET history shows both commits. Do not delete the old log.</p>
+
+      <h2 id="decisions">Decisions and rejected alternatives</h2>
+      <p>These are product and technical locks, not taste. CLAUDE.html forbids the right-hand column as a substitute without a named human override.</p>
+      <table>
+        <thead><tr><th>Decision</th><th>We chose</th><th>We rejected</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Problem slice</td><td>Reconcile issuer-signed claims that conflict across two EVMs</td><td>Wrap Trusta / Nomis / Human Passport / ACE as the score</td><td>PRD forbids commercial reconciliation SDKs. Those products score wallets, humanity, or pass/fail credentials — they do not fuse conflicts. RESEARCH.html.</td></tr>
+          <tr><td>Chains</td><td>Sepolia 11155111 + Unichain Sepolia 1301</td><td>Goerli, Mumbai, Amoy (POL dry), mainnet, Anvil-only deliverable</td><td>PRD examples are dead. Amoy POL unobtainable. Human override 2026-08-23. Anvil is for Forge tests. Mainnet is forbidden.</td></tr>
+          <tr><td>Authority</td><td>On-chain commit + replayable logs</td><td>Postgres / Firebase / Supabase as source of truth</td><td>NFR: no centralized DB as SoT. Local JSON overlay is a cache; kill-and-replay must reconstruct <code>latest</code>.</td></tr>
+          <tr><td>Credibility number</td><td>sklearn p_i + subjective-logic fusion → scoreBps</td><td>LLM-as-judge integer; single softmax; fine-tuned CRAVE judge</td><td>A lone p=0.5 is ignorance or conflict. SL uncertainty mass distinguishes them. TrustJudge (2025): LLMs are inconsistent scorers. PRD: no fine-tune.</td></tr>
+          <tr><td>Fusion default</td><td>Jøsang cumulative ⊕, averaging for duplicates, revision if K&gt;θ</td><td>Classical Dempster-Shafer as default; EigenTrust as MVP</td><td>DS renormalization is brittle at high conflict (Zadeh). EigenTrust needs an issuer graph we will not have in six hours.</td></tr>
+          <tr><td>Gen-AI role</td><td>Extract + narrate (Instructor / DSPy). Rules fallback.</td><td>LoRA/SFT/DPO; LangChain cloud as the product</td><td>PRD: prompt orchestration only. Demo must run if <code>LLM_API_KEY</code> is missing.</td></tr>
+          <tr><td>Explainability</td><td>SHAP TreeExplainer + one prose prompt, async</td><td>Uncited “the model said so”; explain on GET</td><td>GET SLA is 500&nbsp;ms. Named features must appear in the explanation JSON.</td></tr>
+          <tr><td>On-chain payload</td><td>Hash + scoreBps + modelVersion. URI in logs.</td><td>Full VC on-chain; CCIP/LayerZero sync; ERC-8004 registries</td><td>Hash-only follows 2025 VC-anchor practice (~85% gas). Bridges and 8004 are clock killers and different problems.</td></tr>
+          <tr><td>Contracts</td><td>Foundry, two ClaimSource, one IdentityState, Ownable operator</td><td>Hardhat-first; UUPS; ERC-725/735 runtime; per-user proxy</td><td>Forge tests are the clock. Immutability is the point. Operator is a documented liveness concession.</td></tr>
+          <tr><td>API</td><td>FastAPI, no auth on GET, bearer on replay</td><td>Django/Flask/Nest as primary; dashboard-only product</td><td>The API is the deliverable. Dashboard is Hour 5 bonus.</td></tr>
+          <tr><td>Identity format</td><td>VC 2.0-shaped JSON, did:ethr labels, on-chain revoked bit</td><td>ION / Ceramic / ACA-Py runtime; gzip Bitstring Status List</td><td>Standards literacy without a 50-dependency SSI stack. Mention production revocation; do not implement gzip bitstrings on the clock.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="tradeoffs">Clock trade-offs (what we cut, what we never cut)</h2>
+      <p>PLAN.html is the schedule. If late, cut in this order: dashboard → MiniLM embeddings → CRAVE dual-perspective prompt → LLM extract (keep the prompt file, use rules). <strong>Never cut:</strong> two-chain ingest, sklearn score, on-chain commit, GET JSON, held-out accuracy print, one explanation even if templated from SHAP + fusion numbers.</p>
+      <p>Known 6-hour concessions, said out loud: the operator key can commit; the LLM is optional; labels are synthetic; two EVM testnets are not “every chain”; the hash is a commitment, not a zk proof of honest scoring.</p>
+
+      <h2 id="assumptions">Assumptions, limitations, gaps</h2>
+      <ul>
+        <li><strong>Issuers are addresses.</strong> Anyone may post. We score them with a Beta prior; we do not onboard them as an IdP.</li>
+        <li><strong>Topics are closed.</strong> Demo topics are <code>kyc.adult</code>, <code>kyc.active</code>, optional <code>residency.eu</code>. Open-ended natural-language identity is out of scope.</li>
+        <li><strong>Polarity is binary.</strong> +1 / −1 on a named proposition. Multi-class “residency = FR vs DE vs unknown” would need Dirichlet reputation — refused on the clock.</li>
+        <li><strong>Evidence is not PII.</strong> <code>evidenceURI</code> is demo JSON or a capped URL. No government-ID images. Append-only ledgers cannot honor GDPR deletion.</li>
+        <li><strong>Finality is a proxy.</strong> <code>confirmations_norm</code> is not economic finality. Reorg rewind is N=12 Sepolia and Unichain Sepolia.</li>
+        <li><strong>Model generalization is unproven off the synthetic set.</strong> Accuracy &gt; 75% is on a held-out slice of data we generated. Production would need labeled real claims and a model card.</li>
+        <li><strong>Integrity is reproducible, not trustless execution.</strong> A relying party who re-runs the open pipeline and checks <code>stateHash</code> does not need to trust our API host. They still trust that our published model file is the one we used — that is what <code>modelVersion</code> is for.</li>
+      </ul>
+
+      <h2 id="observability">Errors, monitoring, observability</h2>
+      <p><code>GET /v1/health</code> is the operator console (fields in REQUIREMENTS.html). The ingest and writer processes emit structured one-line JSON to stdout. Minimum event names:</p>
+      <table>
+        <thead><tr><th>Event</th><th>When</th><th>Fields</th></tr></thead>
+        <tbody>
+          <tr><td><code>ingest.head</code></td><td>each poll</td><td>chainId, block, cursor, lag, rpcMs</td></tr>
+          <tr><td><code>ingest.error</code></td><td>RPC / decode failure</td><td>chainId, err, backoffMs — cursor not advanced</td></tr>
+          <tr><td><code>ingest.reorg</code></td><td>parent hash mismatch</td><td>chainId, rewindTo</td></tr>
+          <tr><td><code>normalize.fallback</code></td><td>LLM timeout or invalid JSON</td><td>claimId, reason</td></tr>
+          <tr><td><code>score.ok</code></td><td>per claim</td><td>claimId, p, modelVersion</td></tr>
+          <tr><td><code>fuse.conflict</code></td><td>K &gt; 0</td><td>subject, topic, K, revised</td></tr>
+          <tr><td><code>commit.sent</code> / <code>commit.mined</code> / <code>commit.duplicate</code></td><td>writer</td><td>commitId, txHash, latencyMs</td></tr>
+          <tr><td><code>api.degraded</code></td><td>health flip</td><td>degradedChains, modelLoaded</td></tr>
+        </tbody>
+      </table>
+      <p>Do not swallow RPC errors. Surface them on health. No third-party APM is required on the clock; stdout + health is the MVP. Production follow-on: Prometheus counters on those event names, log drain, alert if <code>lag</code> &gt; 60s or <code>commit</code> p95 &gt; 120s.</p>
+
+      <h2 id="scale">Scalability (honest)</h2>
+      <ul>
+        <li><strong>Read path</strong> is cheap: memory / overlay JSON + optional one <code>eth_call</code> if cache age &gt; 15s. Horizontal scale = more API workers behind the same overlay file or a later cache. NFR-01 is 200 requests / 20 concurrent on one subject.</li>
+        <li><strong>Write path</strong> is per-subject, not global. A mutex per subject prevents double-send. Many subjects interleave.</li>
+        <li><strong>Bottlenecks</strong> are public RPC rate limits and settlement gas, not fusion arithmetic (O(n) claims per subject, n is tiny in the demo).</li>
+        <li><strong>Watchers</strong> scale by chain (one process per RPC). Backfill is bounded (last 2k blocks). Do not claim “millions of QPS.”</li>
+        <li><strong>Explain</strong> is async and cache-keyed by commitId so it cannot take the read path down.</li>
+        <li><strong>What would break first in production:</strong> one operator key, one RPC URL, one host for ingest+writer, synthetic labels. Mitigations are in the production section, not in the 6-hour binary.</li>
+      </ul>
+
+      <h2 id="production">Deploy, maintain, support (after the clock)</h2>
+      <p>The 6-hour artifact is a testnet demo. This is the path we would take if it had to live:</p>
+      <ol>
+        <li><strong>Deploy.</strong> Foundry scripts already reject chain id 1 and 137. Pin solc 0.8.24. Verify IdentityState on Etherscan. Publish addresses, <code>modelVersion</code>, and the preimage schema in the README.</li>
+        <li><strong>Release.</strong> Tag the git SHA that produced <code>model.joblib</code>. New model ⇒ new <code>modelVersion</code> ⇒ new commits; do not rewrite history.</li>
+        <li><strong>Run.</strong> Two processes: ingest+writer, API. Overlay via <code>os.replace</code> on <code>data/overlay.json</code>. Systemd or a compose file with healthcheck on <code>/v1/health</code>.</li>
+        <li><strong>Keys.</strong> Throwaway faucet key for the demo. Production: operator behind a 2-of-3 multisig or a timelock; never a funded mainnet key in env on a laptop.</li>
+        <li><strong>RPC.</strong> At least two URLs per chain. Fail over on 429/5xx. Document rate limits.</li>
+        <li><strong>Support.</strong> Replay <code>POST /v1/replay/{subject}</code> reconstructs state from logs. <code>scripts/verify_hash.py</code> is the customer-facing “did you cheat?” tool. Incident playbook: if Unichain dies, serve Sepolia + last Unichain snapshot with <code>degradedChains</code>; do not invent claims.</li>
+        <li><strong>Change control.</strong> No upgrade proxy on IdentityState. A new contract is a new deployment and a documented cutover. ClaimSource can be redeployed per chain; watchers pick up addresses from env.</li>
+      </ol>
+
+      <h2 id="next">What we would build next</h2>
+      <ul>
+        <li>Bitstring Status List as the production revocation analogue (MVP keeps an on-chain bit).</li>
+        <li>EIP-712 typed claims so issuers are not only <code>msg.sender</code> on our bulletin board.</li>
+        <li>Issuer–issuer EigenTrust once we have more than a handful of issuers.</li>
+        <li>MiniLM evidence embeddings if CPU stays &lt; 50&nbsp;ms/claim.</li>
+        <li>Optional ACE-style <code>minValidations</code> as an <em>input feature</em> (corroboration count), not a wrap of Chainlink.</li>
+        <li>Model card, calibration plot, and a real labeled set.</li>
+        <li>ERC-8004 footnote only if we later publish the explainer as an agent — not the product.</li>
+      </ul>
+      <p>Must not become the runtime (RESEARCH.html): Passport/Trusta APIs, CCIP/LayerZero identity bridges, ION/Ceramic/ACA-Py, STARK circuits, fine-tuned judges.</p>
 
       <h2 id="why-not">Why this is not overbuilt</h2>
       <p>A 6-hour architecture that includes zk-STARKs, a bidirectional Geth–Besu bridge, Ceramic, and a Dirichlet reputation DHT will not demo. Those papers inform the math and the story (RESEARCH.html). The running system is two contracts, one Python service, one model file, one API.</p>

@@ -85,8 +85,8 @@ export default function App() {
           <Chip kind={health?.degraded ? "warn" : "ok"}>
             Sepolia {health?.sepoliaHead ?? "—"}
           </Chip>
-          <Chip kind={health?.rpcErrors?.["80002"] ? "warn" : "ok"}>
-            Amoy {health?.amoyHead ?? "—"}
+          <Chip kind={health?.rpcErrors?.["1301"] ? "warn" : "ok"}>
+            Unichain {health?.unichainSepoliaHead ?? "—"}
           </Chip>
           <Chip>acc {health?.modelAccuracy ? health.modelAccuracy.toFixed(2) : "—"}</Chip>
         </div>
