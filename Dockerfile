@@ -11,8 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services ./services
 COPY scripts ./scripts
 COPY data/model.joblib data/metrics.json data/claims_train.jsonl ./data/
-COPY contracts/out ./contracts/out
-COPY services/abi ./services/abi
 
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --retries=8 \

@@ -10,7 +10,7 @@ import time
 from eth_account import Account
 from web3 import Web3
 
-from services.chain import claim_abi, connect
+from services.chain import claim_abi, connect_live
 from services.common.config import load_settings
 from services.common.topics import AMOY_CHAIN_ID, SETTLEMENT_CHAIN_ID, topic_hash
 
@@ -50,8 +50,8 @@ def main() -> None:
     settings = load_settings()
     if not (settings.issuer_a_private_key and settings.issuer_b_private_key and settings.demo_subject):
         raise SystemExit("set ISSUER_A_PRIVATE_KEY, ISSUER_B_PRIVATE_KEY, DEMO_SUBJECT")
-    sepolia = connect(settings.sepolia_rpc_url)
-    amoy = connect(settings.amoy_rpc_url)
+    sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
+    amoy = connect_live(settings.amoy_rpc_url, settings.amoy_rpc_url_fallback)
     uri_a = 'data:application/json,{"topic":"kyc.adult","polarity":1,"note":"government-like eligibility record"}'
     uri_b = 'data:application/json,{"topic":"kyc.adult","polarity":-1,"note":"issuer disputes adulthood attestation"}'
     tx_a = _send(sepolia, settings.issuer_a_private_key, settings.claim_source_sepolia, settings.demo_subject, 1, uri_a)
