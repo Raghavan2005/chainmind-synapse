@@ -12,6 +12,11 @@
 </p>
 
 <p align="center">
+  <strong>Website:</strong>
+  <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Raghavan2005/chainmind-synapse/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Raghavan2005/chainmind-synapse/ci.yml?branch=master&label=CI&style=flat-square" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.12-3776AB?style=flat-square" alt="Python 3.12">
   <img src="https://img.shields.io/badge/foundry-stable-000000?style=flat-square" alt="Foundry">
