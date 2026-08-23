@@ -185,8 +185,16 @@
           <span data-hf-id="hf-q0h0" class="chip ok">Sepolia 11155111</span>
           <span data-hf-id="hf-wfrc" class="chip ok">Unichain Sepolia 1301</span>
           <span data-hf-id="hf-5m3d" class="chip danger">Goerli / Mumbai — dead since Apr 2024</span>
-          <span data-hf-id="hf-nfq4" class="chip">Amoy override → Unichain (POL faucet dried)</span>
-          <span data-hf-id="hf-mjuf" class="chip">Prompt orchestration, not fine-tuning</span>
+          <span class="chip">Amoy override → Unichain (POL faucet dried)</span>
+          <span class="chip">Prompt orchestration, not fine-tuning</span>
+        </div>
+        <p class="kicker" id="s2-extra-kicker" style="margin-top: 8px;">Required pair above. Extra ingest sources, same Superchain pattern:</p>
+        <div class="chip-row" id="s2-extra-chips">
+          <span class="chip">Base Sepolia 84532</span>
+          <span class="chip">OP Sepolia 11155420</span>
+          <span class="chip">Ink Sepolia 763373</span>
+          <span class="chip">Mode Sepolia 919</span>
+          <span class="chip">Soneium Minato 1946</span>
         </div>
       </section>
 
@@ -286,6 +294,8 @@
       tl.from("#s2-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 20.1);
       tl.from("#s2-h", { opacity: 0, y: 24, duration: 0.7, ease: "power3.out" }, 20.3);
       tl.from("#s2-chips .chip", { opacity: 0, y: 12, duration: 0.4, stagger: 0.08, ease: "power2.out" }, 20.9);
+      tl.from("#s2-extra-kicker", { opacity: 0, y: 12, duration: 0.4, ease: "power2.out" }, 21.5);
+      tl.from("#s2-extra-chips .chip", { opacity: 0, y: 12, duration: 0.4, stagger: 0.06, ease: "power2.out" }, 21.7);
 
       // scene 3
       tl.from("#s3-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 40.1);

@@ -1,0 +1,16 @@
+A quick note before you dig in.
+
+This is a two-chain identity-claim reconciler — it watches Sepolia and Unichain Sepolia, scores each claim with a real trained sklearn model, fuses conflicting claims with Jøsang subjective logic, and commits a hash-only identity state on-chain. Everything you'll see is live: real testnet transactions, a real deployed API, a real dashboard.
+
+One thing said out loud: the brief named Goerli and Mumbai, which have been dead since April 2024. We first substituted Polygon Amoy, then its POL faucet became unobtainable mid-build, so we made a documented override to Unichain Sepolia instead (same architecture, ETH gas via Superchain bridge). That's a real decision under real constraints, not a shortcut.
+
+If you want to check anything yourself rather than take our word for it:
+
+- Live API: https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/health
+- GET a subject: https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/identity/{address}
+- Repo: https://github.com/Raghavan2005/chainmind-synapse (README has real deployed contract addresses and transaction hashes you can open directly on Etherscan / Uniscan)
+- Every fused state is a hash. Anyone can pull the same public logs and recompute it — scripts/verify_hash.py is that check, and it's not a private tool.
+
+What we're not claiming: the operator key that commits state is a documented liveness concession, not a hidden identity provider — the integrity guarantee is the public hash plus replay, not trust in our server. Training labels are synthetic. The on-chain hash is a commitment, not a zk proof of honest scoring. Two testnets is not "every chain." All of that is written down, not hidden — see the README's "Known gaps" section.
+
+Thanks for reviewing.
