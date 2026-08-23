@@ -57,6 +57,7 @@ gh repo clone scikit-learn/scikit-learn -- --depth 1
 gh repo clone shap/shap -- --depth 1
 gh repo clone stanfordnlp/dspy -- --depth 1
 gh repo clone 567-labs/instructor -- --depth 1
+gh repo clone BerriAI/litellm -- --depth 1
 gh repo clone uport-project/ethr-did -- --depth 1
 gh repo clone decentralized-identity/did-jwt -- --depth 1
 gh repo clone decentralized-identity/did-jwt-vc -- --depth 1
@@ -98,7 +99,8 @@ gh repo clone w3c/did -- --depth 1
           <tr><td><a href="https://github.com/stanfordnlp/dspy">stanfordnlp/dspy</a></td><td>37522</td><td>Prompt programs</td><td>Fits “orchestration not fine-tune”.</td></tr>
           <tr><td><a href="https://github.com/567-labs/instructor">567-labs/instructor</a></td><td>13765</td><td>Structured LLM out</td><td><strong>Moved from instructor-ai/instructor.</strong></td></tr>
           <tr><td><a href="https://github.com/dottxt-ai/outlines">dottxt-ai/outlines</a></td><td>15667</td><td>Constrained decode</td><td>Optional.</td></tr>
-          <tr><td><a href="https://github.com/openai/openai-python">openai/openai-python</a></td><td>31436</td><td>LLM client</td><td>Any OpenAI-compatible base_url is fine.</td></tr>
+          <tr><td><a href="https://github.com/openai/openai-python">openai/openai-python</a></td><td>31436</td><td>LLM client</td><td>Pinned <code>2.16.0</code>. Routed through LiteLLM, not used as the product client.</td></tr>
+          <tr><td><a href="https://github.com/BerriAI/litellm">BerriAI/litellm</a></td><td>—</td><td>LLM router</td><td>Instructor-over-LiteLLM. Pin a 1.x that accepts openai 2.16 (e.g. 1.74.15). Never 1.82.7 / 1.82.8.</td></tr>
           <tr><td><a href="https://github.com/anthropics/anthropic-sdk-python">anthropics/anthropic-sdk-python</a></td><td>3846</td><td>LLM client</td><td></td></tr>
           <tr><td><a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a></td><td>298</td><td>did:ethr helpers</td><td></td></tr>
           <tr><td><a href="https://github.com/uport-project/ethr-did-registry">uport-project/ethr-did-registry</a></td><td>201</td><td>ERC-1056 contract</td><td>Do not require a live registry for MVP.</td></tr>

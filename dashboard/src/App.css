@@ -19,6 +19,31 @@ button {
   padding: 8px 14px;
   cursor: pointer;
 }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button.ghost {
+  background: transparent;
+  color: var(--bone);
+  border: 1px solid var(--rule);
+}
+.byok {
+  border: 1px solid var(--rule);
+  background: var(--ink-2);
+  padding: 10px 14px;
+}
+.byok summary {
+  cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--copper-2);
+}
+.byok-warn { color: var(--warn); font-size: 13px; margin: 10px 0 0; }
+.byok-grid { display: grid; gap: 10px; margin-top: 12px; }
+.byok-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.byok-status { font-family: var(--mono); font-size: 12px; color: var(--mute); margin: 10px 0 0; }
+input[type="password"] { letter-spacing: 0.08em; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { border: 1px solid var(--rule); padding: 4px 8px; font-family: var(--mono); font-size: 12px; }
 .chip.ok { color: var(--moss); }

@@ -47,7 +47,7 @@
           <tr><td>API</td><td>FastAPI + uvicorn + pydantic v2</td><td>Django, Flask, Nest as the primary API</td></tr>
           <tr><td>Ingest</td><td>web3.py asyncio or a tiny Node viem watcher</td><td>The Graph hosted, Alchemy Notify as a hard dependency</td></tr>
           <tr><td>ML</td><td>scikit-learn HistGradientBoosting or LogisticRegression</td><td>Unsloth, custom torch nets, paid AutoML</td></tr>
-          <tr><td>Gen-AI</td><td>Instructor or DSPy structured outputs</td><td>Fine-tuning, LangChain clouds as the product</td></tr>
+          <tr><td>Gen-AI</td><td>Instructor over LiteLLM (or DSPy). Env <code>LLM_*</code> is the operator default for ingest extract. Browser BYOK is localStorage + per-request only.</td><td>Fine-tuning, LangChain clouds as the product, persisting API keys to disk / overlay / git</td></tr>
           <tr><td>Explain</td><td>SHAP TreeExplainer + one prose prompt</td><td>Uncited “the model said so”</td></tr>
           <tr><td>UI</td><td>Vite + React, tokens from DESIGN.html</td><td>Purple-gradient AI slop, Inter-on-white card grid</td></tr>
           <tr><td>State</td><td>On-chain commit + local JSON/memory cache</td><td>Hosted Postgres / Firebase / Supabase as source of truth</td></tr>
@@ -137,10 +137,10 @@ CLAIM_SOURCE_UNICHAIN_SEPOLIA=
 IDENTITY_STATE_SEPOLIA=
 LLM_BASE_URL=
 LLM_API_KEY=
-LLM_MODEL=
+LLM_MODEL=gpt-4.1-mini
 MODEL_PATH=data/model.joblib
 </code></pre>
-      <p>If <code>LLM_API_KEY</code> is missing, the extractor falls back to a deterministic rules parser so the demo still runs. The Gen-AI explanation then uses a template filled with SHAP + fusion numbers. Say this in the demo if it happens.</p>
+      <p>LiteLLM is the router for extract (P1) and explain (P2). <code>LLM_API_KEY</code> / <code>LLM_BASE_URL</code> / <code>LLM_MODEL</code> remain the operator default for live ingest. If the env key is missing, the extractor uses the deterministic rules parser and explain uses the SHAP template — FR-02 still passes. Browser BYOK (dashboard + watch floor) is localStorage + per-request body only. Never write keys to disk, overlay, git, or explanation JSON. GET <code>/v1/identity</code> never calls the LLM. The LLM never emits <code>scoreBps</code> / <code>pCredible</code>.</p>
 
       <h2 id="quality">Quality bar under a 6-hour clock</h2>
       <ul>

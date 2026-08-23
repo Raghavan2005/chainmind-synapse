@@ -37,10 +37,16 @@
       <span class="chip ok" id="chip-model" title="sklearn Credibility Model Holdout Accuracy">
         <span class="chip-dot"></span> ML Acc: <strong>83.2%</strong> (Brier: 0.14)
       </span>
+      <span class="chip warn" id="chip-litellm" title="LiteLLM router — env key is operator default; BYOK is this browser">
+        <span class="chip-dot"></span> LiteLLM: <strong id="val-litellm">env unset</strong>
+      </span>
     </div>
 
     <!-- Actions -->
     <div class="header-actions">
+      <button class="btn btn-sm" id="btn-byok-modal" style="min-height: 40px;">
+        LiteLLM / BYOK
+      </button>
       <button class="btn btn-sm" id="btn-api-modal">
         REST API JSON
       </button>
@@ -232,6 +238,15 @@
           </div>
         </div>
 
+        <!-- Live API explanation (BYOK / LiteLLM). Does not replace official score. -->
+        <div class="live-explain hidden" id="live-explanation-box">
+          <span class="panel-kicker" style="display: block; margin-bottom: 6px;">Live LiteLLM explanation</span>
+          <p class="live-explain-engine" id="live-explain-engine"></p>
+          <p id="live-explain-summary"></p>
+          <div class="shap-reasons-list" id="live-explain-reasons"></div>
+          <p class="live-explain-note">Official score is sklearn + Jøsang. This prose is overlay only.</p>
+        </div>
+
         <!-- Caveats -->
         <div class="caveats-box">
           <span>• LLM did not compute the credibility score (sklearn + subjective-logic).</span>
@@ -257,6 +272,44 @@
         <button class="btn btn-sm" id="btn-copy-modal-json">Copy JSON</button>
         <button class="btn btn-sm btn-primary" id="btn-close-modal-confirm">Done</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: LiteLLM / BYOK -->
+  <div class="modal-backdrop hidden" id="modal-byok">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>LiteLLM / BYOK</h3>
+        <button class="btn btn-sm" id="btn-close-byok" aria-label="Close BYOK settings">✕</button>
+      </div>
+      <p class="byok-warn">
+        The API key stays in this browser (localStorage). It is sent only on Test and Generate.
+        The server does not persist keys. Canned scenarios keep working if the API is down.
+      </p>
+      <form class="byok-form" id="form-byok">
+        <label>
+          Synapse API base
+          <input class="input-field" id="byok-api-base" type="url" placeholder="http://127.0.0.1:8000" aria-label="Synapse API base URL">
+        </label>
+        <label>
+          LLM base URL
+          <input class="input-field" id="byok-base-url" type="url" placeholder="https://api.openai.com/v1" aria-label="LLM base URL">
+        </label>
+        <label>
+          Model
+          <input class="input-field" id="byok-model" type="text" placeholder="gpt-4.1-mini" aria-label="LLM model">
+        </label>
+        <label>
+          API key
+          <input class="input-field" id="byok-api-key" type="password" autocomplete="off" placeholder="sk-… (never committed)" aria-label="LLM API key">
+        </label>
+        <p class="byok-status" id="byok-status" role="status"></p>
+        <div class="byok-actions">
+          <button type="button" class="btn btn-sm" id="btn-byok-save" style="min-height: 40px;">Save locally</button>
+          <button type="button" class="btn btn-sm" id="btn-byok-test" style="min-height: 40px;">Test connection</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-byok-explain" style="min-height: 40px;">Generate explanation</button>
+        </div>
+      </form>
     </div>
   </div>
 

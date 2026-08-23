@@ -17,11 +17,12 @@
     <main id="main">
       <p class="kicker">No fine-tuning · structured outputs only</p>
       <h1>Prompt orchestration</h1>
-      <p class="lede">Two production prompts and one optional CRAVE-style pair. Temperature is specified. Outputs are pydantic models. If the model rambles, Instructor/Outlines reject and you retry once, then fall back.</p>
+      <p class="lede">Two production prompts and one optional CRAVE-style pair. Temperature is specified. Outputs are pydantic models via Instructor over LiteLLM. If the model rambles, Instructor/Outlines reject and you retry once, then fall back.</p>
 
       <h2 id="rules">Orchestration rules</h2>
       <ul>
         <li>Prompts live in <code>services/normalize/prompts/</code> and <code>services/explain/prompts/</code> as text files. Do not bury them in code.</li>
+        <li>Calls go through LiteLLM (<code>instructor.from_litellm(litellm.completion)</code>). Env <code>LLM_*</code> is the operator default; browser BYOK is per-request only.</li>
         <li>No tool-calling to the internet from the extractor. The evidence body is already fetched (safely) or inline.</li>
         <li>Never ask the LLM for <code>scoreBps</code> or <code>pCredible</code>.</li>
         <li>Log prompt version = sha256 of the file. Put it in explanation JSON as <code>promptVersion</code> if easy.</li>

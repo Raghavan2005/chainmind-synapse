@@ -24,7 +24,7 @@
         <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
         <tbody>
           <tr><td>FR-01</td><td>Parse identity claims from ≥ 2 chains</td><td>Forge+script posts one claim on Sepolia and one on Unichain Sepolia for the same subject. Ingest log shows both chainIds. API <code>sources[]</code> contains 11155111 and 1301.</td></tr>
-          <tr><td>FR-02</td><td>Extract and normalize metadata with Gen-AI prompt engineering</td><td>Given a messy evidence payload, extractor returns a valid NormalizedClaim (pydantic). Unit test uses a fixture string. If LLM is absent, rules fallback still passes the same schema test on the inline-JSON fixture.</td></tr>
+          <tr><td>FR-02</td><td>Extract and normalize metadata with Gen-AI prompt engineering</td><td>Given a messy evidence payload, extractor returns a valid NormalizedClaim (pydantic). Unit test uses a fixture string. Instructor-over-LiteLLM when a key is present; if LLM is absent, rules fallback still passes the same schema test on the inline-JSON fixture.</td></tr>
           <tr><td>FR-03</td><td>Score credibility with an AI-ML model on historical + contextual features</td><td><code>python -m services.score.train</code> writes <code>data/model.joblib</code> and prints test accuracy &gt; 0.75. Feature names match SCHEMA.html.</td></tr>
           <tr><td>FR-04</td><td>Generate a unified identity state with confidence metrics</td><td>API body includes <code>verdict</code>, <code>confidence</code> (0–1), <code>scoreBps</code>, <code>topics[]</code> each with fused expectation, <code>conflicts[]</code>.</td></tr>
           <tr><td>FR-05</td><td>Store final state on-chain, timestamped, immutable</td><td>After demo flow, <code>cast logs</code> on IdentityState shows StateCommitted with issuedAt ≠ 0. A second commit with a new claim set creates a second log. Old log still retrievable. latest() returns the newest.</td></tr>
@@ -34,7 +34,7 @@
           <tr><td>FR-09</td><td>Third-party verifiable records</td><td>Script <code>scripts/verify_hash.py</code> takes the API bundle + tx hash and checks keccak match.</td></tr>
           <tr><td>FR-10</td><td>Real-time updates</td><td>Post a new claim; within 2 minutes latest() and GET reflect it (NFR-02).</td></tr>
           <tr><td>B-01</td><td>Revocation monitoring</td><td>revokeClaim on a source; API marks the claim revoked; fused confidence moves; new commit emitted.</td></tr>
-          <tr><td>B-02</td><td>Human-readable Gen-AI explanation</td><td>GET explanation returns summary + ≥ 2 reasons citing named features. Not generic filler.</td></tr>
+          <tr><td>B-02</td><td>Human-readable Gen-AI explanation</td><td>GET explanation returns summary + ≥ 2 reasons citing named features. Not generic filler. POST <code>/v1/identity/{subject}/explain</code> regenerates via LiteLLM + optional BYOK without rewriting chain state. Health/LLM payloads never contain <code>apiKey</code>.</td></tr>
           <tr><td>B-03</td><td>Dashboard over time</td><td>Browser: subject page shows ≥ 2 claims, a conflict marker, and the commit hash as a link.</td></tr>
         </tbody>
       </table>

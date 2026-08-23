@@ -8,6 +8,7 @@ from urllib.parse import unquote
 
 from eth_utils import keccak
 
+from services.common.llm import LLMOverride, complete_structured, runtime_from
 from services.common.topics import did_ethr, name_from_hash, topic_hex
 from services.normalize.schema import NormalizedClaim
 
@@ -78,20 +79,18 @@ def from_event(event: dict[str, Any], head: int) -> NormalizedClaim:
     )
 
 
-def extract_claim(event: dict[str, Any], head: int, settings: Any | None = None) -> tuple[NormalizedClaim, str]:
-    """Return (claim, engine). Uses Instructor when LLM_API_KEY is set; else the event/JSON parser."""
+def extract_claim(
+    event: dict[str, Any],
+    head: int,
+    settings: Any | None = None,
+    override: LLMOverride | None = None,
+) -> tuple[NormalizedClaim, str]:
+    """Return (claim, engine). Instructor-over-LiteLLM when a key is set; else the event/JSON parser."""
     base = from_event(event, head)
-    settings = settings
-    api_key = getattr(settings, "llm_api_key", "") if settings is not None else ""
-    if not api_key:
+    runtime = runtime_from(settings, override)
+    if not runtime.enabled:
         return base, "rules"
     try:
-        from instructor import from_openai
-        from openai import OpenAI
-
-        client = from_openai(
-            OpenAI(base_url=settings.llm_base_url or None, api_key=api_key, timeout=8.0)
-        )
         user = (
             f"chainId: {event['chainId']}\n"
             f"subject: {event['subject']}\n"
@@ -102,11 +101,12 @@ def extract_claim(event: dict[str, Any], head: int, settings: Any | None = None)
             f"evidence:\n---\n{_evidence_body(event['evidenceURI'])}\n---\n"
             f"raw event: {json.dumps(event, default=str)}"
         )
-        extracted = client.chat.completions.create(
-            model=settings.llm_model,
+        extracted = complete_structured(
+            runtime=runtime,
             response_model=NormalizedClaim,
             temperature=0,
             max_tokens=800,
+            timeout=8.0,
             messages=[
                 {"role": "system", "content": PROMPT_PATH.read_text(encoding="utf-8")},
                 {"role": "user", "content": user},

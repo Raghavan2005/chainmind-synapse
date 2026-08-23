@@ -6,11 +6,12 @@ from collections import defaultdict
 from typing import Any
 
 from services.common.hashing import commit_id, state_hash, to_hex
+from services.common.llm import LLMOverride, runtime_from
 from services.common.log import emit
 from services.explain.engine import Explainer, llm_explanation, template_explanation
 from services.fuse.engine import beta_expectation, fuse_subject
 from services.normalize.extract import extract_claim
-from services.normalize.schema import NormalizedClaim
+from services.normalize.schema import Explanation, NormalizedClaim
 from services.score.features import vector
 from services.score.predict import Scorer
 from services.store import atomic_write, read_json
@@ -35,7 +36,7 @@ class Brain:
     def ingest_event(self, event: dict[str, Any]) -> NormalizedClaim:
         head = self.heads.get(int(event["chainId"]), int(event["blockNumber"]))
         claim, engine = extract_claim(event, head, self.settings)
-        if engine == "rules" and getattr(self.settings, "llm_api_key", ""):
+        if engine == "rules" and runtime_from(self.settings).enabled:
             emit("normalize.fallback", claimId=claim.claim_id, reason="instructor_failed")
         with self._lock:
             self.claims[claim.claim_id] = claim
@@ -119,17 +120,22 @@ class Brain:
             subjects[subject.lower()] = body
             atomic_write(self.settings.overlay_path, self.overlay)
 
-    def explain(self, subject: str, body: dict[str, Any]) -> None:
+    def explain(
+        self, subject: str, body: dict[str, Any], override: LLMOverride | None = None
+    ) -> Explanation:
         vectors = body.get("vectors") or {}
         first = next(iter(vectors.values()), [0.0] * 12)
         top = self.explainer.shap_top(first)
         commit_id_hex = body["commit"]["commitId"]
-        explained = llm_explanation(body, top, self.settings) or template_explanation(body, top, commit_id_hex)
+        explained = llm_explanation(body, top, self.settings, override=override) or template_explanation(
+            body, top, commit_id_hex
+        )
         if explained.commit_id is None:
             explained = explained.model_copy(update={"commit_id": commit_id_hex})
         path = self.settings.explanations_dir / f"{commit_id_hex[2:]}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(explained.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
+        return explained
 
     def _degraded(self) -> list[int]:
         return [cid for cid, err in self.rpc_errors.items() if err]

@@ -76,7 +76,7 @@
         <p><strong>Clock:</strong> 6 hours to a working testnet demo.</p>
         <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. First substitute was Sepolia + Amoy; Amoy POL became unobtainable. Human override 2026-08-23: Sepolia (11155111) and Unichain Sepolia (1301). Say this out loud in the demo.</p>
         <p><strong>No identity providers, no centralized database as source of truth.</strong> Process in memory / local files. The ledger is the record.</p>
-        <p><strong>Gen-AI = prompt orchestration only.</strong> DSPy, Instructor, Compozy, or raw structured prompts. No LoRA, no SFT, no “we fine-tuned a judge.”</p>
+        <p><strong>Gen-AI = prompt orchestration only.</strong> Instructor over LiteLLM (or DSPy / Compozy / raw structured prompts). No LoRA, no SFT, no “we fine-tuned a judge.” No raw OpenAI client as the product router.</p>
         <p><strong>ML = existing libraries.</strong> scikit-learn first. Hugging Face only if it still fits the clock. Train on synthetic + historically labeled claims you generate.</p>
         <p><strong>No pre-built identity reconciliation product.</strong> Do not wrap Trusta.AI, Nomis, RubyScore, Ethos, Cred Protocol, UTU Trust, or Gitcoin Passport (<a href="https://github.com/passportxyz/passport">passportxyz/passport</a>) and call it done. W3C DID/VC is a <em>format</em>, not a reconciliation engine — using the format is required-adjacent and allowed.</p>
       </div>
@@ -112,7 +112,7 @@ gh repo clone uport-project/ethr-did
         </div>
         <div class="card">
           <h3>Off-chain brain</h3>
-          <p>Python 3.12. FastAPI + uvicorn. web3.py or viem (Node ingest sidecar is fine). sklearn HistGradientBoosting. Instructor/DSPy for extraction. SHAP + LLM prose for explanations.</p>
+          <p>Python 3.12. FastAPI + uvicorn. web3.py or viem (Node ingest sidecar is fine). sklearn HistGradientBoosting. Instructor over LiteLLM for extraction and explanation prose. SHAP + template fallback if no key.</p>
         </div>
         <div class="card">
           <h3>Identity format</h3>
