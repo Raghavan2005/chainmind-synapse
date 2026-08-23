@@ -22,7 +22,7 @@
       <div class="meta-row">
         <span class="chip ok">MVP: two chains + REST + on-chain state</span>
         <span class="chip warn">PRD testnets Goerli/Mumbai are dead</span>
-        <span class="chip ok">Use Sepolia + Unichain Sepolia</span>
+        <span class="chip ok">Use Sepolia + Unichain + extra Superchain L2s</span>
         <span class="chip bad">No fine-tuning · no Gitcoin Passport · no Trusta</span>
         <span class="chip">Folder: instructions/</span>
       </div>
@@ -74,7 +74,7 @@
       <h2 id="hard">Hard constraints (do not negotiate)</h2>
       <div class="forbid">
         <p><strong>Clock:</strong> 6 hours to a working testnet demo.</p>
-        <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. First substitute was Sepolia + Amoy; Amoy POL became unobtainable. Human override 2026-08-23: Sepolia (11155111) and Unichain Sepolia (1301). Say this out loud in the demo.</p>
+        <p><strong>Chains:</strong> at least two. PRD names Goerli and Mumbai; both were sunset in April 2024. First substitute was Sepolia + Amoy; Amoy POL became unobtainable. Human override 2026-08-23: Sepolia (11155111) and Unichain Sepolia (1301) remain the FR-01 pair. Extra ingest sources (same day, SepETH via CLI): Base Sepolia 84532, OP Sepolia 11155420, Ink Sepolia 763373, Mode Sepolia 919, Soneium Minato 1946. Say the pair out loud; the extras are optional watched L2s, not a silent pair swap.</p>
         <p><strong>No identity providers, no centralized database as source of truth.</strong> Process in memory / local files. The ledger is the record.</p>
         <p><strong>Gen-AI = prompt orchestration only.</strong> Instructor over LiteLLM (or DSPy / Compozy / raw structured prompts). No LoRA, no SFT, no “we fine-tuned a judge.” No raw OpenAI client as the product router.</p>
         <p><strong>ML = existing libraries.</strong> scikit-learn first. Hugging Face only if it still fits the clock. Train on synthetic + historically labeled claims you generate.</p>
@@ -83,7 +83,7 @@
 
       <h2 id="deliver">Deliverables the clock must hit</h2>
       <ul>
-        <li>Working demo on two testnets.</li>
+        <li>Working demo on at least two testnets (Sepolia + Unichain Sepolia). Extra Superchain L2s are allowed.</li>
         <li>Live REST endpoint returning identity state + confidence + claim sources.</li>
         <li>Gen-AI explanation of the trust decision.</li>
         <li>A blockchain transaction that stores the final identity state.</li>
@@ -108,7 +108,7 @@ gh repo clone uport-project/ethr-did
       <div class="grid-2">
         <div class="card">
           <h3>On-chain</h3>
-          <p>Foundry + Solidity + OpenZeppelin. <code>ClaimSource</code> on Sepolia and Unichain Sepolia. <code>IdentityState</code> on one settlement chain (Sepolia). Hash-only commitments. Idempotent writes.</p>
+          <p>Foundry + Solidity + OpenZeppelin. <code>ClaimSource</code> on every watched chain (Sepolia, Unichain Sepolia, and the extra Superchain L2s in <code>services/common/chains.py</code>). <code>IdentityState</code> on one settlement chain (Sepolia). Hash-only commitments. Idempotent writes.</p>
         </div>
         <div class="card">
           <h3>Off-chain brain</h3>

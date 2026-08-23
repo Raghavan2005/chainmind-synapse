@@ -66,6 +66,11 @@ contract IdentityStateTest is Test {
         this.wrapRequire(137);
         ChainGuard.requireTestnet(11155111);
         ChainGuard.requireTestnet(1301);
+        ChainGuard.requireTestnet(84532);
+        ChainGuard.requireTestnet(11155420);
+        ChainGuard.requireTestnet(763373);
+        ChainGuard.requireTestnet(919);
+        ChainGuard.requireTestnet(1946);
     }
 
     function wrapRequire(uint256 chainId) external pure {

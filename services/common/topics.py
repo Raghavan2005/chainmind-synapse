@@ -4,10 +4,25 @@ from __future__ import annotations
 
 from eth_utils import keccak
 
+from services.common.chains import (
+    ALLOWED_CHAIN_IDS,
+    SETTLEMENT_CHAIN_ID,
+    UNICHAIN_SEPOLIA_CHAIN_ID,
+    did_ethr,
+)
+
 TOPIC_NAMES = ("kyc.adult", "kyc.active", "residency.eu")
-SETTLEMENT_CHAIN_ID = 11155111
-UNICHAIN_SEPOLIA_CHAIN_ID = 1301
-ALLOWED_CHAIN_IDS = frozenset({SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID})
+
+__all__ = [
+    "ALLOWED_CHAIN_IDS",
+    "SETTLEMENT_CHAIN_ID",
+    "TOPIC_NAMES",
+    "UNICHAIN_SEPOLIA_CHAIN_ID",
+    "did_ethr",
+    "name_from_hash",
+    "topic_hash",
+    "topic_hex",
+]
 
 
 def topic_hash(name: str) -> bytes:
@@ -24,12 +39,3 @@ def name_from_hash(value: bytes | str) -> str | None:
         if topic_hash(name) == raw:
             return name
     return None
-
-
-def did_ethr(chain_id: int, addr: str) -> str:
-    addr = addr.lower()
-    if chain_id == SETTLEMENT_CHAIN_ID:
-        return f"did:ethr:sepolia:{addr}"
-    if chain_id == UNICHAIN_SEPOLIA_CHAIN_ID:
-        return f"did:ethr:eip155:1301:{addr}"
-    raise ValueError(f"unsupported chain {chain_id}")

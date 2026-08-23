@@ -21,12 +21,12 @@
       <div class="meta-row">
         <span class="chip bad">Do not fine-tune</span>
         <span class="chip bad">Do not use Passport / Trusta / Nomis</span>
-        <span class="chip ok">Sepolia + Unichain Sepolia</span>
+        <span class="chip ok">Sepolia + Unichain (FR-01) + extra Superchain L2s</span>
         <span class="chip warn">6 hours</span>
       </div>
 
       <h2 id="identity">Who you are</h2>
-      <p>You are implementing ChainMind Synapse: a two-chain identity-claim reconciler with an sklearn credibility model, subjective-logic fusion, an on-chain immutable state, a FastAPI read API, and a prompt-orchestrated explanation. You are not wrapping a reputation SaaS. You are not building a full SSI wallet.</p>
+      <p>You are implementing ChainMind Synapse: a multi-chain identity-claim reconciler (FR-01 minimum: two chains) with an sklearn credibility model, subjective-logic fusion, an on-chain immutable state, a FastAPI read API, and a prompt-orchestrated explanation. You are not wrapping a reputation SaaS. You are not building a full SSI wallet.</p>
 
       <h2 id="read-first">Read before you write code</h2>
       <ol>
@@ -43,7 +43,7 @@
         <thead><tr><th>Layer</th><th>Choice</th><th>Forbidden substitute</th></tr></thead>
         <tbody>
           <tr><td>Contracts</td><td>Foundry, Solidity ^0.8.24, OpenZeppelin 5</td><td>Hardhat unless Foundry install fails; then Hardhat is the fallback</td></tr>
-          <tr><td>Chains</td><td>Sepolia 11155111, Unichain Sepolia 1301</td><td>Goerli, Mumbai, Polygon Amoy (POL faucet dry), mainnet, Anvil-only demo (Anvil is for tests, not the deliverable)</td></tr>
+          <tr><td>Chains</td><td>FR-01 pair: Sepolia 11155111 + Unichain Sepolia 1301. Extra ingest (SepETH CLI): Base 84532, OP 11155420, Ink 763373, Mode 919, Soneium Minato 1946. Catalog: <code>services/common/chains.py</code>.</td><td>Goerli, Mumbai, Polygon Amoy (POL faucet dry), mainnet, Anvil-only demo, swapping the FR-01 pair silently, sending SepETH to a mainnet L1StandardBridge</td></tr>
           <tr><td>API</td><td>FastAPI + uvicorn + pydantic v2</td><td>Django, Flask, Nest as the primary API</td></tr>
           <tr><td>Ingest</td><td>web3.py asyncio or a tiny Node viem watcher</td><td>The Graph hosted, Alchemy Notify as a hard dependency</td></tr>
           <tr><td>ML</td><td>scikit-learn HistGradientBoosting or LogisticRegression</td><td>Unsloth, custom torch nets, paid AutoML</td></tr>
@@ -106,7 +106,7 @@
         <li>Store <code>stateHash = keccak256(abi.encode(subject, claimsRoot, scoreBps, modelVersion, issuedAt))</code> and publish the preimage JSON so third parties can verify.</li>
         <li>Engineer at least one conflicting-claim fixture for the demo subject.</li>
         <li>Cite SHAP feature names in the explanation JSON, not only in prose.</li>
-        <li>Use public RPCs if no key exists: <code>https://ethereum-sepolia-rpc.publicnode.com</code> and <code>https://sepolia.unichain.org</code>. Document that they rate-limit.</li>
+        <li>Use public RPCs if no key exists (see INTEGRATION.html). Document that they rate-limit. Fund extra L2s only with <code>bash scripts/bridge_sepolia_to_l2.sh &lt;slug&gt;</code> against that slug’s Sepolia L1StandardBridge — never a mainnet proxy.</li>
         <li>After code changes, run <code>graphify update .</code> if graphify is installed.</li>
         <li>Verify the API with curl. Verify the dashboard in a browser if you touch UI.</li>
       </ul>
@@ -131,9 +131,19 @@ SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 UNICHAIN_SEPOLIA_RPC_URL=https://sepolia.unichain.org
 SETTLEMENT_CHAIN=sepolia
 UNICHAIN_L1_BRIDGE_SEPOLIA=0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2
+BASE_L1_BRIDGE_SEPOLIA=0xfd0Bf71F60660E2f608ed56e1659C450eB113120
+OP_L1_BRIDGE_SEPOLIA=0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1
+INK_L1_BRIDGE_SEPOLIA=0x33f60714BbD74d62b66D79213C348614DE51901C
+MODE_L1_BRIDGE_SEPOLIA=0xbC5C679879B2965296756CD959C3C739769995E2
+SONEIUM_L1_BRIDGE_SEPOLIA=0x5f5a404A5edabcDD80DB05E8e54A78c9EBF000C2
 DEPLOYER_PRIVATE_KEY=
 CLAIM_SOURCE_SEPOLIA=
 CLAIM_SOURCE_UNICHAIN_SEPOLIA=
+CLAIM_SOURCE_BASE_SEPOLIA=
+CLAIM_SOURCE_OP_SEPOLIA=
+CLAIM_SOURCE_INK_SEPOLIA=
+CLAIM_SOURCE_MODE_SEPOLIA=
+CLAIM_SOURCE_SONEIUM_MINATO=
 IDENTITY_STATE_SEPOLIA=
 LLM_BASE_URL=
 LLM_API_KEY=
@@ -157,7 +167,7 @@ MODEL_PATH=data/model.joblib
       <ol>
         <li>Cut bonus, not MVP.</li>
         <li>Replace the LLM extractor with the rules fallback; keep the prompt file for the demo narration.</li>
-        <li>If Unichain Sepolia RPC dies, still ingest Sepolia and a second source via a locally deployed Anvil chain — implemented in <code>scripts/emergency_anvil_source.sh</code> + <code>services/chain.py:web3s()</code>, never auto-started, always logged loudly (<code>chain.emergency_fallback</code> event, <code>health.emergencySource</code>) so it is never mistaken for real Unichain data, then retry Unichain. The PRD wants two blockchains, not two happy RPCs. Do not silently revert to Amoy. Never call the mainnet Unichain bridge <code>0x81014F44…</code>.</li>
+        <li>If Unichain Sepolia RPC dies, still ingest Sepolia and another watched Superchain L2 (Base / OP / Ink / Mode / Minato). If those are also down, a local Anvil chain via <code>scripts/emergency_anvil_source.sh</code> + <code>web3s()</code> is the emergency second source — never auto-started, always logged (<code>chain.emergency_fallback</code>, <code>health.emergencySource</code>), never presented as real Unichain. Then retry Unichain. Do not silently revert to Amoy. Never call a mainnet L1StandardBridge (<code>0x81014F44…</code> Unichain, <code>0x3154Cf16…</code> Base, <code>0x99C9fc46…</code> OP).</li>
         <li>If Foundry cannot install, use the Hardhat fallback in SKILL.html.</li>
       </ol>
 

@@ -23,7 +23,7 @@
       <ul>
         <li>macOS/Linux, git, <code>gh</code> authenticated, Python 3.11+, Node 20+ (dashboard only), curl.</li>
         <li>Foundry: <code>curl -L https://foundry.paradigm.xyz | bash</code> then <code>foundryup</code>. Confirm <code>forge --version</code>.</li>
-        <li>Throwaway key with Sepolia ETH and Unichain Sepolia ETH (bridge via <code>scripts/bridge_sepolia_to_unichain.sh</code>).</li>
+        <li>Throwaway key with Sepolia ETH. Bridge to each watched L2 with <code>bash scripts/bridge_sepolia_to_l2.sh &lt;unichain|base|op|ink|mode|soneium&gt;</code>. Never a mainnet L1StandardBridge.</li>
       </ul>
 
       <h2 id="python">Python service</h2>
@@ -79,6 +79,9 @@ forge script script/DeployClaimSource.s.sol:DeployClaimSource \
 
 forge script script/DeployIdentityState.s.sol:DeployIdentityState \
   --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+
+# extra Superchain L2s after SepETH credit
+bash ../scripts/deploy_extra_l2s.sh
 </code></pre>
       <p>Paste addresses into <code>.env</code>. Verify with <code>cast call $IDENTITY_STATE_SEPOLIA "latest(address)" $DEMO_SUBJECT --rpc-url $SEPOLIA_RPC_URL</code>.</p>
 
@@ -86,16 +89,23 @@ forge script script/DeployIdentityState.s.sol:DeployIdentityState \
       <table>
         <thead><tr><th>Chain</th><th>chainId</th><th>RPC</th><th>Explorer</th></tr></thead>
         <tbody>
-          <tr><td>Sepolia</td><td>11155111</td><td><code>https://rpc.sepolia.org</code></td><td>https://sepolia.etherscan.io</td></tr>
+          <tr><td>Sepolia</td><td>11155111</td><td><code>https://ethereum-sepolia-rpc.publicnode.com</code></td><td>https://sepolia.etherscan.io</td></tr>
           <tr><td>Unichain Sepolia</td><td>1301</td><td><code>https://sepolia.unichain.org</code></td><td>https://sepolia.uniscan.xyz</td></tr>
+          <tr><td>Base Sepolia</td><td>84532</td><td><code>https://sepolia.base.org</code></td><td>https://sepolia.basescan.org</td></tr>
+          <tr><td>OP Sepolia</td><td>11155420</td><td><code>https://sepolia.optimism.io</code></td><td>https://sepolia-optimism.etherscan.io</td></tr>
+          <tr><td>Ink Sepolia</td><td>763373</td><td><code>https://rpc-gel-sepolia.inkonchain.com</code></td><td>https://explorer-sepolia.inkonchain.com</td></tr>
+          <tr><td>Mode Sepolia</td><td>919</td><td><code>https://sepolia.mode.network</code></td><td>https://sepolia.explorer.mode.network</td></tr>
+          <tr><td>Soneium Minato</td><td>1946</td><td><code>https://rpc.minato.soneium.org</code></td><td>https://soneium-minato.blockscout.com</td></tr>
         </tbody>
       </table>
-      <p>Cross-check metadata in <a href="https://github.com/ethereum-lists/chains">ethereum-lists/chains</a>. If public RPCs 429, add a second URL from a faucet-friendly provider in <code>.env</code> — that is not an identity provider.</p>
+      <p>Cross-check metadata in <a href="https://github.com/ethereum-lists/chains">ethereum-lists/chains</a> and L1 bridges in the <a href="https://github.com/ethereum-optimism/superchain-registry">Superchain registry</a> (Base from <a href="https://docs.base.org/base-chain/network-information/base-contracts">Base docs</a>). If public RPCs 429, add a second URL in <code>.env</code> — that is not an identity provider. Verified 2026-08-23: each extra L2 RPC returned the expected chain id; each L1StandardBridge had code on Sepolia, none on mainnet, and <code>OTHER_BRIDGE() == 0x4200…0010</code>.</p>
 
-      <h2 id="faucets">Faucets (liveness, not identity)</h2>
+      <h2 id="faucets">Faucets and SepETH bridges (liveness, not identity)</h2>
       <ul>
         <li>Sepolia: public Ethereum faucets (Google Cloud, PoW, Alchemy public drip — any will do).</li>
-        <li>Unichain Sepolia: Superchain faucet, or <code>bash scripts/bridge_sepolia_to_unichain.sh</code> against L1 proxy <code>0xea58fcA6849d79EAd1f26608855c2D6407d54Ce2</code> on Sepolia. Never mainnet <code>0x81014F44…</code>.</li>
+        <li>Every extra L2: <code>bash scripts/bridge_sepolia_to_l2.sh &lt;slug&gt; 0.03</code>. Each slug has its <em>own</em> Sepolia L1StandardBridge. Unichain <code>0xea58fcA6…</code>, Base <code>0xfd0Bf71F…</code>, OP <code>0xFBb0621E…</code>, Ink <code>0x33f60714…</code>, Mode <code>0xbC5C6798…</code>, Soneium Minato <code>0x5f5a404A…</code>.</li>
+        <li>Never mainnet Unichain <code>0x81014F44…</code>, Base <code>0x3154Cf16…</code>, or OP <code>0x99C9fc46…</code>.</li>
+        <li>Deploy extras after credit: <code>bash scripts/deploy_extra_l2s.sh</code> (writes ClaimSource addresses into <code>.env</code> only).</li>
       </ul>
       <p>Document which faucet you used in the README. Do not login-with-Google as the product identity.</p>
 
@@ -141,13 +151,13 @@ sv = explainer.shap_values(x_row)  # x_row shape (1, d)
       <p>If the model is logistic, <code>shap.LinearExplainer</code> with the train background (≤ 100 rows).</p>
 
       <h2 id="did">did:ethr without a full SSI runtime</h2>
-<pre><code>def did_ethr(chain: str, addr: str) -&gt; str:
+<pre><code>def did_ethr(chain_id: int, addr: str) -&gt; str:
     addr = addr.lower()
-    if chain == "sepolia":
+    if chain_id == 11155111:
         return f"did:ethr:sepolia:{addr}"
-    if chain == "unichain-sepolia":
-        return f"did:ethr:eip155:1301:{addr}"
-    raise ValueError(chain)
+    if chain_id in {1301, 84532, 11155420, 763373, 919, 1946}:
+        return f"did:ethr:eip155:{chain_id}:{addr}"
+    raise ValueError(chain_id)
 </code></pre>
       <p>Read <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> README for the network-name table. Optional: verify a JWT-VC with <a href="https://github.com/decentralized-identity/did-jwt-vc">decentralized-identity/did-jwt-vc</a> in a Node one-off. The Python path can accept unsigned JSON for the hackathon if you say so in the video — still emit VC-shaped fields.</p>
 

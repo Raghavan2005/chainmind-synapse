@@ -11,6 +11,11 @@ ffi = false
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
 unichain_sepolia = "${UNICHAIN_SEPOLIA_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+op_sepolia = "${OP_SEPOLIA_RPC_URL}"
+ink_sepolia = "${INK_SEPOLIA_RPC_URL}"
+mode_sepolia = "${MODE_SEPOLIA_RPC_URL}"
+soneium_minato = "${SONEIUM_MINATO_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }

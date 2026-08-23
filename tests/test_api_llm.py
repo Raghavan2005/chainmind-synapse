@@ -11,7 +11,7 @@ SECRET = "sk-secret-should-not-leak"
 
 
 def _client(monkeypatch) -> TestClient:
-    monkeypatch.setattr(main, "_heads", lambda: (1, 1, {}, False))
+    monkeypatch.setattr(main, "_heads", lambda: ({11155111: 1, 1301: 1, 84532: 1}, {}, False))
     monkeypatch.setattr(main.settings, "llm_api_key", SECRET)
     monkeypatch.setattr(main.settings, "llm_base_url", "https://example.invalid/v1")
     monkeypatch.setattr(main.settings, "llm_model", "gpt-4.1-mini")

@@ -170,12 +170,19 @@ export default function App() {
         </label>
         <button type="button" onClick={() => load(subject)}>Reload</button>
         <div className="chips">
-          <Chip kind={health?.degraded ? "warn" : "ok"}>
-            Sepolia {health?.sepoliaHead ?? "—"}
-          </Chip>
-          <Chip kind={health?.rpcErrors?.["1301"] ? "warn" : "ok"}>
-            Unichain {health?.unichainSepoliaHead ?? "—"}
-          </Chip>
+          {[
+            ["11155111", "Sepolia", health?.sepoliaHead ?? health?.heads?.["11155111"]],
+            ["1301", "Unichain", health?.unichainSepoliaHead ?? health?.heads?.["1301"]],
+            ["84532", "Base", health?.heads?.["84532"]],
+            ["11155420", "OP", health?.heads?.["11155420"]],
+            ["763373", "Ink", health?.heads?.["763373"]],
+            ["919", "Mode", health?.heads?.["919"]],
+            ["1946", "Minato", health?.heads?.["1946"]],
+          ].map(([id, label, head]) => (
+            <Chip key={id} kind={health?.rpcErrors?.[id] ? "warn" : "ok"}>
+              {label} {head ?? "—"}
+            </Chip>
+          ))}
           <Chip>acc {health?.modelAccuracy ? health.modelAccuracy.toFixed(2) : "—"}</Chip>
           <Chip kind={llmChip}>
             LiteLLM {llm?.envConfigured ? "env set" : "env unset"}

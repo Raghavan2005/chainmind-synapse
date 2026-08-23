@@ -6,6 +6,7 @@ from pathlib import Path
 
 from web3 import Web3
 
+from services.common.chains import CHAINS, UNICHAIN_SEPOLIA_CHAIN_ID
 from services.common.config import ROOT, Settings
 
 
@@ -27,7 +28,7 @@ def identity_abi() -> list:
     return _load_abi("IdentityState")
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=32)
 def connect(url: str) -> Web3:
     return Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 20}))
 
@@ -48,23 +49,29 @@ def connect_live(url: str, fallback: str = "") -> Web3:
 
 
 def web3s(settings: Settings) -> dict[int, tuple[Web3, str | None]]:
-    """chainId -> (client, source_address_override). Override is set only when the
-    Unichain Sepolia RPC pair is fully unreachable and an emergency Anvil devnet has
-    been stood up via scripts/emergency_anvil_source.sh — never automatic, never a
-    silent swap: callers must log this loudly (see services/ingest/watch.py)."""
-    clients: dict[int, tuple[Web3, str | None]] = {
-        11155111: (connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback), None),
-    }
-    try:
-        clients[1301] = (
-            connect_live(settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback),
-            None,
+    """chainId -> (client, source_address_override).
+
+    Override is set only when Unichain Sepolia is fully unreachable and an
+    operator has stood up scripts/emergency_anvil_source.sh. Never automatic,
+    never a silent swap — watch.py logs chain.emergency_fallback.
+    Extra Superchain L2s that fail to connect are skipped, not fatal.
+    """
+    out: dict[int, tuple[Web3, str | None]] = {}
+    for spec in CHAINS.values():
+        url = getattr(settings, spec.rpc_attr, "") or ""
+        fallback = getattr(settings, spec.rpc_fallback_attr, "") or ""
+        if not url:
+            continue
+        try:
+            out[spec.chain_id] = (connect_live(url, fallback), None)
+        except Exception:
+            continue
+    if UNICHAIN_SEPOLIA_CHAIN_ID not in out and settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency:
+        out[UNICHAIN_SEPOLIA_CHAIN_ID] = (
+            connect_live(settings.anvil_emergency_rpc_url),
+            settings.claim_source_anvil_emergency,
         )
-    except ConnectionError:
-        if not (settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency):
-            raise
-        clients[1301] = (connect_live(settings.anvil_emergency_rpc_url), settings.claim_source_anvil_emergency)
-    return clients
+    return out
 
 
 def dump_abis() -> None:

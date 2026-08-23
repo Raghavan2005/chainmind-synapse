@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from web3 import Web3
 
 from services.chain import connect_live, identity_abi
+from services.common.chains import CHAINS, SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID
 from services.common.config import load_settings
 from services.common.llm import LLMByokIn, llm_public_status, ping, runtime_from
 from services.score.predict import Scorer
@@ -18,7 +19,7 @@ from services.store import read_json
 settings = load_settings()
 scorer: Scorer | None = None
 metrics: dict[str, Any] = {}
-rpc_cache: dict[str, Any] = {"at": 0, "sepolia": None, "unichainSepolia": None, "errors": {}, "emergency": False}
+rpc_cache: dict[str, Any] = {"at": 0, "heads": {}, "errors": {}, "emergency": False}
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -44,55 +45,64 @@ app.add_middleware(
 )
 
 
-def _heads() -> tuple[int | None, int | None, dict[int, str], bool]:
+def _heads() -> tuple[dict[int, int | None], dict[int, str], bool]:
     now = time.time()
-    if now - rpc_cache["at"] < 8:
-        return rpc_cache["sepolia"], rpc_cache["unichainSepolia"], rpc_cache["errors"], rpc_cache["emergency"]
+    if now - rpc_cache["at"] < 8 and rpc_cache.get("heads"):
+        return rpc_cache["heads"], rpc_cache["errors"], bool(rpc_cache.get("emergency"))
+    heads: dict[int, int | None] = {}
     errors: dict[int, str] = {}
-    sepolia = unichain = None
     emergency = False
-    try:
-        sepolia = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback).eth.block_number
-    except Exception as exc:
-        errors[11155111] = str(exc)
-    try:
-        unichain = connect_live(
-            settings.unichain_sepolia_rpc_url, settings.unichain_sepolia_rpc_url_fallback
-        ).eth.block_number
-    except Exception as exc:
-        # Unichain Sepolia itself unreachable, not just one RPC endpoint. Only report
-        # healthy again via the local Anvil emergency source if one has actually been
-        # stood up (scripts/emergency_anvil_source.sh) — never silent.
-        if settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency:
-            try:
-                unichain = connect_live(settings.anvil_emergency_rpc_url).eth.block_number
-                emergency = True
-            except Exception as anvil_exc:
-                errors[1301] = f"unichain: {exc}; anvil emergency: {anvil_exc}"
-        else:
-            errors[1301] = str(exc)
-    rpc_cache.update(
-        {"at": now, "sepolia": sepolia, "unichainSepolia": unichain, "errors": errors, "emergency": emergency}
-    )
-    return sepolia, unichain, errors, emergency
+    for spec in CHAINS.values():
+        url = getattr(settings, spec.rpc_attr, "") or ""
+        fallback = getattr(settings, spec.rpc_fallback_attr, "") or ""
+        try:
+            heads[spec.chain_id] = connect_live(url, fallback).eth.block_number
+        except Exception as exc:
+            heads[spec.chain_id] = None
+            errors[spec.chain_id] = str(exc)
+    if heads.get(UNICHAIN_SEPOLIA_CHAIN_ID) is None and settings.anvil_emergency_rpc_url and settings.claim_source_anvil_emergency:
+        try:
+            heads[UNICHAIN_SEPOLIA_CHAIN_ID] = connect_live(settings.anvil_emergency_rpc_url).eth.block_number
+            errors.pop(UNICHAIN_SEPOLIA_CHAIN_ID, None)
+            emergency = True
+        except Exception as anvil_exc:
+            prior = errors.get(UNICHAIN_SEPOLIA_CHAIN_ID, "unreachable")
+            errors[UNICHAIN_SEPOLIA_CHAIN_ID] = f"unichain: {prior}; anvil emergency: {anvil_exc}"
+    rpc_cache.update({"at": now, "heads": heads, "errors": errors, "emergency": emergency})
+    return heads, errors, emergency
+
+
+def _watched_chain_ids() -> set[int]:
+    watched = {SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID}
+    for spec in CHAINS.values():
+        if getattr(settings, spec.claim_source_attr, ""):
+            watched.add(spec.chain_id)
+    return watched
 
 
 @app.get("/v1/health")
 def health() -> dict[str, Any]:
-    sepolia, unichain, errors, emergency = _heads()
-    degraded = bool(errors) or scorer is None
+    heads, errors, emergency = _heads()
+    watched = _watched_chain_ids()
+    degraded = scorer is None or any(cid in errors for cid in watched)
     return {
         "ok": not degraded and scorer is not None,
         "modelLoaded": scorer is not None,
         "modelAccuracy": metrics.get("accuracy"),
         "modelF1": metrics.get("f1"),
         "brier": metrics.get("brier"),
-        "sepoliaHead": sepolia,
-        "unichainSepoliaHead": unichain,
+        "sepoliaHead": heads.get(SETTLEMENT_CHAIN_ID),
+        "unichainSepoliaHead": heads.get(UNICHAIN_SEPOLIA_CHAIN_ID),
+        "heads": {str(cid): heads.get(cid) for cid in CHAINS},
         "operator": settings.operator_address or None,
         "contracts": {
             "claimSourceSepolia": settings.claim_source_sepolia or None,
             "claimSourceUnichainSepolia": settings.claim_source_unichain_sepolia or None,
+            "claimSourceBaseSepolia": settings.claim_source_base_sepolia or None,
+            "claimSourceOpSepolia": settings.claim_source_op_sepolia or None,
+            "claimSourceInkSepolia": settings.claim_source_ink_sepolia or None,
+            "claimSourceModeSepolia": settings.claim_source_mode_sepolia or None,
+            "claimSourceSoneiumMinato": settings.claim_source_soneium_minato or None,
             "identityState": settings.identity_state_sepolia or None,
         },
         "degraded": degraded,
