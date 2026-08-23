@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Schemas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Contracts between modules</p>
+      <h1>Schemas</h1>
+      <p class="lede">If two teammates (or two agents) disagree, this page wins. Field names are stable. Do not camelCase one side and snake_case the other — JSON is camelCase, Python models use aliases, Solidity is the interfaces in architecture.html.</p>
+
+      <h2 id="topics">Topic identifiers</h2>
+      <p>Topics are <code>bytes32</code> on-chain = <code>keccak256(ascii)</code> of a dotted name. Demo names:</p>
+      <ul>
+        <li><code>kyc.adult</code> — subject is over 18 / eligible.</li>
+        <li><code>kyc.active</code> — KYC currently active (revocation matters).</li>
+        <li><code>residency.eu</code> — optional second topic if you need a non-conflict control.</li>
+      </ul>
+
+      <h2 id="normalized">NormalizedClaim</h2>
+<pre><code>{
+  "claimId": "0x…32bytes",
+  "chainId": 11155111,
+  "subject": "0x…",
+  "subjectDid": "did:ethr:sepolia:0x…",
+  "issuer": "0x…",
+  "issuerDid": "did:ethr:sepolia:0x…",
+  "topic": "kyc.adult",
+  "topicHash": "0x…",
+  "polarity": 1,
+  "expiresAt": 1767225600,
+  "postedAt": 1750000000,
+  "revoked": false,
+  "revokedAt": null,
+  "evidenceURI": "data:application/json,{\"note\":\"demo\"}",
+  "evidenceHash": "0x…",
+  "txHash": "0x…",
+  "logIndex": 0,
+  "blockNumber": 123,
+  "confirmations": 8,
+  "signatureValid": true,
+  "rawText": "optional free text the LLM saw"
+}
+</code></pre>
+      <p><code>polarity</code> is +1 or −1 only. <code>signatureValid</code> is true when <code>msg.sender</code> was the issuer (always true for ClaimSource posts) or when a JWT-VC verified.</p>
+
+      <h2 id="features">Feature vector (order is law)</h2>
+      <ol>
+        <li><code>issuer_prior</code> — Beta expectation \(E[p_I]\)</li>
+        <li><code>issuer_volume</code> — log1p(claim count of issuer)</li>
+        <li><code>hours_to_expiry</code> — can be negative</li>
+        <li><code>expired</code> — 0/1</li>
+        <li><code>revoked</code> — 0/1</li>
+        <li><code>claim_age_hours</code></li>
+        <li><code>confirmations_norm</code> — min(conf,32)/32</li>
+        <li><code>signature_valid</code> — 0/1</li>
+        <li><code>conflict_count</code> — other live claims on same subject+topic with opposite polarity</li>
+        <li><code>chain_is_settlement</code> — 1 if Sepolia (hackathon prior: settlement chain slightly more watched)</li>
+        <li><code>polarity</code> — +1/−1</li>
+        <li><code>evidence_len_norm</code> — min(len(rawText), 2000)/2000</li>
+      </ol>
+      <p>Optional 13: <code>text_emb_0</code>… only if MiniLM is on. Then bump <code>modelVersion</code>.</p>
+
+      <h2 id="opinion">Opinion</h2>
+<pre><code>{ "b": 0.44, "d": 0.44, "u": 0.12, "a": 0.5, "p": 0.50 }
+</code></pre>
+      <p><code>p = b + a*u</code>. Round-trip tests must hold within 1e-9 before JSON (JSON may be 6 decimals).</p>
+
+      <h2 id="identity">GET /v1/identity/{subject}</h2>
+<pre><code>{
+  "subject": "0x…",
+  "subjectDid": "did:ethr:sepolia:0x…",
+  "verdict": "conflict",
+  "confidence": 0.41,
+  "scoreBps": 4100,
+  "modelVersion": "0x…",
+  "pendingOnChain": false,
+  "degradedChains": [],
+  "commit": {
+    "commitId": "0x…",
+    "stateHash": "0x…",
+    "txHash": "0x…",
+    "chainId": 11155111,
+    "issuedAt": 1750000100,
+    "blockNumber": 456
+  },
+  "topics": [
+    {
+      "topic": "kyc.adult",
+      "opinion": {"b": 0.44, "d": 0.44, "u": 0.12, "a": 0.5, "p": 0.5},
+      "conflictK": 0.62,
+      "verdict": "unresolved"
+    }
+  ],
+  "claims": [
+    {
+      "claimId": "0x…",
+      "chainId": 11155111,
+      "issuer": "0x…",
+      "topic": "kyc.adult",
+      "polarity": 1,
+      "pCredible": 0.81,
+      "opinion": {"b": 0.7, "d": 0.1, "u": 0.2, "a": 0.5, "p": 0.8},
+      "txHash": "0x…",
+      "revoked": false
+    }
+  ],
+  "conflicts": [
+    {
+      "topic": "kyc.adult",
+      "claimIds": ["0x…", "0x…"],
+      "type": "multi-source",
+      "note": "Opposite polarity, two issuers"
+    }
+  ]
+}
+</code></pre>
+      <p><code>verdict</code> enum: <code>supported</code> | <code>rejected</code> | <code>conflict</code> | <code>insufficient</code>. Topic verdict: <code>true</code> | <code>false</code> | <code>unresolved</code> | <code>unknown</code>.</p>
+
+      <h2 id="explain">GET …/explanation</h2>
+<pre><code>{
+  "commitId": "0x…",
+  "summary": "Two issuers disagree on kyc.adult. Confidence is 0.41 because conflict mass is high.",
+  "reasons": [
+    {"feature": "conflict_count", "shap": 0.18, "text": "Opposite-polarity live claims dominate."},
+    {"feature": "issuer_prior", "shap": -0.09, "text": "Issuer I2 has a weak Beta prior (r=1,s=8)."}
+  ],
+  "caveats": ["LLM did not produce the score.", "Operator key committed the hash."],
+  "engine": "shap+prompt",
+  "conflictType": "multi-source"
+}
+</code></pre>
+
+      <h2 id="health">GET /v1/health</h2>
+<pre><code>{
+  "ok": true,
+  "modelLoaded": true,
+  "modelAccuracy": 0.83,
+  "modelF1": 0.81,
+  "brier": 0.14,
+  "sepoliaHead": 1,
+  "amoyHead": 1,
+  "operator": "0x…",
+  "contracts": {
+    "claimSourceSepolia": "0x…",
+    "claimSourceAmoy": "0x…",
+    "identityState": "0x…"
+  },
+  "degraded": false
+}
+</code></pre>
+
+      <h2 id="preimage">Hash preimage JSON (verify_hash.py)</h2>
+<pre><code>{
+  "subject": "0x…",
+  "claimIdsSorted": ["0x01…", "0x02…"],
+  "scoreBps": 4100,
+  "modelVersion": "0x…",
+  "issuedAt": 1750000100
+}
+</code></pre>
+      <p>Must match Solidity <code>abi.encode</code> types: address, bytes32 claimsRoot, uint16, bytes32, uint64. claimsRoot is keccak of packed sorted claimIds (see MATH.html). Use the same ABI encoder as the writer (py-evm <code>eth_abi.encode</code>).</p>
+
+      <h2 id="vc-shape">Optional VC 2.0 wrapper</h2>
+<pre><code>{
+  "@context": ["https://www.w3.org/ns/credentials/v2"],
+  "type": ["VerifiableCredential", "SynapseClaim"],
+  "issuer": "did:ethr:sepolia:0x…",
+  "validUntil": "2026-12-31T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:ethr:sepolia:0x…",
+    "topic": "kyc.adult",
+    "polarity": 1
+  }
+}
+</code></pre>
+      <p>Store as evidenceURI body or inline. Do not pretend it is signed if it is not.</p>
+
+      <h2 id="train-row">Training row</h2>
+<pre><code>{
+  "features": [0.82, 2.3, 120.0, 0, 0, 10.0, 0.4, 1, 1, 1, 1, 0.2],
+  "label": 0
+}
+</code></pre>
+      <p>Label 1 = claim is reliable <em>at feature time</em>. Document the generator.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

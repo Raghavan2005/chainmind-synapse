@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Product Requirements</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Source of truth · prd.md</p>
+      <h1>Product requirements, interpreted</h1>
+      <p class="lede">This page is the PRD plus the decisions an implementer must make because the original brief is a 6-hour hackathon prompt, not a complete spec. Nothing here weakens a shall-statement from <code>prd.md</code>.</p>
+      <div class="meta-row">
+        <span class="chip">Title: ChainMind Synapse</span>
+        <span class="chip warn">6-hour clock</span>
+        <span class="chip ok">Two-chain minimum</span>
+        <span class="chip bad">No centralized IdP</span>
+      </div>
+
+      <h2 id="background">Background</h2>
+      <p>In decentralized digital identity, users hold multiple credentials across different blockchains. Those credentials have different validity windows and different issuer trust. Identity is fragmented. No current system provides a real-time, AI-driven reconciliation of <em>conflicting claims</em> about a user’s identity status. Adjacent products exist (wallet reputation, DID/VC standards, oracle plumbing, bot scoring). They do not close this gap. See <a href="PROPOSAL.html">PROPOSAL.html</a> and <code>research-existing-solutions.md</code>.</p>
+
+      <h2 id="problem">Problem statement (verbatim intent)</h2>
+      <p>When a user presents a credential from one blockchain to a service provider on another, the provider cannot verify current validity or detect conflicting claims from other chains. That creates a trust gap and manual overhead.</p>
+      <p>In 6 hours the team must build a system that:</p>
+      <ol>
+        <li>Ingests real-time credential claims from multiple blockchains.</li>
+        <li>Uses AI to assess credibility.</li>
+        <li>Generates a unified, explainable identity state.</li>
+        <li>Makes that state auditable and tamper-proof.</li>
+      </ol>
+
+      <h2 id="scope">Scope</h2>
+      <ul>
+        <li>Process blockchain identity claims.</li>
+        <li>Apply AI-based trust scoring.</li>
+        <li>Produce a unified identity state.</li>
+        <li>Deployable on-chain, real-time updates.</li>
+        <li>Must not rely on centralized identity providers.</li>
+      </ul>
+
+      <h2 id="mvp">MVP scope (must ship)</h2>
+      <table>
+        <thead><tr><th>#</th><th>PRD line</th><th>How we implement it</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>M1</td>
+            <td>Ingest identity claims from two blockchain sources (e.g. Ethereum and Polygon) via smart contract events or RPC calls</td>
+            <td>Deploy <code>ClaimSource</code> on Ethereum Sepolia and Polygon Amoy. Watch <code>ClaimPosted</code> / <code>ClaimRevoked</code> with web3.py or viem. Also support a one-shot RPC backfill of logs.</td>
+          </tr>
+          <tr>
+            <td>M2</td>
+            <td>Use a Gen-AI agent to analyze claim content and extract trust signals (issuer reputation, expiration, revocation status)</td>
+            <td>Prompt-orchestrated extractor (Instructor or DSPy). Output is a typed <code>NormalizedClaim</code>. No weights are trained on the LLM.</td>
+          </tr>
+          <tr>
+            <td>M3</td>
+            <td>Apply an AI-ML model to score each claim’s credibility based on historical data and contextual features</td>
+            <td><code>sklearn.ensemble.HistGradientBoostingClassifier</code> (or LogisticRegression if data is tiny) trained on a generated labeled set. Persist with joblib.</td>
+          </tr>
+          <tr>
+            <td>M4</td>
+            <td>Store the final identity state on a blockchain ledger with timestamped, immutable records</td>
+            <td><code>IdentityState.commit(subject, stateHash, scoreBps, modelVersion)</code> on Sepolia. Records are append-only. Previous commits remain.</td>
+          </tr>
+          <tr>
+            <td>M5</td>
+            <td>Expose a REST endpoint that returns the current identity state and a confidence score</td>
+            <td><code>GET /v1/identity/{subject}</code> on FastAPI. JSON includes sources and per-claim scores. p95 &lt; 500&nbsp;ms from cache / last commit.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="bonus">Advanced / bonus scope</h2>
+      <table>
+        <thead><tr><th>#</th><th>PRD line</th><th>Cut line</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>B1</td>
+            <td>Revocation detection via blockchain event monitoring</td>
+            <td>Ship if Hour 4 is green. <code>ClaimRevoked</code> already designed into M1 — implement the watcher even if the dashboard slips.</td>
+          </tr>
+          <tr>
+            <td>B2</td>
+            <td>Gen-AI explanation layer with human-readable reasons for trust scores</td>
+            <td>Treat as MVP-adjacent. Judges will ask “why.” SHAP values + one orchestrated prompt. See <a href="PROMPTS.html">PROMPTS.html</a>.</td>
+          </tr>
+          <tr>
+            <td>B3</td>
+            <td>Real-time dashboard showing claim reconciliation over time</td>
+            <td>Hour 5 only. Vite + React, read-only, tokens from <a href="DESIGN.html">DESIGN.html</a>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="functional">Functional requirements</h2>
+      <ol>
+        <li>Parse blockchain identity claims from at least two chains.</li>
+        <li>Extract and normalize claim metadata using Gen-AI prompt engineering.</li>
+        <li>Train or use a pre-trained AI-ML model to score claim credibility.</li>
+        <li>Generate a unified identity state with confidence metrics.</li>
+        <li>Store the final state on-chain with timestamped, immutable records.</li>
+        <li>Expose a REST API to query the current identity state.</li>
+        <li>Provide a JSON response with claim sources and trust scores.</li>
+      </ol>
+      <p>Acceptance tests for each line live in <a href="REQUIREMENTS.html">REQUIREMENTS.html</a>.</p>
+
+      <h2 id="nfr">Non-functional requirements</h2>
+      <table>
+        <thead><tr><th>NFR</th><th>Target</th><th>Implementation note</th></tr></thead>
+        <tbody>
+          <tr><td>API latency</td><td>&lt; 500&nbsp;ms under load</td><td>Read path never waits on an LLM or an RPC confirmation. Serve last committed state + in-memory overlay.</td></tr>
+          <tr><td>On-chain update latency</td><td>&lt; 2 minutes</td><td>Sepolia + Amoy block times are seconds. Budget is dominated by RPC + gas. Retry with the same idempotency key.</td></tr>
+          <tr><td>Model accuracy</td><td>&gt; 75% on test claims</td><td>Hold out 20% of the synthetic+seeded set. Report accuracy, F1, and calibration (Brier). Do not game the split.</td></tr>
+          <tr><td>Deterministic, idempotent chain I/O</td><td>Required</td><td><code>commitId = keccak256(subject, claimsRoot, modelVersion)</code>. Second write with same id is a no-op.</td></tr>
+          <tr><td>Third-party verifiable records</td><td>Required</td><td>Anyone with the tx hash can recompute <code>stateHash</code> from the public JSON bundle (or IPFS CID) and match the log.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="constraints">Constraints</h2>
+      <ul>
+        <li>Built within 6 hours.</li>
+        <li>All blockchain interactions on testnets. PRD examples: Goerli, Mumbai.</li>
+        <li>No external identity providers or centralized databases.</li>
+        <li>All Gen-AI components use prompt orchestration, not fine-tuning.</li>
+        <li>AI-ML model trained or deployed with existing libraries (scikit-learn, Hugging Face).</li>
+        <li>No pre-built identity reconciliation tools or commercial SDKs.</li>
+      </ul>
+
+      <h3>Constraint interpretations you must follow</h3>
+      <div class="warnbox">
+        <p><strong>Goerli and Mumbai are dead.</strong> Ethereum Foundation sunset Goerli after Dencun (validators exited around April 2024). Polygon Mumbai used Goerli as its root chain and was deprecated on 13 April 2024 in favor of Amoy (chain id 80002, Sepolia-anchored). Building on the named examples will fail. Use Sepolia + Amoy and state the substitution in the demo. Sources: <a href="https://blog.ethereum.org/2023/11/30/goerli-lts-update">Ethereum Foundation Goerli LTS</a>, <a href="https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos">Polygon Amoy announcement</a>.</p>
+      </div>
+      <div class="forbid">
+        <p><strong>“No centralized databases”</strong> means the identity state is not authoritative in Postgres/Firebase/Supabase. A local JSON/SQLite cache for the API read path is allowed if every served state is recoverable from chain events + the committed hash. Do not put issuer or subject PII in a hosted DB.</p>
+        <p><strong>“No external identity providers”</strong> means no Civic, Worldcoin, Coinbase Attestations-as-IdP, Google/Apple login as the identity, no KYC vendor. A public RPC is not an identity provider. A faucet is not an identity provider.</p>
+        <p><strong>“No commercial identity reconciliation SDKs”</strong> means do not call Trusta, Nomis, RubyScore, Ethos, Cred, UTU, or Gitcoin Passport APIs to produce the score. OpenZeppelin, viem, web3.py, sklearn, and W3C DID/VC libraries are building blocks, not reconciliation products.</p>
+        <p><strong>“Prompt orchestration, not fine-tuning”</strong> forbids LoRA, SFT, DPO, and “we trained a small judge.” CRAVE (2025) uses a fine-tuned SLM judge — copy the <em>conflicting-perspective prompting</em>, not the fine-tune.</p>
+      </div>
+
+      <h2 id="deliverables">Deliverables</h2>
+      <ol>
+        <li>Working demo of the system on a testnet (two testnets).</li>
+        <li>Live API endpoint that returns identity states.</li>
+        <li>Gen-AI explanation of the trust decision.</li>
+        <li>A blockchain transaction showing the final identity state.</li>
+        <li>A 3-minute demo video showing the full flow.</li>
+      </ol>
+      <p>Video beats and API contract: <a href="PLAN.html">PLAN.html</a> and <a href="SCHEMA.html">SCHEMA.html</a>.</p>
+
+      <h2 id="personas">Personas the PRD implies</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Holder</h3>
+          <p>A user with <code>did:ethr:sepolia:0x…</code> who has posted or been issued claims on two chains. They want one status they can show a relying party.</p>
+        </div>
+        <div class="card">
+          <h3>Relying party</h3>
+          <p>A service on chain B. They hit <code>GET /v1/identity/{subject}</code>, read <code>confidence</code>, <code>verdict</code>, <code>conflicts</code>, and the commit tx. They re-verify the hash if they are paranoid.</p>
+        </div>
+        <div class="card">
+          <h3>Issuer</h3>
+          <p>An address that signs claims. Their historical true-positive / false-positive rate becomes Beta evidence. They are not a centralized IdP; anyone can issue; we score them.</p>
+        </div>
+      </div>
+
+      <h2 id="non-goals">Non-goals (6-hour cut)</h2>
+      <ul>
+        <li>Mainnet, bridges, or moving assets.</li>
+        <li>Full SSI wallets, DIDComm, ION, Ceramic, ACA-Py as runtime dependencies.</li>
+        <li>Zero-knowledge selective disclosure (mention in RESEARCH, do not implement unless bonus time).</li>
+        <li>ERC-8004 agent identity as the product (adjacent 2025/26 standard; optional footnote).</li>
+        <li>Production key custody, multisig, or account abstraction.</li>
+        <li>Training foundation models or hosting GPUs.</li>
+      </ul>
+
+      <h2 id="success">Success looks like</h2>
+      <p>A judge pastes a subject address. The API returns two-chain claims, at least one engineered conflict (e.g. “over 18” vs “under 18”, or “KYC-active” vs “KYC-revoked”), a fused confidence, a prose explanation that cites issuer reputation + expiry + revocation + conflict, and a Sepolia tx whose logs match <code>stateHash</code>. Accuracy on the held-out synthetic set prints &gt; 75%. A 3-minute take records the whole path.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

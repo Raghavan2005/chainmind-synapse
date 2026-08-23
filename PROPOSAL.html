@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Proposal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Thesis for judges</p>
+      <h1>Proposal</h1>
+      <p class="lede">The industry already has portable credentials and wallet reputation. It does not have a real-time, explainable referee for when those credentials disagree across chains. ChainMind Synapse is that referee.</p>
+
+      <h2 id="gap">The gap (research, 2026-08-23)</h2>
+      <p>From <code>research-existing-solutions.md</code> and a fresh paper sweep:</p>
+      <table>
+        <thead><tr><th>Existing thing</th><th>What it does</th><th>Why it is not this PRD</th></tr></thead>
+        <tbody>
+          <tr><td>Trusta.AI</td><td>Multi-chain Sybil / bot scoring</td><td>Behavior, not conflicting credential claims</td></tr>
+          <tr><td>Nomis, RubyScore, Ethos, Cred, UTU</td><td>Wallet reputation from txs</td><td>Scores the wallet, not issuer-signed claims</td></tr>
+          <tr><td>W3C DID + VC</td><td>Identifier and credential format</td><td>No cross-chain fusion engine</td></tr>
+          <tr><td>ERC-8004</td><td>Agent identity / reputation registries</td><td>Agents, not human credential reconciliation; draft standard</td></tr>
+          <tr><td>Chainlink cross-chain identity</td><td>Oracle plumbing</td><td>Moves bits; does not score or explain conflicts</td></tr>
+          <tr><td>Gitcoin Passport</td><td>Stamp aggregation</td><td>Commercial-ish identity stack; PRD forbids wrapping it</td></tr>
+          <tr><td>2025 VC cross-chain papers</td><td>Bridges and hash anchors for revocation</td><td>Interop, not AI credibility + unified state</td></tr>
+        </tbody>
+      </table>
+      <p>Novelty we can honestly claim in a 6-hour demo: <strong>conflict-aware fusion + classical ML + prompt-orchestrated explanation + on-chain commitment</strong> on two live testnets, with no IdP.</p>
+
+      <h2 id="approach">Approach</h2>
+      <ol>
+        <li><strong>Claims as first-class events</strong> on two EVMs, not as a hosted KYC dump.</li>
+        <li><strong>Standards as envelopes</strong> (VC 2.0, did:ethr), not as a 50-dependency SSI runtime.</li>
+        <li><strong>Statistical trust, not vibes.</strong> Beta reputation (Jøsang &amp; Ismail 2002) for issuers. Subjective logic fusion (Jøsang) for claims. sklearn for contextual credibility. SHAP (Lundberg &amp; Lee 2017) for why the model moved.</li>
+        <li><strong>LLMs as clerks, not oracles.</strong> They extract and narrate. They do not own the score. TrustJudge (2025) warns that integer LLM-as-judge scores are inconsistent — we keep the judge off the critical number.</li>
+        <li><strong>Hash commitments</strong> so a relying party can audit without trusting our API host.</li>
+      </ol>
+
+      <h2 id="why-math">Why this math, not a single softmax</h2>
+      <p>A lone classifier probability cannot represent “we have no evidence” versus “we have strong conflicting evidence.” Both can look like 0.5. Subjective logic’s uncertainty mass <em>u</em> distinguishes ignorance from conflict after fusion. Dempster-Shafer is the ancestor; Jøsang’s operators avoid some of the classic DS conflict-normalization pathologies and map cleanly to Beta posteriors we can implement in forty lines of Python. EigenTrust is available if we later want issuer–issuer graphs; it is not required for two issuers in a demo.</p>
+
+      <h2 id="ethics">What we will not over-claim</h2>
+      <ul>
+        <li>We do not de-anonymize people.</li>
+        <li>We do not replace legal identity.</li>
+        <li>We do not hide the operator key.</li>
+        <li>We do not call the commit a zk proof.</li>
+        <li>We do not use the holder’s government ID as evidenceURI content.</li>
+      </ul>
+
+      <h2 id="demo-story">Demo story (90 seconds of plot)</h2>
+      <p>Ava has an “over 18 / KYC active” claim on Ethereum. A cheaper issuer on Polygon later posts “KYC revoked / under 18.” A relying DAO cannot pick. Synapse watches both events, extracts structured signals, scores each claim, fuses them, and commits: <em>conflict present, confidence 0.41, adult-topic unresolved, revoked-weight rising</em>. The DAO’s front end reads the API, shows the explanation, and links the tx. Ava’s first issuer revokes nothing; the Polygon issuer is down-weighted after trust revision because it contradicts a historically reliable issuer without new evidence. If the Polygon issuer later posts a revocation of its own claim, confidence recovers.</p>
+
+      <h2 id="ask">What we are building in six hours</h2>
+      <p>Not a protocol for the world. A working, inspectable slice that proves the missing layer is buildable with open libraries, open math, and two testnets. The dossier you are reading is the spec the coding agents must obey.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Verified repositories</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">gh-verified 2026-08-23</p>
+      <h1>Repositories to clone</h1>
+      <p class="lede">Every URL below was resolved with <code>gh repo view owner/name</code> on 2026-08-23. Several well-known names have moved. Use the <em>resolved</em> owner/name, not the folklore name. Stars are a snapshot, not a ranking.</p>
+
+      <h2 id="gh">gh CLI rules</h2>
+      <pre><code># auth once
+gh auth status || gh auth login
+
+# always probe before telling a human to clone
+gh repo view OWNER/NAME --json nameWithOwner,url,description,stargazerCount,isArchived,defaultBranchRef
+
+# clone into vendor-ref/ (reference only — do not vendor unless needed)
+mkdir -p vendor-ref
+cd vendor-ref
+gh repo clone OWNER/NAME
+
+# shallow + one branch when you only need to read
+gh repo clone OWNER/NAME -- --depth 1 --single-branch
+
+# pin a tag
+gh repo clone OWNER/NAME
+git -C NAME fetch --tags
+git -C NAME checkout TAG
+</code></pre>
+      <div class="warnbox">
+        <p><code>gh repo clone</code> uses HTTPS or SSH according to your <code>gh</code> config. Prefer HTTPS on machines without SSH keys. Do not <code>git clone</code> a guessed URL if <code>gh repo view</code> fails.</p>
+      </div>
+
+      <h2 id="bootstrap">Bootstrap block (run this)</h2>
+      <pre><code>mkdir -p vendor-ref &amp;&amp; cd vendor-ref
+
+# core toolchain
+gh repo clone foundry-rs/foundry -- --depth 1
+gh repo clone foundry-rs/forge-std -- --depth 1
+gh repo clone OpenZeppelin/openzeppelin-contracts -- --depth 1
+gh repo clone wevm/viem -- --depth 1
+gh repo clone ApeWorX/web3.py -- --depth 1
+gh repo clone fastapi/fastapi -- --depth 1
+gh repo clone scikit-learn/scikit-learn -- --depth 1
+gh repo clone shap/shap -- --depth 1
+gh repo clone stanfordnlp/dspy -- --depth 1
+gh repo clone 567-labs/instructor -- --depth 1
+gh repo clone uport-project/ethr-did -- --depth 1
+gh repo clone decentralized-identity/did-jwt -- --depth 1
+gh repo clone decentralized-identity/did-jwt-vc -- --depth 1
+gh repo clone w3c/vc-data-model -- --depth 1
+gh repo clone w3c/did -- --depth 1
+</code></pre>
+      <p>Those clones are for reading APIs and copying tiny snippets under their licenses. Runtime install is still <code>pip</code> / <code>forge install</code> / <code>npm</code> as in INTEGRATION.html.</p>
+
+      <h2 id="use">Use — verified</h2>
+      <table>
+        <thead><tr><th>Resolved repo</th><th>Stars*</th><th>Role</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://github.com/foundry-rs/foundry">foundry-rs/foundry</a></td><td>10568</td><td>Forge / cast / anvil</td><td>Homepage getfoundry.sh. Branch master.</td></tr>
+          <tr><td><a href="https://github.com/foundry-rs/forge-std">foundry-rs/forge-std</a></td><td>1053</td><td>Test helpers</td><td><code>forge install foundry-rs/forge-std</code></td></tr>
+          <tr><td><a href="https://github.com/OpenZeppelin/openzeppelin-contracts">OpenZeppelin/openzeppelin-contracts</a></td><td>27227</td><td>Ownable, utils</td><td>Do not import unused tokens.</td></tr>
+          <tr><td><a href="https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades">OpenZeppelin/openzeppelin-foundry-upgrades</a></td><td>258</td><td>Upgrades</td><td><strong>Do not use in MVP.</strong> Immutability is the point.</td></tr>
+          <tr><td><a href="https://github.com/OpenZeppelin/merkle-tree">OpenZeppelin/merkle-tree</a></td><td>536</td><td>JS merkle</td><td>Optional claimsRoot helper.</td></tr>
+          <tr><td><a href="https://github.com/wevm/viem">wevm/viem</a></td><td>3539</td><td>TS Ethereum</td><td>Watcher sidecar or dashboard reads.</td></tr>
+          <tr><td><a href="https://github.com/ethers-io/ethers.js">ethers-io/ethers.js</a></td><td>8717</td><td>Alt TS client</td><td>Use viem or web3.py, not both plus ethers.</td></tr>
+          <tr><td><a href="https://github.com/wevm/wagmi">wevm/wagmi</a></td><td>6744</td><td>React hooks</td><td>Dashboard only.</td></tr>
+          <tr><td><a href="https://github.com/ApeWorX/web3.py">ApeWorX/web3.py</a></td><td>5521</td><td>Python Ethereum</td><td><strong>Moved from ethereum/web3.py.</strong></td></tr>
+          <tr><td><a href="https://github.com/argotorg/solidity">argotorg/solidity</a></td><td>25707</td><td>Compiler</td><td><strong>Moved from ethereum/solidity.</strong> Use via foundry; no need to clone unless debugging solc.</td></tr>
+          <tr><td><a href="https://github.com/ethereum/EIPs">ethereum/EIPs</a></td><td>13954</td><td>EIP text</td><td>712, 1056, …</td></tr>
+          <tr><td><a href="https://github.com/ethereum/ERCs">ethereum/ERCs</a></td><td>745</td><td>ERC text</td><td>Includes 8004.</td></tr>
+          <tr><td><a href="https://github.com/erc-8004/erc-8004-contracts">erc-8004/erc-8004-contracts</a></td><td>232</td><td>Agent registries</td><td>Reference only.</td></tr>
+          <tr><td><a href="https://github.com/fastapi/fastapi">fastapi/fastapi</a></td><td>101764</td><td>API</td><td></td></tr>
+          <tr><td><a href="https://github.com/pydantic/pydantic">pydantic/pydantic</a></td><td>28593</td><td>Schemas</td><td></td></tr>
+          <tr><td><a href="https://github.com/Kludex/uvicorn">Kludex/uvicorn</a></td><td>10922</td><td>ASGI</td><td>Package still <code>uvicorn</code>.</td></tr>
+          <tr><td><a href="https://github.com/encode/httpx">encode/httpx</a></td><td>15429</td><td>HTTP client</td><td></td></tr>
+          <tr><td><a href="https://github.com/scikit-learn/scikit-learn">scikit-learn/scikit-learn</a></td><td>67013</td><td>ML</td><td>PRD-named.</td></tr>
+          <tr><td><a href="https://github.com/huggingface/transformers">huggingface/transformers</a></td><td>164348</td><td>Optional encoder</td><td>MiniLM only if clock allows.</td></tr>
+          <tr><td><a href="https://github.com/huggingface/huggingface_hub">huggingface/huggingface_hub</a></td><td>3831</td><td>Hub client</td><td></td></tr>
+          <tr><td><a href="https://github.com/shap/shap">shap/shap</a></td><td>25697</td><td>XAI</td><td></td></tr>
+          <tr><td><a href="https://github.com/marcotcr/lime">marcotcr/lime</a></td><td>12166</td><td>XAI fallback</td><td></td></tr>
+          <tr><td><a href="https://github.com/dmlc/xgboost">dmlc/xgboost</a></td><td>28688</td><td>Optional GBM</td><td><strong>Not xgboost/xgboost</strong> (404). Prefer sklearn HGB to keep SHAP simple.</td></tr>
+          <tr><td><a href="https://github.com/numpy/numpy">numpy/numpy</a></td><td>32585</td><td>Arrays</td><td></td></tr>
+          <tr><td><a href="https://github.com/pandas-dev/pandas">pandas-dev/pandas</a></td><td>49547</td><td>Tabular train</td><td></td></tr>
+          <tr><td><a href="https://github.com/pytest-dev/pytest">pytest-dev/pytest</a></td><td>14436</td><td>Tests</td><td></td></tr>
+          <tr><td><a href="https://github.com/stanfordnlp/dspy">stanfordnlp/dspy</a></td><td>37522</td><td>Prompt programs</td><td>Fits “orchestration not fine-tune”.</td></tr>
+          <tr><td><a href="https://github.com/567-labs/instructor">567-labs/instructor</a></td><td>13765</td><td>Structured LLM out</td><td><strong>Moved from instructor-ai/instructor.</strong></td></tr>
+          <tr><td><a href="https://github.com/dottxt-ai/outlines">dottxt-ai/outlines</a></td><td>15667</td><td>Constrained decode</td><td>Optional.</td></tr>
+          <tr><td><a href="https://github.com/openai/openai-python">openai/openai-python</a></td><td>31436</td><td>LLM client</td><td>Any OpenAI-compatible base_url is fine.</td></tr>
+          <tr><td><a href="https://github.com/anthropics/anthropic-sdk-python">anthropics/anthropic-sdk-python</a></td><td>3846</td><td>LLM client</td><td></td></tr>
+          <tr><td><a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a></td><td>298</td><td>did:ethr helpers</td><td></td></tr>
+          <tr><td><a href="https://github.com/uport-project/ethr-did-registry">uport-project/ethr-did-registry</a></td><td>201</td><td>ERC-1056 contract</td><td>Do not require a live registry for MVP.</td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/ethr-did-resolver">decentralized-identity/ethr-did-resolver</a></td><td>238</td><td>DID resolve</td><td></td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/did-jwt">decentralized-identity/did-jwt</a></td><td>372</td><td>JWT DIDs</td><td></td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/did-jwt-vc">decentralized-identity/did-jwt-vc</a></td><td>211</td><td>VC-JWT</td><td></td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/veramo">decentralized-identity/veramo</a></td><td>543</td><td>VC framework</td><td><strong>Not veramo/veramo</strong> (404).</td></tr>
+          <tr><td><a href="https://github.com/digitalbazaar/vc">digitalbazaar/vc</a></td><td>216</td><td>JS VC</td><td></td></tr>
+          <tr><td><a href="https://github.com/spruceid/ssi">spruceid/ssi</a></td><td>261</td><td>Rust SSI core</td><td>Reference. Heavy for 6h.</td></tr>
+          <tr><td><a href="https://github.com/compozy/compozy">compozy/compozy</a></td><td>2655</td><td>Agent OS for Cursor</td><td>Team orchestration around the repo, not an API runtime dep. Latest stable viewed: v0.2.15; 0.3.x betas exist.</td></tr>
+          <tr><td><a href="https://github.com/react/react">react/react</a></td><td>247638</td><td>Dashboard</td><td><strong>facebook/react redirects here.</strong></td></tr>
+          <tr><td><a href="https://github.com/vitejs/vite">vitejs/vite</a></td><td>82476</td><td>Dashboard bundler</td><td></td></tr>
+          <tr><td><a href="https://github.com/ethereum-lists/chains">ethereum-lists/chains</a></td><td>9820</td><td>chainId metadata</td><td>Confirm 11155111 / 80002.</td></tr>
+          <tr><td><a href="https://github.com/Vectorized/solady">Vectorized/solady</a></td><td>3362</td><td>Gas snippets</td><td>Optional. OZ is enough.</td></tr>
+          <tr><td><a href="https://github.com/ipfs/kubo">ipfs/kubo</a></td><td>17107</td><td>IPFS daemon</td><td>Optional preimage publish.</td></tr>
+          <tr><td><a href="https://github.com/NomicFoundation/hardhat">NomicFoundation/hardhat</a></td><td>8506</td><td>Fallback toolchain</td><td>Only if Foundry cannot install.</td></tr>
+          <tr><td><a href="https://github.com/Cyfrin/foundry-full-course-cu">Cyfrin/foundry-full-course-cu</a></td><td>5853</td><td>Teaching ref</td><td>Do not copy a token project. Read deploy patterns.</td></tr>
+        </tbody>
+      </table>
+      <p class="small">*stargazerCount from <code>gh repo view</code> on 2026-08-23.</p>
+
+      <h2 id="reference">Reference — verified, do not take as runtime</h2>
+      <table>
+        <thead><tr><th>Resolved repo</th><th>Stars</th><th>Why clone</th><th>Why not depend</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://github.com/openwallet-foundation/acapy">openwallet-foundation/acapy</a></td><td>490</td><td>ACA-Py (was Hyperledger Aries)</td><td>Full agent is a clock killer. <strong>Not hyperledger/aries-cloudagent-python.</strong></td></tr>
+          <tr><td><a href="https://github.com/openwallet-foundation/credo-ts">openwallet-foundation/credo-ts</a></td><td>350</td><td>TS SSI framework</td><td>Same.</td></tr>
+          <tr><td><a href="https://github.com/ceramicnetwork/js-ceramic">ceramicnetwork/js-ceramic</a></td><td>423</td><td>Mutable streams</td><td>Hosted Ceramic is a centralized-ish dependency; PRD spirit says no.</td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/ion">decentralized-identity/ion</a></td><td>1229</td><td>did:ion on Bitcoin</td><td>Wrong chain, huge ops.</td></tr>
+          <tr><td><a href="https://github.com/decentralized-identity/web5-js">decentralized-identity/web5-js</a></td><td>142</td><td>Web5</td><td><strong>Moved from TBD54566975/web5-js.</strong> Not the product.</td></tr>
+          <tr><td><a href="https://github.com/iden3/circom">iden3/circom</a></td><td>1686</td><td>ZK circuits</td><td>Bonus research only.</td></tr>
+          <tr><td><a href="https://github.com/iden3/snarkjs">iden3/snarkjs</a></td><td>2035</td><td>ZK prove/verify</td><td>Same.</td></tr>
+          <tr><td><a href="https://github.com/PrivadoID/contracts">PrivadoID/contracts</a></td><td>102</td><td>Polygon ID / Privado</td><td><strong>Moved from 0xPolygonID/contracts.</strong> Commercial-adjacent ID stack; do not wrap.</td></tr>
+          <tr><td><a href="https://github.com/smartcontractkit/chainlink">smartcontractkit/chainlink</a></td><td>8234</td><td>Oracle plumbing</td><td>Not the scoring layer; too heavy.</td></tr>
+          <tr><td><a href="https://github.com/langchain-ai/langchain">langchain-ai/langchain</a></td><td>144797</td><td>Prompt graphs</td><td>DSPy/Instructor are enough. Do not pull the universe.</td></tr>
+          <tr><td><a href="https://github.com/crewAIInc/crewAI">crewAIInc/crewAI</a></td><td>57483</td><td>Multi-agent</td><td>Compozy already covers coding-time agents.</td></tr>
+          <tr><td><a href="https://github.com/microsoft/autogen">microsoft/autogen</a></td><td>60577</td><td>Multi-agent</td><td>Same.</td></tr>
+          <tr><td><a href="https://github.com/w3c/vc-bitstring-status-list">w3c/vc-bitstring-status-list</a></td><td>25</td><td>Revocation spec source</td><td>Implement semantics, not the full gzip list.</td></tr>
+          <tr><td><a href="https://github.com/transmute-industries/verifiable-credentials">transmute-industries/verifiable-credentials</a></td><td>12</td><td>Alt VC impl</td><td>Small; optional reading.</td></tr>
+          <tr><td><a href="https://github.com/hyperledger-identus/cloud-agent">hyperledger-identus/cloud-agent</a></td><td>95</td><td>Identus</td><td><strong>Moved from hyperledger/identus-cloud-agent.</strong></td></tr>
+          <tr><td><a href="https://github.com/Sphereon-Opensource/SSI-SDK">Sphereon-Opensource/SSI-SDK</a></td><td>75</td><td>Legacy SSI SDK</td><td>Marked legacy in description.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="forbid">Verified but forbidden as the product</h2>
+      <div class="forbid">
+        <p><a href="https://github.com/passportxyz/passport">passportxyz/passport</a> (1225★) — <strong>moved from gitcoinco/passport</strong>. Stamp aggregation / identity. Cloning for competitive reading is fine. Importing it as the score is a PRD violation.</p>
+        <p>Trusta, Nomis, RubyScore, Ethos, Cred, UTU — no official “drop-in reconciliation” GitHub we will wrap. Do not hunt unofficial SDKs to cheat the brief.</p>
+      </div>
+
+      <h2 id="archived">Archived / missing (do not recommend)</h2>
+      <table>
+        <thead><tr><th>Name people type</th><th>Reality on 2026-08-23</th></tr></thead>
+        <tbody>
+          <tr><td>spruceid/didkit</td><td>Exists, <strong>archived</strong>, 317★. Prefer spruceid/ssi or JS VC libs.</td></tr>
+          <tr><td>instructor-ai/instructor</td><td>Resolves as <strong>567-labs/instructor</strong>.</td></tr>
+          <tr><td>ethereum/web3.py</td><td>Resolves as <strong>ApeWorX/web3.py</strong>.</td></tr>
+          <tr><td>ethereum/solidity</td><td>Resolves as <strong>argotorg/solidity</strong>.</td></tr>
+          <tr><td>veramo/veramo</td><td><strong>404</strong>. Use decentralized-identity/veramo.</td></tr>
+          <tr><td>decentralized-identity/ethr-did</td><td><strong>404</strong>. Use uport-project/ethr-did.</td></tr>
+          <tr><td>xgboost/xgboost</td><td><strong>404</strong>. Use dmlc/xgboost.</td></tr>
+          <tr><td>identity-foundation/didcomm-messaging</td><td><strong>404</strong> via gh. Do not cite a clone URL.</td></tr>
+          <tr><td>0xPolygonID/contracts</td><td>Resolves as <strong>PrivadoID/contracts</strong>.</td></tr>
+          <tr><td>facebook/react</td><td>Resolves as <strong>react/react</strong>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="compozy">Compozy (coding-time, from prior setup work)</h2>
+      <p>Verified: <a href="https://github.com/compozy/compozy">https://github.com/compozy/compozy</a>. Operating system for agent CLIs (Cursor, Claude Code, Codex, Gemini). Install from GitHub Releases (desktop) or the documented v0.3 beta installer — Homebrew still pointed at 0.2.x when last checked. Use it to split Hour 0–5 work between agents. Do not import the Go daemon into FastAPI.</p>
+      <pre><code>gh repo view compozy/compozy
+gh release list --repo compozy/compozy --limit 10
+gh repo clone compozy/compozy -- --depth 1
+</code></pre>
+
+      <h2 id="reverify">Re-verify later</h2>
+      <pre><code>while read -r repo; do
+  echo "== $repo =="
+  gh repo view "$repo" --json nameWithOwner,url,isArchived,stargazerCount
+done &lt; &lt;(printf '%s\n' foundry-rs/foundry OpenZeppelin/openzeppelin-contracts wevm/viem ApeWorX/web3.py fastapi/fastapi scikit-learn/scikit-learn shap/shap stanfordnlp/dspy 567-labs/instructor uport-project/ethr-did decentralized-identity/veramo)
+</code></pre>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

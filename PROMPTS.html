@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Prompt orchestration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">No fine-tuning · structured outputs only</p>
+      <h1>Prompt orchestration</h1>
+      <p class="lede">Two production prompts and one optional CRAVE-style pair. Temperature is specified. Outputs are pydantic models. If the model rambles, Instructor/Outlines reject and you retry once, then fall back.</p>
+
+      <h2 id="rules">Orchestration rules</h2>
+      <ul>
+        <li>Prompts live in <code>services/normalize/prompts/</code> and <code>services/explain/prompts/</code> as text files. Do not bury them in code.</li>
+        <li>No tool-calling to the internet from the extractor. The evidence body is already fetched (safely) or inline.</li>
+        <li>Never ask the LLM for <code>scoreBps</code> or <code>pCredible</code>.</li>
+        <li>Log prompt version = sha256 of the file. Put it in explanation JSON as <code>promptVersion</code> if easy.</li>
+        <li>DSPy: signatures only, no BootstrapFewShot that writes weights if that worries the PRD. Static demos in the prompt are allowed (that is prompt engineering).</li>
+      </ul>
+
+      <h2 id="extract">P1 — Extract NormalizedClaim</h2>
+      <p>System:</p>
+<pre><code>You are a clerk, not a judge. Extract fields from an on-chain identity claim.
+Do not decide if the claim is true. Do not invent issuers or dates.
+If a field is missing, use the schema default or null.
+Polarity is +1 if the evidence supports the topic proposition, -1 if it denies it.
+Topic must be one of: kyc.adult, kyc.active, residency.eu, or the provided topic string.
+Return only the structured object.
+</code></pre>
+      <p>User:</p>
+<pre><code>chainId: {chainId}
+subject: {subject}
+issuer: {issuer}
+topic_hint: {topic}
+expiresAt_unix: {expiresAt}
+revoked: {revoked}
+evidence:
+---
+{evidence_body}
+---
+raw event: {decoded_event_json}
+</code></pre>
+      <p>Response model: <code>NormalizedClaim</code> minus chain-assigned ids (you overwrite claimId, txHash, blockNumber after). Temperature 0. Max tokens 800. Timeout 8s.</p>
+
+      <h2 id="explain">P2 — Explain fused state</h2>
+      <p>System:</p>
+<pre><code>You write short, specific trust explanations for a relying party.
+You do not compute a new score. The numbers in the user message are authoritative.
+Cite feature names exactly as given. If SHAP and the fusion residual disagree, say so.
+Name the conflict type: multi-source | stale | self-contradiction | none.
+No marketing language. No "as an AI".
+Output the structured object only.
+</code></pre>
+      <p>User:</p>
+<pre><code>subject: {subjectDid}
+verdict: {verdict}
+confidence: {confidence}
+scoreBps: {scoreBps}
+topics: {topics_json}
+conflicts: {conflicts_json}
+per_claim: {claims_slim_json}
+shap_top5: {shap_json}
+issuer_priors: {beta_json}
+fusion_note: {e.g. "cumulative ⊕ then conflict penalty"}
+</code></pre>
+      <p>Response model:</p>
+<pre><code>class Reason(BaseModel):
+    feature: str
+    shap: float | None
+    text: str
+
+class Explanation(BaseModel):
+    summary: str
+    reasons: list[Reason]
+    caveats: list[str]
+    conflictType: Literal["multi-source","stale","self-contradiction","none"]
+</code></pre>
+      <p>Temperature 0.2. Max tokens 500. Timeout 10s.</p>
+
+      <h2 id="crave">P3 / P4 — CRAVE dual perspective (optional)</h2>
+      <p>From CRAVE (arXiv:2504.14905). Two calls, then a local merge. Do not fine-tune a judge.</p>
+      <p>P3 system: “Argue that the claim is authentic. Cover: (1) direct evidence, (2) semantic relations, (3) linguistic patterns, (4) logic. Cite only the provided evidence. If you cannot, say you cannot.”</p>
+      <p>P4 system: same axes, argue the claim is inauthentic or stale.</p>
+      <p>Local merge (Python, not an LLM if you want purity): if P3 is empty and P4 is rich, add a caveat “support perspective found no evidence.” Feed both strings into P2 as extra context. The official score still comes from sklearn + fusion.</p>
+
+      <h2 id="conflicts-tax">Conflict types (CONFLICTS / DRAGged 2025)</h2>
+      <ul>
+        <li><code>multi-source</code> — two issuers, opposite polarity, both unexpired.</li>
+        <li><code>stale</code> — newer claim vs expired/revoked older one; should usually not remain a conflict after features.</li>
+        <li><code>self-contradiction</code> — same issuer, opposite polarity, no revoke.</li>
+        <li><code>none</code> — fused cleanly.</li>
+      </ul>
+
+      <h2 id="fallback">Rules fallback (must exist)</h2>
+      <p>If evidence is JSON with keys topic, polarity, expiresAt, copy them. If it is empty, use event fields only. <code>rawText</code> becomes <code>""</code>. <code>signatureValid</code> true for ClaimSource. This path must satisfy FR-02 on the inline fixture.</p>
+
+      <h2 id="template-explain">Explanation template fallback</h2>
+<pre><code>summary = f"{verdict} on {n} claims. confidence={confidence:.2f}."
+reasons = [Reason(feature=name, shap=val, text=f"{name} contributed {val:+.3f}.") for name,val in shap_top5]
+caveats = ["Templated explanation; LLM unavailable.", "Score from sklearn+subjective-logic."]
+</code></pre>
+
+      <h2 id="anti">Anti-patterns</h2>
+      <ul>
+        <li>“Rate this claim 1–5.” (TrustJudge: coarse scores collide.)</li>
+        <li>Asking the model to pick a winner without listing both sides.</li>
+        <li>Feeding the whole training set into the prompt.</li>
+        <li>LangChain clouds that log PII evidence to a third party without saying so. Prefer local or a known LLM_BASE_URL.</li>
+      </ul>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>
