@@ -1,62 +1,32 @@
 /**
- * ChainMind Synapse - Application Controller & Entry Point
- * Orchestrates Canvas visualizer, AI Trust Engine, State management, 3D card tilt, and UI events.
+ * ChainMind Synapse — Watch Floor Application Controller
+ * Orchestrates Subjective Logic consensus, UI state, Simplex canvas, and REST API modal.
  */
 
 import { SynapseCanvas } from './canvas.js';
-import { AITrustEngine } from './ai-engine.js';
+import { SubjectiveLogicEngine } from './ai-engine.js';
 import { StateStore } from './state.js';
 
-class AppController {
+class WatchFloorApp {
   constructor() {
     this.state = new StateStore();
-    this.aiEngine = new AITrustEngine();
+    this.slEngine = new SubjectiveLogicEngine();
     this.canvas = null;
-    this.currentDisplayedScore = 0;
 
     this.init();
   }
 
   init() {
-    // 1. Initialize Canvas Visualizer
-    const canvasEl = document.getElementById('synapse-canvas');
-    if (canvasEl) {
-      this.canvas = new SynapseCanvas(canvasEl, (node, clientX, clientY) => {
-        this.handleNodeHover(node, clientX, clientY);
-      });
+    const synapseCanvasEl = document.getElementById('synapse-canvas');
+    const simplexCanvasEl = document.getElementById('simplex-canvas');
+
+    if (synapseCanvasEl && simplexCanvasEl) {
+      this.canvas = new SynapseCanvas(synapseCanvasEl, simplexCanvasEl);
     }
 
-    // 2. Subscribe to State changes
     this.state.subscribe((store) => this.renderUI(store));
-
-    // 3. Bind UI & 3D Interactive Card Events
     this.bindEvents();
-    this.initCardTilt();
-
-    // 4. Initial Render
     this.renderUI(this.state);
-  }
-
-  initCardTilt() {
-    // 3D Parallax Tilt Effect on Dashboard Cards
-    const cards = document.querySelectorAll('.dashboard-col');
-    cards.forEach((card) => {
-      card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -4;
-        const rotateY = ((x - centerX) / centerX) * 4;
-
-        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
-      });
-
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      });
-    });
   }
 
   bindEvents() {
@@ -66,347 +36,300 @@ class AppController {
       btn.addEventListener('click', () => {
         pills.forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
-        const scenario = btn.dataset.scenario;
-        this.state.loadScenario(scenario);
-        this.showToast(`Switched scenario to: ${btn.textContent.trim()}`);
+        this.state.loadScenario(btn.dataset.scenario);
       });
     });
 
-    // Quick Action Conflict Injection
-    const btnSimConflict = document.getElementById('btn-simulate-conflict');
-    if (btnSimConflict) {
-      btnSimConflict.addEventListener('click', () => {
-        const revPill = document.getElementById('pill-revocation-conflict');
-        if (revPill) revPill.click();
+    // Conflict Action Shortcut
+    const btnInjectConflict = document.getElementById('btn-inject-conflict-action');
+    if (btnInjectConflict) {
+      btnInjectConflict.addEventListener('click', () => {
+        const pill = document.getElementById('pill-scenario-conflict');
+        if (pill) pill.click();
       });
     }
 
     // Tamper Button
-    const btnTamper = document.getElementById('btn-tamper-claim');
+    const btnTamper = document.getElementById('btn-tamper-toggle');
     if (btnTamper) {
       btnTamper.addEventListener('click', () => {
-        this.state.tamperClaim();
-        this.showToast('⚠️ Tampered with cryptographic signature!');
+        this.state.tamperHash();
       });
     }
 
-    // Reset Button
-    const btnReset = document.getElementById('btn-reset-state');
-    if (btnReset) {
-      btnReset.addEventListener('click', () => {
-        this.state.restoreGenesis();
-        this.showToast('✅ Restored verified state!');
+    // Replay Logs
+    const btnReplay = document.getElementById('btn-replay-logs');
+    if (btnReplay) {
+      btnReplay.addEventListener('click', () => {
+        this.state.loadScenario(this.state.activeScenario);
       });
     }
 
-    // REST API Modal
-    const btnApi = document.getElementById('btn-api-inspector');
-    const modalApi = document.getElementById('modal-api-inspector');
-    const btnCloseApi = document.getElementById('btn-close-api-modal');
-    const btnCloseApiAct = document.getElementById('btn-modal-close-action');
-
-    if (btnApi && modalApi) {
-      btnApi.addEventListener('click', () => {
-        this.updateApiJsonModal();
-        modalApi.classList.remove('hidden');
-      });
-      [btnCloseApi, btnCloseApiAct].forEach(b => {
-        if (b) b.addEventListener('click', () => modalApi.classList.add('hidden'));
-      });
-    }
-
-    // Custom Claim Modal
-    const btnOpenClaim = document.getElementById('btn-open-claim-modal');
-    const modalClaim = document.getElementById('modal-custom-claim');
-    const btnCloseClaim = document.getElementById('btn-close-claim-modal');
-    const btnCancelClaim = document.getElementById('btn-cancel-claim-modal');
-    const formClaim = document.getElementById('form-custom-claim');
-
-    if (btnOpenClaim && modalClaim) {
-      btnOpenClaim.addEventListener('click', () => modalClaim.classList.remove('hidden'));
-      [btnCloseClaim, btnCancelClaim].forEach(b => {
-        if (b) b.addEventListener('click', () => modalClaim.classList.add('hidden'));
-      });
-    }
-
-    if (formClaim) {
-      formClaim.addEventListener('submit', (e) => {
+    // Subject Search
+    const formSearch = document.getElementById('form-subject-search');
+    if (formSearch) {
+      formSearch.addEventListener('submit', (e) => {
         e.preventDefault();
-        const chain = document.getElementById('claim-chain').value;
-        const type = document.getElementById('claim-type').value;
-        const issuer = document.getElementById('claim-issuer').value;
-        const status = document.getElementById('claim-status').value;
-        const reputation = document.getElementById('claim-reputation').value;
-
-        this.state.addCustomClaim({ chain, type, issuer, status, reputation });
-        modalClaim.classList.add('hidden');
-        this.showToast(`✨ Injected ${type} from ${chain}!`);
-        formClaim.reset();
-      });
-    }
-
-    // Copy Root Hash
-    const btnCopyHash = document.getElementById('btn-copy-hash');
-    if (btnCopyHash) {
-      btnCopyHash.addEventListener('click', () => {
-        navigator.clipboard.writeText(this.state.stateHash);
-        this.showToast('Copied state hash!');
-      });
-    }
-
-    // Copy JSON API Payload
-    const btnCopyJson = document.getElementById('btn-copy-json');
-    if (btnCopyJson) {
-      btnCopyJson.addEventListener('click', () => {
-        const jsonEl = document.getElementById('api-json-content');
-        if (jsonEl) {
-          navigator.clipboard.writeText(jsonEl.textContent);
-          this.showToast('Copied JSON response!');
+        const input = document.getElementById('input-subject').value.trim();
+        if (input) {
+          this.state.subject = input;
+          this.state.subjectDid = `did:ethr:sepolia:${input}`;
+          this.state.notify();
         }
       });
     }
-  }
 
-  handleNodeHover(node, clientX, clientY) {
-    const card = document.getElementById('node-hover-card');
-    if (!card) return;
+    // Modal API JSON Inspector
+    const btnApiModal = document.getElementById('btn-api-modal');
+    const modal = document.getElementById('modal-api-inspector');
+    const btnClose = document.getElementById('btn-close-modal');
+    const btnCloseConfirm = document.getElementById('btn-close-modal-confirm');
+    const btnCopyJson = document.getElementById('btn-copy-modal-json');
 
-    if (!node) {
-      card.classList.add('hidden');
-      return;
+    if (btnApiModal && modal) {
+      btnApiModal.addEventListener('click', () => {
+        this.renderApiModalContent();
+        modal.classList.remove('hidden');
+      });
+      [btnClose, btnCloseConfirm].forEach(b => {
+        if (b) b.addEventListener('click', () => modal.classList.add('hidden'));
+      });
     }
 
-    const chainBadge = document.getElementById('hover-chain-badge');
-    const typeBadge = document.getElementById('hover-type-badge');
-    const titleEl = document.getElementById('hover-node-title');
-    const issuerEl = document.getElementById('hover-issuer');
-    const statusEl = document.getElementById('hover-status');
-    const weightEl = document.getElementById('hover-weight');
-
-    if (chainBadge) chainBadge.textContent = node.chain;
-    if (typeBadge) typeBadge.textContent = node.type;
-    if (titleEl) titleEl.textContent = node.title || node.type;
-    if (issuerEl) issuerEl.textContent = node.issuer || 'Consensus Arbiter';
-    if (statusEl) {
-      statusEl.textContent = node.status || 'Active';
-      statusEl.className = node.status === 'Revoked' ? 'text-crimson' : 'text-cyan';
+    if (btnCopyJson) {
+      btnCopyJson.addEventListener('click', () => {
+        const pre = document.getElementById('json-modal-content');
+        if (pre) {
+          navigator.clipboard.writeText(pre.textContent);
+          btnCopyJson.textContent = 'Copied!';
+          setTimeout(() => btnCopyJson.textContent = 'Copy JSON', 1500);
+        }
+      });
     }
-    if (weightEl) weightEl.textContent = (node.issuerReputation || 95) + '%';
 
-    const canvasRect = this.canvas.canvas.parentElement.getBoundingClientRect();
-    card.style.left = (clientX - canvasRect.left) + 'px';
-    card.style.top = (clientY - canvasRect.top) + 'px';
-    card.classList.remove('hidden');
-  }
+    // Preimage Verify Link
+    const linkVerify = document.getElementById('link-verify-preimage');
+    if (linkVerify && modal) {
+      linkVerify.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.renderPreimageModalContent();
+        modal.classList.remove('hidden');
+      });
+    }
 
-  animateScoreTicker(targetScore) {
-    const scoreValEl = document.getElementById('overall-trust-score');
-    if (!scoreValEl) return;
+    // Copy Buttons
+    const btnCopyCommit = document.getElementById('btn-copy-commit');
+    if (btnCopyCommit) {
+      btnCopyCommit.addEventListener('click', () => {
+        navigator.clipboard.writeText(this.state.commitId);
+      });
+    }
 
-    const start = this.currentDisplayedScore;
-    const duration = 600;
-    const startTime = performance.now();
-
-    const update = (now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = start + (targetScore - start) * easeProgress;
-      
-      scoreValEl.textContent = current.toFixed(1);
-
-      if (progress < 1) {
-        requestAnimationFrame(update);
-      } else {
-        this.currentDisplayedScore = targetScore;
-        scoreValEl.textContent = targetScore.toFixed(1);
-      }
-    };
-
-    requestAnimationFrame(update);
+    const btnCopyState = document.getElementById('btn-copy-state');
+    if (btnCopyState) {
+      btnCopyState.addEventListener('click', () => {
+        navigator.clipboard.writeText(this.state.stateHash);
+      });
+    }
   }
 
   renderUI(store) {
+    const slResult = this.slEngine.evaluateSubject(store.claims);
+
+    // 1. Update Canvas & Simplex
     if (this.canvas) {
-      this.canvas.loadState(store.claims);
+      this.canvas.loadState(store.claims, slResult.fusedOpinion);
     }
 
-    const aiResult = this.aiEngine.evaluateClaims(store.claims);
+    // 2. Simplex Numbers
+    const valB = document.getElementById('simplex-val-b');
+    const valD = document.getElementById('simplex-val-d');
+    const valU = document.getElementById('simplex-val-u');
+    if (valB) valB.textContent = slResult.fusedOpinion.b;
+    if (valD) valD.textContent = slResult.fusedOpinion.d;
+    if (valU) valU.textContent = slResult.fusedOpinion.u;
 
-    // 1. Animated Score Ticker & Radial Progress
-    this.animateScoreTicker(aiResult.overallScore);
-    
-    const progressEl = document.getElementById('radial-progress-bar');
-    const gradeBadge = document.getElementById('trust-grade-badge');
+    // 3. Rail Metadata
+    const metaSubDid = document.getElementById('meta-subject-did');
+    const metaCommit = document.getElementById('meta-commit-id');
+    const metaState = document.getElementById('meta-state-hash');
+    const metaTx = document.getElementById('meta-tx-link');
 
-    if (gradeBadge) {
-      gradeBadge.textContent = aiResult.grade.split(' ')[0] + ' ' + (aiResult.grade.split(' ')[1] || '');
-      gradeBadge.className = `radial-grade-badge ${aiResult.gradeClass}`;
-    }
+    if (metaSubDid) metaSubDid.textContent = store.subjectDid.substring(0, 24) + '...';
+    if (metaCommit) metaCommit.textContent = store.commitId.substring(0, 8) + '...' + store.commitId.substring(store.commitId.length - 4);
+    if (metaState) metaState.textContent = store.stateHash.substring(0, 8) + '...' + store.stateHash.substring(store.stateHash.length - 4);
+    if (metaTx) metaTx.textContent = store.settlementTx.substring(0, 8) + '...' + store.settlementTx.substring(store.settlementTx.length - 4) + ' ↗';
 
-    if (progressEl) {
-      const maxOffset = 515;
-      const offset = maxOffset - (maxOffset * (aiResult.overallScore / 100));
-      progressEl.style.strokeDashoffset = offset;
-      progressEl.style.stroke = aiResult.overallScore >= 70 ? 'var(--teal-glow)' : (aiResult.overallScore >= 45 ? '#f59e0b' : 'var(--state-alert)');
-    }
-
-    // 2. Breakdown Bars
-    const setBar = (fillId, textId, val) => {
-      const fill = document.getElementById(fillId);
-      const text = document.getElementById(textId);
-      if (fill) fill.style.width = `${val}%`;
-      if (text) text.textContent = `${val}%`;
-    };
-    setBar('fill-issuer', 'score-issuer', aiResult.breakdown.issuer);
-    setBar('fill-temporal', 'score-temporal', aiResult.breakdown.temporal);
-    setBar('fill-coherence', 'score-coherence', aiResult.breakdown.coherence);
-    setBar('fill-revocation', 'score-revocation', aiResult.breakdown.crypto);
-
-    // 3. Gen-AI Terminal Explanation
-    const terminalEl = document.getElementById('xai-terminal-text');
-    if (terminalEl) {
-      terminalEl.innerHTML = aiResult.explanation;
-      terminalEl.scrollTop = terminalEl.scrollHeight;
-    }
-
-    // 4. Ingested Claims List
-    this.renderClaimsFeed(store.claims);
-
-    // 5. Merkle Ledger & Tamper Alerts
-    const stateHashEl = document.getElementById('current-state-hash');
-    const merkleRootEl = document.getElementById('current-merkle-root');
-    const merkleStatusPill = document.getElementById('merkle-status-pill');
-    const tamperAlertBanner = document.getElementById('tamper-alert-banner');
-
-    if (stateHashEl) stateHashEl.textContent = store.stateHash.substring(0, 10) + '...' + store.stateHash.substring(store.stateHash.length - 4);
-    if (merkleRootEl) merkleRootEl.textContent = store.merkleRoot.substring(0, 10) + '...' + store.merkleRoot.substring(store.merkleRoot.length - 4);
-
-    if (store.isTampered) {
-      if (merkleStatusPill) {
-        merkleStatusPill.className = 'status-pill status-tampered';
-        merkleStatusPill.textContent = 'TAMPER DETECTED';
-      }
-      if (tamperAlertBanner) tamperAlertBanner.classList.remove('hidden');
+    // Conflict Banner
+    const conflictBanner = document.getElementById('conflict-alert-box');
+    const conflictDesc = document.getElementById('conflict-alert-desc');
+    if (slResult.conflicts.length > 0) {
+      conflictBanner.classList.remove('hidden');
+      if (conflictDesc) conflictDesc.textContent = slResult.conflicts[0].note;
     } else {
-      if (merkleStatusPill) {
-        merkleStatusPill.className = 'status-pill status-verified';
-        merkleStatusPill.textContent = 'TAMPER-PROOF';
-      }
-      if (tamperAlertBanner) tamperAlertBanner.classList.add('hidden');
+      conflictBanner.classList.add('hidden');
     }
 
-    // 6. Audit History
-    this.renderAuditHistory(store.auditHistory);
+    // 4. Claims List
+    this.renderClaimsList(store.claims, slResult.conflicts);
+
+    // 5. Fusion Confidence & Stacked Bar
+    const scoreBpsEl = document.getElementById('val-score-bps');
+    const confFloatEl = document.getElementById('val-confidence-float');
+    const verdictBadge = document.getElementById('badge-verdict');
+    const massKEl = document.getElementById('val-mass-k');
+
+    if (scoreBpsEl) scoreBpsEl.textContent = `${slResult.scoreBps} bps`;
+    if (confFloatEl) confFloatEl.textContent = slResult.confidence;
+    if (massKEl) massKEl.textContent = slResult.conflictK;
+
+    if (verdictBadge) {
+      verdictBadge.textContent = slResult.verdict.toUpperCase();
+      verdictBadge.className = `verdict-badge verdict-${slResult.verdict}`;
+    }
+
+    // Stacked Opinion Bar
+    const barB = document.getElementById('bar-b');
+    const barD = document.getElementById('bar-d');
+    const barU = document.getElementById('bar-u');
+    if (barB && barD && barU) {
+      barB.style.width = `${Math.round(slResult.fusedOpinion.b * 100)}%`;
+      barD.style.width = `${Math.round(slResult.fusedOpinion.d * 100)}%`;
+      barU.style.width = `${Math.round(slResult.fusedOpinion.u * 100)}%`;
+      barB.title = `Belief (b): ${slResult.fusedOpinion.b}`;
+      barD.title = `Disbelief (d): ${slResult.fusedOpinion.d}`;
+      barU.title = `Uncertainty (u): ${slResult.fusedOpinion.u}`;
+    }
+
+    // 6. SHAP Reasons List
+    this.renderShapReasons(slResult.reasons);
   }
 
-  renderClaimsFeed(claims) {
-    const container = document.getElementById('claims-stream-container');
-    const badgeCount = document.getElementById('claim-count-badge');
-    if (!container) return;
-
-    if (badgeCount) badgeCount.textContent = `${claims.length} Active`;
-    container.innerHTML = '';
-
-    claims.forEach((c) => {
-      const card = document.createElement('div');
-      card.className = `claim-item-card ${c.status === 'Revoked' ? 'is-conflict' : ''}`;
-
-      let statusClass = 'pill-active';
-      if (c.status === 'Revoked') statusClass = 'pill-revoked';
-      if (c.status === 'Under Dispute' || c.status === 'Expired') statusClass = 'pill-disputed';
-
-      card.innerHTML = `
-        <div class="claim-top-row">
-          <span class="claim-network-badge">
-            <i class="fa-solid fa-cube"></i> ${c.chain} (#${c.blockNumber})
-          </span>
-          <span class="claim-status-pill ${statusClass}">${c.status}</span>
-        </div>
-        <div class="claim-title-text">${c.title}</div>
-        <div class="claim-meta-details">
-          <span>Issuer: ${c.issuer}</span>
-          <span>${c.timestamp}</span>
-        </div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  renderAuditHistory(history) {
-    const listEl = document.getElementById('audit-history-list');
+  renderClaimsList(claims, conflicts) {
+    const listEl = document.getElementById('claims-list-container');
+    const countBadge = document.getElementById('claims-count-badge');
     if (!listEl) return;
 
+    if (countBadge) countBadge.textContent = `${claims.length} Normalized`;
     listEl.innerHTML = '';
-    history.forEach((entry) => {
+
+    claims.forEach((c) => {
+      const hasConflict = conflicts.some(con => con.claimIds && con.claimIds.includes(c.claimId));
       const row = document.createElement('div');
-      row.className = 'audit-entry';
+      row.className = `claim-row ${hasConflict ? 'has-conflict' : ''}`;
+
+      const polClass = c.polarity === 1 ? 'polarity-plus' : 'polarity-minus';
+      const polText = c.polarity === 1 ? '+1 (affirm)' : '-1 (deny)';
+
       row.innerHTML = `
-        <span class="audit-time">${entry.time}</span>
-        <span class="audit-action">${entry.action}</span>
-        <span class="audit-block">${entry.block}</span>
+        <div class="claim-header-line">
+          <span>${c.chainName} (${c.chainId}) · #${c.blockNumber}</span>
+          <span class="polarity-tag ${polClass}">${polText}</span>
+        </div>
+        <div class="claim-topic-name">${c.topic} ${c.revoked ? '<span style="color: var(--danger); font-size: 11px;">[REVOKED]</span>' : (c.expired ? '<span style="color: var(--warn); font-size: 11px;">[EXPIRED]</span>' : '')}</div>
+        <div class="claim-footer-line">
+          <span>${c.issuerDid}</span>
+          <span class="p-cred-badge">pCredible: <strong>${c.pCredible}</strong> (b=${c.opinion?.b || 0}, d=${c.opinion?.d || 0})</span>
+        </div>
       `;
       listEl.appendChild(row);
     });
   }
 
-  updateApiJsonModal() {
-    const jsonEl = document.getElementById('api-json-content');
-    if (!jsonEl) return;
-
-    const aiResult = this.aiEngine.evaluateClaims(this.state.claims);
-    const payload = {
-      protocol: 'ChainMind Synapse',
-      version: '1.0.0',
-      subjectDID: 'did:pkh:eip155:1:0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-      timestamp: new Date().toISOString(),
-      unifiedIdentityState: {
-        trustScore: aiResult.overallScore,
-        grade: aiResult.grade,
-        isTamperProof: !this.state.isTampered,
-        merkleRoot: this.state.merkleRoot,
-        stateHash: this.state.stateHash,
-        settlementTx: this.state.settlementTx
-      },
-      trustVectorBreakdown: aiResult.breakdown,
-      ingestedClaims: this.state.claims.map(c => ({
-        id: c.id,
-        claimType: c.type,
-        sourceChain: c.chain,
-        issuer: c.issuer,
-        status: c.status,
-        blockNumber: c.blockNumber,
-        proofHash: c.hash
-      })),
-      aiConsensusExplanation: {
-        latencyMs: 38,
-        anomaliesDetected: aiResult.conflicts.length,
-        conflicts: aiResult.conflicts
-      }
-    };
-
-    jsonEl.textContent = JSON.stringify(payload, null, 2);
-  }
-
-  showToast(message) {
-    const container = document.getElementById('toast-container');
+  renderShapReasons(reasons) {
+    const container = document.getElementById('shap-reasons-container');
     if (!container) return;
 
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<i class="fa-solid fa-cube text-cyan"></i> <span>${message}</span>`;
-    container.appendChild(toast);
+    container.innerHTML = '';
+    reasons.forEach((r) => {
+      const item = document.createElement('div');
+      item.className = 'shap-item';
 
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(8px)';
-      toast.style.transition = 'all 0.25s ease';
-      setTimeout(() => toast.remove(), 250);
-    }, 2500);
+      const isPos = r.shap >= 0;
+      const shapClass = isPos ? 'shap-val-pos' : 'shap-val-neg';
+      const shapText = `${isPos ? '+' : ''}${r.shap.toFixed(2)}`;
+
+      item.innerHTML = `
+        <div class="shap-top-row">
+          <span class="shap-feat">${r.feature}</span>
+          <span class="${shapClass}">${shapText}</span>
+        </div>
+        <div class="shap-desc">${r.text}</div>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  renderApiModalContent() {
+    const pre = document.getElementById('json-modal-content');
+    const title = document.getElementById('modal-header-title');
+    if (!pre) return;
+
+    if (title) title.textContent = `GET /v1/identity/${this.state.subject}`;
+
+    const sl = this.slEngine.evaluateSubject(this.state.claims);
+    const payload = {
+      subject: this.state.subject,
+      subjectDid: this.state.subjectDid,
+      verdict: sl.verdict,
+      confidence: sl.confidence,
+      scoreBps: sl.scoreBps,
+      modelVersion: this.state.modelVersion,
+      pendingOnChain: false,
+      degradedChains: [],
+      commit: {
+        commitId: this.state.commitId,
+        stateHash: this.state.stateHash,
+        txHash: this.state.settlementTx,
+        chainId: 11155111,
+        issuedAt: this.state.issuedAt,
+        blockNumber: 19825
+      },
+      topics: [
+        {
+          topic: 'kyc.adult',
+          opinion: sl.fusedOpinion,
+          conflictK: sl.conflictK,
+          verdict: sl.verdict === 'conflict' ? 'unresolved' : 'true'
+        }
+      ],
+      claims: this.state.claims.map(c => ({
+        claimId: c.claimId,
+        chainId: c.chainId,
+        issuer: c.issuer,
+        topic: c.topic,
+        polarity: c.polarity,
+        pCredible: c.pCredible,
+        opinion: c.opinion,
+        txHash: c.txHash,
+        revoked: c.revoked
+      })),
+      conflicts: sl.conflicts
+    };
+
+    pre.textContent = JSON.stringify(payload, null, 2);
+  }
+
+  renderPreimageModalContent() {
+    const pre = document.getElementById('json-modal-content');
+    const title = document.getElementById('modal-header-title');
+    if (!pre) return;
+
+    if (title) title.textContent = 'Hash Preimage JSON (verify_hash.py)';
+
+    const sl = this.slEngine.evaluateSubject(this.state.claims);
+    const preimage = {
+      subject: this.state.subject,
+      claimIdsSorted: this.state.claims.map(c => c.claimId).sort(),
+      scoreBps: sl.scoreBps,
+      modelVersion: this.state.modelVersion,
+      issuedAt: this.state.issuedAt
+    };
+
+    pre.textContent = JSON.stringify(preimage, null, 2);
   }
 }
 
-// Bootstrap
 window.addEventListener('DOMContentLoaded', () => {
-  new AppController();
+  new WatchFloorApp();
 });

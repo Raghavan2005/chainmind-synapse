@@ -1,451 +1,256 @@
 /**
- * ChainMind Synapse - Dynamic Neural Visualizer & Physics Engine
- * Features:
- * - Monochromatic stealth palette with bioluminescent hyper-teal highlights
- * - Interactive click shockwave ripples
- * - Sweeping radar scanlines and concentric pulse rings
- * - Dynamic photon packets with glowing trailing tails
- * - Real-time waveform entropy oscillator
+ * ChainMind Synapse — Watch Floor Visualizers
+ * - Ingestion Topology Canvas (Sepolia & Amoy log emitters to consensus core)
+ * - Jøsang Opinion Simplex Widget (Barycentric coordinate mapping: b + d + u = 1)
  */
 
 export class SynapseCanvas {
-  constructor(canvasElement, onNodeSelect) {
-    this.canvas = canvasElement;
-    this.ctx = canvasElement.getContext('2d');
-    this.onNodeSelect = onNodeSelect;
+  constructor(synapseCanvasEl, simplexCanvasEl) {
+    this.canvas = synapseCanvasEl;
+    this.ctx = synapseCanvasEl.getContext('2d');
     
+    this.simplexCanvas = simplexCanvasEl;
+    this.simplexCtx = simplexCanvasEl ? simplexCanvasEl.getContext('2d') : null;
+
     this.nodes = [];
     this.particles = [];
-    this.ripples = [];
     this.coreNode = null;
-    this.mouse = { x: null, y: null, isHovering: false, isDragging: false, draggedNode: null };
-    this.radarAngle = 0;
-    this.fps = 60;
-    this.frameCount = 0;
-    this.lastFpsUpdate = performance.now();
+    this.currentOpinion = { b: 0.44, d: 0.44, u: 0.12 };
 
-    // Waveform oscillator canvas
-    this.waveCanvas = document.getElementById('waveform-canvas');
-    this.waveCtx = this.waveCanvas ? this.waveCanvas.getContext('2d') : null;
-    this.wavePhase = 0;
-    
-    this.initCanvas();
-    this.bindEvents();
+    this.init();
+  }
+
+  init() {
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
     this.startAnimationLoop();
   }
 
-  initCanvas() {
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-  }
-
   resize() {
-    const rect = this.canvas.parentElement.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
-    this.width = rect.width;
-    this.height = rect.height;
-    
-    if (this.coreNode) {
-      this.coreNode.x = this.width / 2;
-      this.coreNode.y = this.height / 2;
+    if (this.canvas) {
+      const rect = this.canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      this.canvas.width = rect.width * dpr;
+      this.canvas.height = rect.height * dpr;
+      this.ctx.scale(dpr, dpr);
+      this.width = rect.width;
+      this.height = rect.height;
+    }
+
+    if (this.simplexCanvas) {
+      const rect = this.simplexCanvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      this.simplexCanvas.width = rect.width * dpr;
+      this.simplexCanvas.height = rect.height * dpr;
+      this.simplexCtx.scale(dpr, dpr);
+      this.simplexWidth = rect.width;
+      this.simplexHeight = rect.height;
     }
   }
 
-  bindEvents() {
-    const getPos = (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-    };
-
-    this.canvas.addEventListener('mousemove', (e) => {
-      const pos = getPos(e);
-      this.mouse.x = pos.x;
-      this.mouse.y = pos.y;
-      this.mouse.isHovering = true;
-
-      // Update global mouse spotlight
-      const spot = document.getElementById('mouse-spotlight');
-      if (spot) {
-        spot.style.left = e.clientX + 'px';
-        spot.style.top = e.clientY + 'px';
-      }
-
-      if (this.mouse.isDragging && this.mouse.draggedNode) {
-        this.mouse.draggedNode.x = pos.x;
-        this.mouse.draggedNode.y = pos.y;
-        this.mouse.draggedNode.vx = 0;
-        this.mouse.draggedNode.vy = 0;
-      } else {
-        const hovered = this.findNodeAt(pos.x, pos.y);
-        this.canvas.style.cursor = hovered ? 'pointer' : 'crosshair';
-        if (hovered && this.onNodeSelect) {
-          this.onNodeSelect(hovered, e.clientX, e.clientY);
-        } else if (!hovered && this.onNodeSelect) {
-          this.onNodeSelect(null);
-        }
-      }
-    });
-
-    this.canvas.addEventListener('mousedown', (e) => {
-      const pos = getPos(e);
-      const clicked = this.findNodeAt(pos.x, pos.y);
-      
-      // Spawn shockwave ripple
-      this.ripples.push({
-        x: pos.x,
-        y: pos.y,
-        radius: 5,
-        maxRadius: 160,
-        alpha: 0.9,
-        speed: 4
-      });
-
-      if (clicked && !clicked.isCore) {
-        this.mouse.isDragging = true;
-        this.mouse.draggedNode = clicked;
-        this.canvas.style.cursor = 'grabbing';
-      }
-    });
-
-    window.addEventListener('mouseup', () => {
-      this.mouse.isDragging = false;
-      this.mouse.draggedNode = null;
-      this.canvas.style.cursor = 'crosshair';
-    });
-
-    this.canvas.addEventListener('mouseleave', () => {
-      this.mouse.isHovering = false;
-      this.mouse.x = null;
-      this.mouse.y = null;
-      if (this.onNodeSelect) this.onNodeSelect(null);
-    });
-  }
-
-  findNodeAt(x, y) {
-    for (let i = this.nodes.length - 1; i >= 0; i--) {
-      const n = this.nodes[i];
-      const dist = Math.hypot(n.x - x, n.y - y);
-      if (dist <= n.radius + 8) return n;
-    }
-    if (this.coreNode) {
-      const dist = Math.hypot(this.coreNode.x - x, this.coreNode.y - y);
-      if (dist <= this.coreNode.radius + 12) return this.coreNode;
-    }
-    return null;
-  }
-
-  loadState(claims) {
+  loadState(claims, fusedOpinion) {
     this.nodes = [];
     this.particles = [];
+    if (fusedOpinion) this.currentOpinion = fusedOpinion;
+
     const centerX = this.width / 2;
     const centerY = this.height / 2;
 
-    // AI Core Node
+    // Consensus Core Node
     this.coreNode = {
-      id: 'core-ai',
-      title: 'ChainMind AI Arbiter',
-      chain: 'Consensus Core',
-      type: 'AI Engine',
       x: centerX,
       y: centerY,
-      radius: 28,
-      pulse: 0,
-      isCore: true,
-      color: '#00f5a0'
+      radius: 24,
+      title: 'Consensus Core'
     };
 
+    // Distribute Sepolia and Amoy claims
     const total = claims.length;
-    const radiusOrbit = Math.min(this.width, this.height) * 0.36;
+    const radiusOrbit = Math.min(this.width, this.height) * 0.35;
 
     claims.forEach((claim, idx) => {
       const angle = (idx / total) * Math.PI * 2 - Math.PI / 2;
-      const x = centerX + Math.cos(angle) * (radiusOrbit + (idx % 2 === 0 ? 25 : -15));
-      const y = centerY + Math.sin(angle) * (radiusOrbit * 0.75 + (idx % 2 === 0 ? 15 : -10));
+      const x = centerX + Math.cos(angle) * radiusOrbit;
+      const y = centerY + Math.sin(angle) * (radiusOrbit * 0.75);
 
-      let nodeColor = '#00f5a0'; // Teal Valid
-      if (claim.status === 'Revoked') nodeColor = '#ff4757';
-      if (claim.status === 'Under Dispute' || claim.status === 'Expired') nodeColor = '#94a3b8';
-
-      const node = {
+      this.nodes.push({
         ...claim,
-        x: x,
-        y: y,
-        vx: 0,
-        vy: 0,
-        radius: 18,
-        angle: angle,
+        x,
+        y,
+        angle,
         orbitRadius: radiusOrbit,
-        color: nodeColor
-      };
-
-      this.nodes.push(node);
+        radius: 16,
+        color: claim.polarity === 1 ? '#6f9d7a' : '#c45b4a'
+      });
     });
 
-    this.initSynapseParticles();
-  }
-
-  initSynapseParticles() {
+    // Particle flow
     this.particles = [];
-    this.nodes.forEach((node) => {
-      const count = 4;
-      for (let i = 0; i < count; i++) {
+    this.nodes.forEach(n => {
+      for (let i = 0; i < 3; i++) {
         this.particles.push({
-          sourceNode: node,
-          progress: i / count,
+          sourceNode: n,
+          progress: i / 3,
           speed: 0.006 + Math.random() * 0.004,
-          size: 2.5,
-          color: node.color,
-          trail: []
+          color: n.color
         });
       }
     });
   }
 
   updatePhysics() {
-    const time = performance.now() * 0.001;
-
-    // Radar scan rotation
-    this.radarAngle += 0.02;
-
-    // Pulse core
-    if (this.coreNode) {
-      this.coreNode.pulse = Math.sin(time * 3) * 4;
-    }
-
-    // Update Ripples
-    for (let i = this.ripples.length - 1; i >= 0; i--) {
-      const r = this.ripples[i];
-      r.radius += r.speed;
-      r.alpha -= 0.015;
-      if (r.alpha <= 0 || r.radius >= r.maxRadius) {
-        this.ripples.splice(i, 1);
-      }
-    }
-
-    // Nodes gentle orbital floating
-    this.nodes.forEach((node, idx) => {
-      if (node === this.mouse.draggedNode) return;
-
-      const targetX = (this.width / 2) + Math.cos(node.angle + time * 0.08) * node.orbitRadius;
-      const targetY = (this.height / 2) + Math.sin(node.angle + time * 0.08) * (node.orbitRadius * 0.72);
-
-      node.vx += (targetX - node.x) * 0.02;
-      node.vy += (targetY - node.y) * 0.02;
-      node.vx *= 0.88;
-      node.vy *= 0.88;
-      node.x += node.vx;
-      node.y += node.vy;
-    });
-
-    // Update particle flow & trailing tails
-    this.particles.forEach((p) => {
+    this.particles.forEach(p => {
       p.progress += p.speed;
-      if (p.progress >= 1) {
-        p.progress = 0;
-        p.trail = [];
-      }
+      if (p.progress >= 1) p.progress = 0;
     });
   }
 
   draw() {
+    if (!this.ctx || !this.coreNode) return;
     this.ctx.clearRect(0, 0, this.width, this.height);
-
-    if (!this.coreNode) return;
 
     const cx = this.coreNode.x;
     const cy = this.coreNode.y;
 
-    // 1. Draw Concentric Radar Scan Grid
-    this.ctx.save();
-    [80, 160, 240].forEach((r) => {
+    // Synaptic connections
+    this.nodes.forEach(n => {
       this.ctx.beginPath();
-      this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-      this.ctx.lineWidth = 1;
+      this.ctx.moveTo(n.x, n.y);
+      this.ctx.lineTo(cx, cy);
+      this.ctx.strokeStyle = n.revoked ? 'rgba(196, 91, 74, 0.4)' : 'rgba(42, 50, 44, 0.8)';
+      this.ctx.lineWidth = n.polarity === -1 ? 2 : 1;
+      if (n.polarity === -1) this.ctx.setLineDash([4, 4]);
+      else this.ctx.setLineDash([]);
       this.ctx.stroke();
     });
 
-    // Sweeping Radar Line
-    const scanX = cx + Math.cos(this.radarAngle) * 240;
-    const scanY = cy + Math.sin(this.radarAngle) * 180;
-    const radarGrad = this.ctx.createLinearGradient(cx, cy, scanX, scanY);
-    radarGrad.addColorStop(0, 'rgba(0, 245, 160, 0.25)');
-    radarGrad.addColorStop(1, 'rgba(0, 245, 160, 0)');
-    
-    this.ctx.beginPath();
-    this.ctx.moveTo(cx, cy);
-    this.ctx.lineTo(scanX, scanY);
-    this.ctx.strokeStyle = radarGrad;
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-    this.ctx.restore();
-
-    // 2. Draw Interactive Shockwave Ripples
-    this.ripples.forEach((r) => {
-      this.ctx.save();
-      this.ctx.beginPath();
-      this.ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
-      this.ctx.strokeStyle = `rgba(0, 245, 160, ${r.alpha})`;
-      this.ctx.lineWidth = 1.5;
-      this.ctx.shadowColor = '#00f5a0';
-      this.ctx.shadowBlur = 10;
-      this.ctx.stroke();
-      this.ctx.restore();
-    });
-
-    // 3. Draw Synaptic Curves
-    this.nodes.forEach((node) => {
-      const midX = (node.x + cx) / 2;
-      const midY = (node.y + cy) / 2;
-      const offset = 25 * Math.sin(node.angle);
-
-      this.ctx.beginPath();
-      this.ctx.moveTo(node.x, node.y);
-      this.ctx.quadraticCurveTo(midX + offset, midY - offset, cx, cy);
-      
-      this.ctx.strokeStyle = node.isTampered ? 'rgba(255, 71, 87, 0.4)' : 'rgba(255, 255, 255, 0.08)';
-      this.ctx.lineWidth = 1.5;
-      if (node.isTampered) {
-        this.ctx.setLineDash([5, 5]);
-      } else {
-        this.ctx.setLineDash([]);
-      }
-      this.ctx.stroke();
-    });
-
-    // 4. Draw Flowing Photons
-    this.particles.forEach((p) => {
-      const node = p.sourceNode;
-      const midX = (node.x + cx) / 2;
-      const midY = (node.y + cy) / 2;
-      const offset = 25 * Math.sin(node.angle);
-
-      const t = p.progress;
-      const cpX = midX + offset;
-      const cpY = midY - offset;
-      
-      const px = (1 - t) * (1 - t) * node.x + 2 * (1 - t) * t * cpX + t * t * cx;
-      const py = (1 - t) * (1 - t) * node.y + 2 * (1 - t) * t * cpY + t * t * cy;
+    // Flowing particles
+    this.particles.forEach(p => {
+      const nx = p.sourceNode.x;
+      const ny = p.sourceNode.y;
+      const px = nx + (cx - nx) * p.progress;
+      const py = ny + (cy - ny) * p.progress;
 
       this.ctx.save();
       this.ctx.beginPath();
-      this.ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      this.ctx.arc(px, py, 2.5, 0, Math.PI * 2);
       this.ctx.fillStyle = p.color;
-      this.ctx.shadowColor = p.color;
-      this.ctx.shadowBlur = 8;
       this.ctx.fill();
       this.ctx.restore();
     });
 
-    // 5. Draw Central AI Core
-    const core = this.coreNode;
+    // Core Node
     this.ctx.save();
-    
-    // Core Outer Pulse
     this.ctx.beginPath();
-    this.ctx.arc(core.x, core.y, core.radius + 14 + core.pulse, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(0, 245, 160, 0.2)';
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-
-    // Core Solid Body
-    this.ctx.beginPath();
-    this.ctx.arc(core.x, core.y, core.radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = '#0b0d0f';
-    this.ctx.strokeStyle = '#00f5a0';
+    this.ctx.arc(cx, cy, this.coreNode.radius, 0, Math.PI * 2);
+    this.ctx.fillStyle = '#121614';
+    this.ctx.strokeStyle = '#c4783a';
     this.ctx.lineWidth = 2;
-    this.ctx.shadowColor = 'rgba(0, 245, 160, 0.4)';
-    this.ctx.shadowBlur = 16;
     this.ctx.fill();
     this.ctx.stroke();
 
-    // Core Label
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = 'bold 13px "JetBrains Mono"';
+    this.ctx.fillStyle = '#ebe4d4';
+    this.ctx.font = '500 11px "IBM Plex Mono"';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('CORE', core.x, core.y);
-
+    this.ctx.fillText('CORE', cx, cy);
     this.ctx.restore();
 
-    // 6. Draw Nodes
-    this.nodes.forEach((node) => {
+    // Ingested Nodes
+    this.nodes.forEach(n => {
       this.ctx.save();
-
       this.ctx.beginPath();
-      this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#121518';
-      this.ctx.strokeStyle = node.color;
-      this.ctx.lineWidth = 2;
-      this.ctx.shadowColor = node.color;
-      this.ctx.shadowBlur = 8;
+      this.ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      this.ctx.fillStyle = '#1a1f1c';
+      this.ctx.strokeStyle = n.polarity === 1 ? '#6f9d7a' : '#c45b4a';
+      this.ctx.lineWidth = 1.5;
       this.ctx.fill();
       this.ctx.stroke();
 
-      // Node Label
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = 'bold 10.5px "Outfit"';
+      this.ctx.fillStyle = '#ebe4d4';
+      this.ctx.font = '500 9.5px "IBM Plex Mono"';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
-      const initial = node.chain.substring(0, 3).toUpperCase();
-      this.ctx.fillText(initial, node.x, node.y);
+      this.ctx.fillText(n.chainName.substring(0, 3).toUpperCase(), n.x, n.y);
 
-      this.ctx.font = '10px "Outfit"';
-      this.ctx.fillStyle = '#64748b';
-      this.ctx.fillText(node.type.split(' ')[0], node.x, node.y + node.radius + 13);
-
+      this.ctx.font = '10px "IBM Plex Sans"';
+      this.ctx.fillStyle = '#8a8476';
+      this.ctx.fillText(n.topic, n.x, n.y + n.radius + 12);
       this.ctx.restore();
     });
 
-    // 7. Draw Mini Waveform Oscillator Widget
-    this.drawWaveform();
+    // Draw Barycentric Simplex
+    this.drawSimplex();
   }
 
-  drawWaveform() {
-    if (!this.waveCtx || !this.waveCanvas) return;
-    const w = this.waveCanvas.width;
-    const h = this.waveCanvas.height;
-    
-    this.waveCtx.clearRect(0, 0, w, h);
-    this.wavePhase += 0.08;
+  drawSimplex() {
+    if (!this.simplexCtx) return;
+    const sCtx = this.simplexCtx;
+    const w = this.simplexWidth;
+    const h = this.simplexHeight;
 
-    this.waveCtx.beginPath();
-    this.waveCtx.moveTo(0, h / 2);
-    
-    for (let x = 0; x < w; x++) {
-      const y = (h / 2) + Math.sin((x * 0.08) + this.wavePhase) * (h * 0.35);
-      this.waveCtx.lineTo(x, y);
-    }
+    sCtx.clearRect(0, 0, w, h);
 
-    this.waveCtx.strokeStyle = '#00f5a0';
-    this.waveCtx.lineWidth = 1.5;
-    this.waveCtx.shadowColor = '#00f5a0';
-    this.waveCtx.shadowBlur = 6;
-    this.waveCtx.stroke();
+    const pad = 24;
+    const topX = w / 2;
+    const topY = pad + 10;
+    const leftX = pad + 10;
+    const leftY = h - pad;
+    const rightX = w - pad - 10;
+    const rightY = h - pad;
+
+    // Simplex Triangle Border
+    sCtx.beginPath();
+    sCtx.moveTo(topX, topY); // Apex: Uncertainty u=1
+    sCtx.lineTo(leftX, leftY); // Left: Disbelief d=1
+    sCtx.lineTo(rightX, rightY); // Right: Belief b=1
+    sCtx.closePath();
+    sCtx.strokeStyle = '#2a322c';
+    sCtx.lineWidth = 1.5;
+    sCtx.fillStyle = '#121614';
+    sCtx.fill();
+    sCtx.stroke();
+
+    // Labels
+    sCtx.font = '500 10px "IBM Plex Mono"';
+    sCtx.textAlign = 'center';
+    
+    sCtx.fillStyle = '#8a8476';
+    sCtx.fillText('u=1 (Uncertainty)', topX, topY - 6);
+
+    sCtx.fillStyle = '#c45b4a';
+    sCtx.fillText('d=1 (Disbelief)', leftX + 10, leftY + 14);
+
+    sCtx.fillStyle = '#e4a15a';
+    sCtx.fillText('b=1 (Belief)', rightX - 10, rightY + 14);
+
+    // Compute barycentric point:
+    // P = b * Right + d * Left + u * Top
+    const b = this.currentOpinion.b || 0;
+    const d = this.currentOpinion.d || 0;
+    const u = this.currentOpinion.u || 0;
+
+    const px = b * rightX + d * leftX + u * topX;
+    const py = b * rightY + d * leftY + u * topY;
+
+    // Draw opinion coordinate point
+    sCtx.save();
+    sCtx.beginPath();
+    sCtx.arc(px, py, 5, 0, Math.PI * 2);
+    sCtx.fillStyle = '#c4783a';
+    sCtx.strokeStyle = '#ebe4d4';
+    sCtx.lineWidth = 1.5;
+    sCtx.fill();
+    sCtx.stroke();
+    sCtx.restore();
   }
 
   startAnimationLoop() {
-    const loop = (currentTime) => {
-      this.frameCount++;
-      if (currentTime - this.lastFpsUpdate >= 500) {
-        this.fps = Math.round((this.frameCount * 1000) / (currentTime - this.lastFpsUpdate));
-        this.frameCount = 0;
-        this.lastFpsUpdate = currentTime;
-        const fpsEl = document.getElementById('canvas-fps-counter');
-        if (fpsEl) fpsEl.textContent = `${this.fps} FPS`;
-      }
-
+    const loop = () => {
       this.updatePhysics();
       this.draw();
       requestAnimationFrame(loop);
     };
-
     requestAnimationFrame(loop);
   }
 }
