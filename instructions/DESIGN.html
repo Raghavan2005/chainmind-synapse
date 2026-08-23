@@ -54,7 +54,7 @@
       </ul>
 
       <h2 id="dashboard">Dashboard architecture</h2>
-      <p>One route: <code>/#/{subject}</code>. Query string also fine. Three columns on desktop, stacked on 375px:</p>
+      <p>One route: <code>/#/{subject}</code>. Query string also fine. First visit loads the demo subject so the floor is not an empty form. Above the rail: how-to, four-step pipeline, who/why, and a contrast table (Passport / Nomis / Trusta / LLM judge). Below evidence: glossary + curl cards. Jump buttons scroll; they must not steal the subject hash. Three columns on desktop, stacked on 375px:</p>
       <ol>
         <li><strong>Rail.</strong> Subject input, health chips (Sepolia, Unichain, Base, OP, Ink, Mode, Minato heads + accuracy), last commit hash → explorer.</li>
         <li><strong>Claims.</strong> Chronological list. Each row: chain chip, issuer, topic, polarity, pCredible, revoked/expired marks. Opposite polarities on the same topic get a shared brick rule.</li>

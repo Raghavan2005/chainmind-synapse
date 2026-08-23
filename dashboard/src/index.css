@@ -9,6 +9,7 @@
   --copper: #c4783a;
   --copper-2: #e4a15a;
   --moss: #6f9d7a;
+  --moss-2: #9ec9a6;
   --danger: #c45b4a;
   --warn: #d4a017;
   --serif: "Newsreader", serif;
@@ -19,13 +20,16 @@
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; }
 body {
-  background: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 92% -8%, rgba(196, 120, 58, 0.09), transparent 52%),
+    linear-gradient(180deg, var(--ink) 0%, #0e110f 100%);
   color: var(--bone);
   font-family: var(--sans);
   font-size: 15px;
+  line-height: 1.55;
 }
 button, input { font: inherit; }
-button:focus, input:focus { outline: 2px solid var(--copper); outline-offset: 2px; }
+button:focus, input:focus, a.as-btn:focus, button.textlink:focus { outline: 2px solid var(--copper); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
