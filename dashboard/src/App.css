@@ -73,7 +73,7 @@ h3 { font-size: 1rem; margin: 0 0 6px; }
 .hero { margin-bottom: 22px; }
 .howto {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 0;
   margin: 0 0 16px;
@@ -177,6 +177,14 @@ button.ghost, .as-btn.ghost {
 }
 button.ghost:hover, .as-btn.ghost:hover { border-color: var(--copper); background: transparent; }
 button.compact { min-height: 32px; padding: 4px 8px; font-size: 12px; font-family: var(--mono); }
+.llm-demo {
+  border: 1px solid var(--copper);
+  background: var(--ink-2);
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+.llm-demo p { margin: 0; font-size: 14px; }
+.llm-demo strong { color: var(--copper-2); font-family: var(--mono); font-weight: 500; }
 .byok {
   border: 1px solid var(--rule);
   background: var(--ink-2);

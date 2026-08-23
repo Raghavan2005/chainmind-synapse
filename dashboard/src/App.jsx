@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 const ENV_API = import.meta.env.VITE_API_BASE || "";
-const BYOK_KEY = "synapse.byok.v1";
+const BYOK_KEY = "synapse.byok.v2";
+const BYOK_KEY_LEGACY = "synapse.byok.v1";
 const DEMO_SUBJECT = "0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221";
 const DEFAULT_API = "https://fmngtnpp5e.us-east-1.awsapprunner.com";
+const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+const GROQ_MODEL = "qwen/qwen3.6-27b";
 
 const DEMO_FIGHT = [
   {
@@ -154,20 +157,27 @@ function OpinionBar({ opinion, compact }) {
   );
 }
 
+function defaultByok(apiBase = ENV_API) {
+  return { apiKey: "", baseUrl: GROQ_BASE_URL, model: GROQ_MODEL, apiBase };
+}
+
+function normalizeByok(parsed) {
+  const leftover = parsed.model === "gpt-4.1-mini" ? GROQ_MODEL : parsed.model;
+  return {
+    apiKey: parsed.apiKey || "",
+    baseUrl: parsed.baseUrl || GROQ_BASE_URL,
+    model: leftover || GROQ_MODEL,
+    apiBase: parsed.apiBase ?? ENV_API,
+  };
+}
+
 function loadByok() {
   try {
-    const raw = localStorage.getItem(BYOK_KEY);
-    if (!raw) return { apiKey: "", baseUrl: "", model: "", apiBase: ENV_API };
-    const parsed = JSON.parse(raw);
-    const leftover = parsed.model === "gpt-4.1-mini" ? "" : parsed.model;
-    return {
-      apiKey: parsed.apiKey || "",
-      baseUrl: parsed.baseUrl || "",
-      model: leftover || "",
-      apiBase: parsed.apiBase ?? ENV_API,
-    };
+    const raw = localStorage.getItem(BYOK_KEY) || localStorage.getItem(BYOK_KEY_LEGACY);
+    if (!raw) return defaultByok();
+    return normalizeByok(JSON.parse(raw));
   } catch {
-    return { apiKey: "", baseUrl: "", model: "", apiBase: ENV_API };
+    return defaultByok();
   }
 }
 
@@ -313,6 +323,7 @@ export default function App() {
   }
 
   function byokBody() {
+    // Blank key → operator App Runner / .env Groq default. Never send a browser key on GET.
     return { apiKey: byok.apiKey, baseUrl: byok.baseUrl, model: byok.model };
   }
 
@@ -326,7 +337,7 @@ export default function App() {
         body: JSON.stringify(byokBody()),
       });
       const data = await res.json();
-      setByokStatus(data.ok ? `LiteLLM ok · ${data.model}` : data.error || "Test failed");
+      setByokStatus(data.ok ? `Groq / LiteLLM ok · ${data.model}` : data.error || "Test failed");
     } catch (err) {
       setByokStatus(err.message || String(err));
     } finally {
@@ -334,15 +345,16 @@ export default function App() {
     }
   }
 
-  async function generateExplanation() {
-    if (!subject) {
+  async function generateExplanation(who) {
+    const target = (typeof who === "string" && who ? who : subject || DEMO_SUBJECT).trim();
+    if (!target) {
       setByokStatus("Load a subject first.");
       return;
     }
     setByokBusy("explain");
     setByokStatus("");
     try {
-      const res = await fetch(`${api}/v1/identity/${subject}/explain`, {
+      const res = await fetch(`${api}/v1/identity/${target}/explain`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(byokBody()),
@@ -354,12 +366,19 @@ export default function App() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setExplanation(data);
-      setByokStatus(`Explanation ready · engine ${data.engine || "—"}`);
+      setByokStatus(`Explanation ready · ${data.engine || "shap+litellm"} · ${GROQ_MODEL}`);
     } catch (err) {
       setByokStatus(err.message || String(err));
     } finally {
       setByokBusy("");
     }
+  }
+
+  function demoGroq(kind) {
+    applySubject(DEMO_SUBJECT);
+    jump("watch");
+    if (kind === "test") void testConnection();
+    else void generateExplanation(DEMO_SUBJECT);
   }
 
   async function copyCurl(id, text) {
@@ -422,10 +441,23 @@ export default function App() {
             <strong>3 · Verify the commit</strong>
             <span>Open history plus the three explorer links below — not only today’s overlay. Hash is keccak of the published preimage. LLM never emitted the score.</span>
           </li>
+          <li>
+            <strong>4 · Ask Groq for the prose</strong>
+            <span>
+              Operator default is Groq Cloud <code>{GROQ_MODEL}</code>. No key in the browser —
+              Test connection then Generate explanation. Score stays sklearn + Jøsang.
+            </span>
+          </li>
         </ol>
         <div className="hero-actions">
           <button type="button" onClick={() => { applySubject(DEMO_SUBJECT); jump("watch"); }}>
             Load demo subject
+          </button>
+          <button type="button" onClick={() => demoGroq("test")} disabled={byokBusy === "test"}>
+            {byokBusy === "test" ? "Testing Groq…" : "Test Groq Qwen"}
+          </button>
+          <button type="button" className="ghost" onClick={() => demoGroq("explain")} disabled={byokBusy === "explain"}>
+            {byokBusy === "explain" ? "Generating…" : "Generate explanation"}
           </button>
           <a className="as-btn ghost" href={`${api}/v1/identity/${DEMO_SUBJECT}`}>
             Raw GET JSON
@@ -433,9 +465,6 @@ export default function App() {
           <a className="as-btn ghost" href={`${api}/v1/identity/${DEMO_SUBJECT}/history`}>
             On-chain history
           </a>
-          <button type="button" className="ghost" onClick={() => jump("why")}>
-            Why this exists
-          </button>
         </div>
       </section>
 
@@ -541,18 +570,33 @@ export default function App() {
             {health?.ok ? "API ok" : health ? "degraded" : "API silent"}
           </Chip>
           <Chip kind={llm?.envConfigured ? "ok" : "warn"}>
-            extract {llm?.extractMode || "rules"} · explain {llm?.explainMode || explanation?.engine || "shap+template"}
+            {llm?.model || GROQ_MODEL} · extract {llm?.extractMode || "rules"} · explain {llm?.explainMode || explanation?.engine || "shap+template"}
           </Chip>
           {explanation?.engine && <Chip kind="ok">explain {explanation.engine}</Chip>}
         </div>
 
+        <div className="llm-demo">
+          <p>
+            Demo LLM is <strong>Groq {GROQ_MODEL}</strong> on the hosted API. Leave the key blank.
+            Optional BYOK is folded below if a judge wants their own <code>gsk_</code>.
+          </p>
+          <div className="byok-actions">
+            <button type="button" onClick={() => demoGroq("test")} disabled={byokBusy === "test"}>
+              {byokBusy === "test" ? "Testing…" : "Test Groq Qwen"}
+            </button>
+            <button type="button" onClick={() => generateExplanation(subject || DEMO_SUBJECT)} disabled={byokBusy === "explain"}>
+              {byokBusy === "explain" ? "Generating…" : "Generate explanation"}
+            </button>
+          </div>
+          {byokStatus && <p className="byok-status" role="status">{byokStatus}</p>}
+        </div>
+
         <details className="byok">
-          <summary>LiteLLM / BYOK and API base</summary>
+          <summary>Optional BYOK — override Groq / change API base</summary>
           <p className="byok-warn">
-            Operator default is Groq Cloud <code>qwen/qwen3.6-27b</code> via LiteLLM. Paste
-            <code>LLM_API_KEY</code> in the repo-root <code>.env</code> (laptop) or App Runner
-            runtime env (hosted explain). This panel is optional BYOK — leave the key blank to
-            use that default. BYOK never owns scoreBps. GET polls never include the key.
+            Fields below default to Groq Cloud <code>{GROQ_MODEL}</code>. Blank API key uses the
+            operator key already on App Runner. A pasted key stays in localStorage and is sent
+            only on Test / Generate — never on GET, never to Vercel env. BYOK never owns scoreBps.
           </p>
           <div className="byok-grid">
             <label>
@@ -569,7 +613,7 @@ export default function App() {
               <input
                 value={byok.baseUrl}
                 onChange={(e) => setByok({ ...byok, baseUrl: e.target.value })}
-                placeholder="https://api.groq.com/openai/v1 (or your OpenAI-compatible URL)"
+                placeholder={GROQ_BASE_URL}
                 aria-label="LLM base URL"
               />
             </label>
@@ -578,7 +622,7 @@ export default function App() {
               <input
                 value={byok.model}
                 onChange={(e) => setByok({ ...byok, model: e.target.value })}
-                placeholder="qwen/qwen3.6-27b"
+                placeholder={GROQ_MODEL}
                 aria-label="LLM model"
               />
             </label>
@@ -589,7 +633,7 @@ export default function App() {
                 autoComplete="off"
                 value={byok.apiKey}
                 onChange={(e) => setByok({ ...byok, apiKey: e.target.value })}
-                placeholder="optional gsk_… / sk-… (blank = operator .env)"
+                placeholder="optional — blank uses hosted Groq key"
                 aria-label="LLM API key"
               />
             </label>
@@ -760,6 +804,12 @@ export default function App() {
                   </p>
                 </div>
               ))}
+              <p className="section-help">
+                Prose from Groq <code>{GROQ_MODEL}</code> via LiteLLM. Does not change scoreBps.
+                <button type="button" className="compact" style={{ marginLeft: 8 }} onClick={() => generateExplanation(subject)} disabled={byokBusy === "explain"}>
+                  {byokBusy === "explain" ? "Generating…" : "Regenerate"}
+                </button>
+              </p>
               {explanation && (
                 <dl>
                   <dt>Summary · {explanation.engine || "—"}</dt>
