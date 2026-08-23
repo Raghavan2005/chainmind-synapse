@@ -1,53 +1,86 @@
-# Architectural & Engineering Decisions Log (decision.md)
+# Architecture & Decisions Log (decision.md)
 
-This log documents every architectural, algorithmic, and design decision made during the development of **ChainMind Synapse**, detailing the rationale, tradeoffs evaluated, and normative alignment with [`instructions/`](instructions/INDEX.html).
-
----
-
-## 1. Mathematical Model: Jøsang Subjective Logic vs. Simple Bayesian Average
-
-- **Decision**: Implemented Jøsang Cumulative Fusion ($\oplus$) with Beta opinion mapping $(\omega = (b, d, u, a))$ and pairwise conflict penalties $K_{ij} = b_i d_j + d_i b_j$ over simple weighted averages or naive probabilities.
-- **Why**:
-  - In multi-chain identity reconciliation, evidence from different issuers can directly contradict (e.g. Sepolia affirms `kyc.adult = +1`, Polygon Amoy affirms `kyc.adult = -1`).
-  - Standard Bayesian averaging conflates *high conflict* with *high uncertainty* (both end up near $p = 0.5$).
-  - Jøsang Subjective Logic explicitly decouples **Uncertainty ($u$)** from **Conflict Mass ($K$)**, preventing false certainty when conflicting claims are presented.
-- **Tradeoff Accepted**: Slightly higher computational complexity ($O(N^2)$ pairwise conflict calculation), which is negligible for identity claim sets ($N < 50$).
+This document explains every major engineering and design choice made in **ChainMind Synapse**. It is written in simple, beginner-friendly English so that any developer or student can understand **what** was built, **why** it was built this way, and **what tradeoffs** were accepted.
 
 ---
 
-## 2. Frontend Technology: Vanilla ES Modules & HTML5 Canvas vs. Heavy SPA Frameworks
+## 1. Mathematical Model: Jøsang Subjective Logic vs. Simple Averages
 
-- **Decision**: Built the watch floor using standard Vanilla JavaScript (ES Modules `import/export`), Native CSS Custom Properties, and HTML5 2D Canvas contexts instead of React/Next.js/Vite bundles.
-- **Why**:
-  - **Zero Compilation Latency**: Runs natively in any modern browser via lightweight HTTP server (`python -m http.server`).
-  - **Direct Canvas Physics Control**: 60 FPS requestAnimationFrame loops for particle flow and barycentric triangle math without React reconciliation overhead.
-  - **Spec Compliance**: Matches the direct deliverable requirements in [`instructions/PLAN.html`](instructions/PLAN.html) and [`instructions/DESIGN.html`](instructions/DESIGN.html).
-- **Tradeoff Accepted**: Manual DOM event binding in [`js/app.js`](js/app.js) instead of JSX declarative state bindings.
+### The Problem:
+When you collect identity information from multiple blockchains (like Ethereum Sepolia and Polygon Amoy), issuers sometimes give contradictory information. For example, one issuer says you are verified (`+1`), but another issuer says your credentials were revoked (`-1`).
+
+If you use a simple average:
+$$\text{Average} = \frac{1 + (-1)}{2} = 0$$
+The system thinks the result is "middle of the road", confusing **intense disagreement (conflict)** with **having no information at all (uncertainty)**.
+
+### The Chosen Solution: Jøsang Subjective Logic
+Instead of a single average number, we represent an opinion using three parts:
+- **Belief ($b$)**: How much solid evidence supports the person.
+- **Disbelief ($d$)**: How much solid evidence rejects the person.
+- **Uncertainty ($u$)**: How much information is completely missing.
+
+These three numbers always add up to 1:
+$$b + d + u = 1$$
+
+### Definitions of Key Terms:
+- **Epistemic Uncertainty**: Uncertainty caused by a lack of data. When you have zero claims, uncertainty is $100\%$ ($u = 1.0$).
+- **Conflict Mass ($K$)**: A penalty metric calculated when two issuers directly disagree ($b_1 \cdot d_2 + d_1 \cdot b_2$). When conflict spikes, the system reduces the final confidence score instead of guessing.
+- **Basis Points (bps)**: A unit of measurement where $1\% = 100\text{ bps}$. A score of $0.41$ confidence is written as $4100\text{ bps}$.
+
+### Why We Rejected Naive Averages:
+A simple average produces **false certainty**. Jøsang Subjective Logic ensures that if two banks disagree about your identity, the system honestly reports: *"We have high conflict, so we cannot verify this person with high confidence."*
+
+### Tradeoff Accepted:
+Calculating pairwise conflict between every pair of claims takes a few extra CPU cycles ($O(N^2)$ math), which is completely negligible for small claim sets ($N < 50$).
 
 ---
 
-## 3. UI Design System: Institutional Neutral Slate & Modern Typography
+## 2. Frontend Architecture: Vanilla JavaScript Modules vs. Heavy Frameworks
 
-- **Decision**: Adopted an institutional neutral palette (Deep Titanium Slate `#090b0e` $\to$ `#171b23`, Pure White `#ffffff`, Cool Slate `#94a3b8`) paired with **Plus Jakarta Sans** and **Space Mono**.
-- **Why**:
-  - Replaces distracting rainbow gradients and high-saturation neon with an institutional-grade, high-density dashboard suitable for real-time compliance and security audits.
-  - `Plus Jakarta Sans` provides high legibility at density, while `Space Mono` ensures tabular alignment for cryptographic hashes (`stateHash`, `commitId`), block heights, and basis point scores (`scoreBps`).
-- **Tradeoff Accepted**: Strict restraint on color accents; status indicators rely on border weights, typography contrast, and subtle monochrome fills.
+### The Problem:
+We needed an interactive, real-time dashboard that runs particle animations and ternary triangle coordinate updates at 60 frames per second without stuttering.
+
+### The Chosen Solution: Vanilla ES Modules & HTML5 Canvas
+- We used standard JavaScript (`import` and `export`) directly supported by all modern browsers.
+- We used native HTML5 2D Canvas contexts for high-speed particle simulation.
+
+### Why We Rejected Frameworks like React / Next.js / Vite:
+- **Zero Build Step**: No `npm run build` or Webpack bundling required. You can edit a file and immediately refresh the browser.
+- **Zero Framework Overhead**: React state re-renders can cause canvas animation stutters. Direct JavaScript canvas drawing runs smoothly at 60 FPS.
+- **Simple Deployment**: Runs on any lightweight static server (e.g. `uv run python -m http.server 3000`).
+
+### Tradeoff Accepted:
+We wrote explicit DOM event listeners in `js/app.js` instead of using JSX tags.
 
 ---
 
-## 4. On-Chain State Commitment Formula Matching `verify_hash.py`
+## 3. UI Theme: Institutional Neutral Slate vs. Flashy Neon
 
-- **Decision**: Modeled the state hash commitment strictly following:
-  $$\text{stateHash} = \text{keccak256}(\text{abi.encode}(\text{subject}, \text{claimsRoot}, \text{scoreBps}, \text{modelVersion}, \text{issuedAt}))$$
-- **Why**:
-  - Guarantees deterministic cryptographic preimages that can be verified off-chain via Python (`verify_hash.py`) and settled on-chain via EVM smart contracts on Sepolia (Chain ID `11155111`).
-- **Tradeoff Accepted**: Strict field ordering required in preimage JSON generation.
+### The Problem:
+Many Web3 dashboards use distracting rainbow neon colors, large 3D glowing spheres, and dark purple gradients. This makes it difficult to read cryptographic hashes and understand conflict alerts.
+
+### The Chosen Solution: Professional Institutional Neutral Palette
+- **Surfaces**: Titanium slate and deep charcoal (`#090b0e`, `#11141a`, `#171b23`).
+- **Typography**: Clean chalk white (`#ffffff`) for high contrast, paired with **Plus Jakarta Sans** for UI text and **Space Mono** for numbers and hashes.
+- **Hairline Dividers**: Subtle translucent borders (`rgba(255, 255, 255, 0.07)`).
+
+### Tradeoff Accepted:
+The interface looks like an institutional financial terminal (like Bloomberg or Stripe) rather than a colorful video game.
 
 ---
 
-## 5. Branching Strategy: Feature Branch & PR Merge Workflow
+## 4. On-Chain State Fingerprint: Keccak256 State Hash Commitment
 
-- **Decision**: Developed on `feature/interactive-frontend`, pushed to GitHub remote `origin`, and merged via Pull Request #15 into `master`.
-- **Why**:
-  - Follows industry pair-programming standards, ensuring an immutable audit trail of changes, automated CI checks, and clean git history on `master`.
+### The Problem:
+How does a smart contract or third-party app verify that the trust score displayed on the dashboard was legitimately computed and not altered?
+
+### The Chosen Solution: Cryptographic Preimage Hashing
+We calculate a single 32-byte cryptographic fingerprint (`stateHash`) using Ethereum's standard hashing algorithm (`keccak256`):
+$$\text{stateHash} = \text{keccak256}(\text{subject}, \text{claimsRoot}, \text{scoreBps}, \text{modelVersion}, \text{issuedAt})$$
+
+### Definition of Key Terms:
+- **Preimage**: The original raw data inputs (subject address, claim IDs, score in basis points, and timestamp) before they are hashed.
+- **Cryptographic Hash**: A one-way mathematical function that turns data into a unique string of letters and numbers (`0x...`). If even a single letter in the input changes, the hash changes completely.
+
+### Tradeoff Accepted:
+All preimage data must be formatted in strict alphabetical order so that both JavaScript and Python (`verify_hash.py`) produce the exact same hash.
