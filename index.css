@@ -1,34 +1,40 @@
 /* ==========================================================================
-   ChainMind Synapse — Strict 3-Color Harmonic Design System
-   Color 1: Deep Obsidian Slate (#080b12)
-   Color 2: Electric Cyan (#00f0ff)
-   Color 3: Solar Amber (#f59e0b)
+   ChainMind Synapse — Vivid Emerald Green & Pure White Design System
+   A strict, hyper-clean dual-palette: Emerald Green (#00f59b / #10b981) & Crisp White (#ffffff)
    ========================================================================== */
 
 :root {
-  /* Color 1: Deep Obsidian Slate Base */
-  --c1-base: #080b12;
-  --c1-panel: #0f1422;
-  --c1-surface: #161e32;
-  --c1-elevated: #1f2a44;
-  --c1-border: rgba(255, 255, 255, 0.08);
-  --c1-border-strong: rgba(255, 255, 255, 0.18);
+  /* Carbon Base Tones with Deep Emerald Undertones */
+  --bg-deep: #060907;
+  --bg-panel: #0d1410;
+  --bg-surface: #131c17;
+  --bg-elevated: #1a2720;
+  --bg-highlight: #22342b;
   
-  /* Color 2: Electric Cyan (Primary Accent / Consensus / Active) */
-  --c2-cyan: #00f0ff;
-  --c2-cyan-glow: rgba(0, 240, 255, 0.25);
-  --c2-cyan-dim: rgba(0, 240, 255, 0.1);
+  /* Hairline Translucent Emerald & White Borders */
+  --border-subtle: rgba(0, 245, 155, 0.12);
+  --border-medium: rgba(0, 245, 155, 0.25);
+  --border-strong: rgba(255, 255, 255, 0.35);
+  --border-white: #ffffff;
   
-  /* Color 3: Solar Amber (Secondary Accent / Conflict / Alerts / Warnings) */
-  --c3-amber: #f59e0b;
-  --c3-amber-glow: rgba(245, 158, 11, 0.25);
-  --c3-amber-dim: rgba(245, 158, 11, 0.1);
+  /* Core Emerald Green */
+  --green-vivid: #00f59b;
+  --green-mint: #10b981;
+  --green-glow: rgba(0, 245, 155, 0.3);
+  --green-dim: rgba(0, 245, 155, 0.1);
+  --green-soft: #6ee7b7;
+  
+  /* Pure White */
+  --white-pure: #ffffff;
+  --white-dim: #f0fdf4;
+  --white-glow: rgba(255, 255, 255, 0.3);
 
   /* Typography */
   --text-pure: #ffffff;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #f0fdf4;
+  --text-secondary: #a7f3d0;
+  --text-muted: #6ee7b7;
+  --text-dim: #4ade80;
 
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Space Mono', monospace;
@@ -41,9 +47,9 @@
   --radius-pill: 9999px;
 
   /* Shadows */
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--c1-border);
-  --shadow-cyan: 0 0 20px var(--c2-cyan-glow);
-  --shadow-amber: 0 0 20px var(--c3-amber-glow);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 0 1px var(--border-subtle);
+  --shadow-green: 0 0 24px var(--green-glow);
+  --shadow-white: 0 0 20px var(--white-glow);
 }
 
 /* Base Reset */
@@ -54,7 +60,7 @@
 }
 
 body {
-  background: radial-gradient(circle at 50% -10%, #111728 0%, #080b12 60%, #04060a 100%);
+  background: radial-gradient(circle at 50% -10%, #0e1a14 0%, #060907 60%, #030504 100%);
   background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -66,20 +72,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle Grid */
+/* Subtle Emerald Grid */
 .cyber-grid-overlay {
   position: fixed;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(0, 245, 155, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 155, 0.025) 1px, transparent 1px);
   background-size: 36px 36px;
   pointer-events: none;
   z-index: 0;
 }
 
 a {
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
   text-decoration: none;
 }
 a:hover {
@@ -95,7 +101,7 @@ button, input, select {
   position: absolute;
   top: -100px;
   left: 16px;
-  background: var(--c2-cyan);
+  background: var(--green-vivid);
   color: #000;
   padding: 8px 14px;
   z-index: 1000;
@@ -105,8 +111,8 @@ button, input, select {
 
 /* Masthead Navigation Bar */
 .masthead {
-  border-bottom: 1px solid var(--c1-border);
-  background: rgba(15, 20, 34, 0.85);
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(13, 20, 16, 0.85);
   backdrop-filter: blur(16px);
   padding: 12px 28px;
   display: flex;
@@ -124,10 +130,10 @@ button, input, select {
 }
 
 .mark-logo {
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
   font-size: 24px;
   line-height: 1;
-  text-shadow: 0 0 10px var(--c2-cyan-glow);
+  text-shadow: 0 0 12px var(--green-glow);
 }
 
 .brand-text-block {
@@ -140,12 +146,12 @@ button, input, select {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text-pure);
+  color: var(--white-pure);
 }
 
 .brand-kicker {
   font-size: 10.5px;
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
   font-family: var(--font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -166,29 +172,29 @@ button, input, select {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--c1-border);
-  background: var(--c1-panel);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
   color: var(--text-secondary);
 }
 
 .chip.ok {
-  border-color: rgba(0, 240, 255, 0.3);
-  background: var(--c2-cyan-dim);
-  color: var(--c2-cyan);
+  border-color: rgba(0, 245, 155, 0.35);
+  background: var(--green-dim);
+  color: var(--green-vivid);
 }
 
 .chip.warn {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: var(--c3-amber-dim);
-  color: var(--c3-amber);
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--white-pure);
 }
 
 .chip-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
+  background: var(--green-vivid);
+  box-shadow: 0 0 8px var(--green-vivid);
 }
 
 .header-actions {
@@ -197,12 +203,12 @@ button, input, select {
   gap: 10px;
 }
 
-/* Minimalist 3-Color Buttons */
+/* Green & White Buttons */
 .btn {
   padding: 7px 16px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--c1-border);
-  background: var(--c1-surface);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
   color: var(--text-primary);
   cursor: pointer;
   display: inline-flex;
@@ -214,37 +220,36 @@ button, input, select {
 }
 
 .btn:hover {
-  background: var(--c1-elevated);
-  border-color: var(--c1-border-strong);
-  color: var(--text-pure);
+  background: var(--bg-elevated);
+  border-color: var(--green-vivid);
+  color: var(--white-pure);
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--c2-cyan);
+  outline: 2px solid var(--green-vivid);
   outline-offset: 2px;
 }
 
 .btn-primary {
-  background: var(--c2-cyan);
-  color: #04060a;
+  background: var(--green-vivid);
+  color: #030504;
   border: none;
   font-weight: 700;
-  box-shadow: 0 2px 10px var(--c2-cyan-glow);
+  box-shadow: 0 2px 12px var(--green-glow);
 }
 .btn-primary:hover {
-  background: #33f3ff;
-  box-shadow: 0 4px 16px rgba(0, 240, 255, 0.4);
+  background: #34d399;
+  box-shadow: 0 4px 18px rgba(0, 245, 155, 0.45);
 }
 
 .btn-danger {
-  background: var(--c3-amber-dim);
-  color: var(--c3-amber);
-  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--white-pure);
+  border-color: var(--border-strong);
 }
 .btn-danger:hover {
-  background: rgba(245, 158, 11, 0.22);
-  border-color: var(--c3-amber);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--white-pure);
 }
 
 .btn-sm {
@@ -259,7 +264,7 @@ button, input, select {
   cursor: pointer;
   padding: 2px 4px;
 }
-.btn-icon:hover { color: var(--c2-cyan); }
+.btn-icon:hover { color: var(--green-vivid); }
 
 /* Main Layout Grid */
 .watchfloor-layout {
@@ -275,8 +280,8 @@ button, input, select {
 
 /* Hero Canvas & Simplex Section */
 .hero-visual-panel {
-  background: var(--c1-panel);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -287,8 +292,8 @@ button, input, select {
 .canvas-container {
   position: relative;
   height: 400px;
-  border-right: 1px solid var(--c1-border);
-  background: #0b0f1a;
+  border-right: 1px solid var(--border-subtle);
+  background: #090f0c;
 }
 
 #synapse-canvas {
@@ -315,7 +320,7 @@ button, input, select {
 .panel-kicker {
   font-size: 10px;
   font-family: var(--font-mono);
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -325,17 +330,17 @@ button, input, select {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text-pure);
+  color: var(--white-pure);
 }
 
 .scenario-pill-bar {
   pointer-events: auto;
   display: flex;
   gap: 6px;
-  background: var(--c1-base);
+  background: var(--bg-deep);
   padding: 4px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--c1-border);
+  border: 1px solid var(--border-subtle);
 }
 
 .pill-btn {
@@ -351,21 +356,21 @@ button, input, select {
 }
 
 .pill-btn:hover {
-  color: var(--text-pure);
-  background: var(--c1-surface);
+  color: var(--white-pure);
+  background: var(--bg-surface);
 }
 
 .pill-btn.active {
-  background: var(--c2-cyan);
-  color: #04060a;
+  background: var(--green-vivid);
+  color: #030504;
   font-weight: 700;
-  box-shadow: 0 2px 8px var(--c2-cyan-glow);
+  box-shadow: 0 2px 8px var(--green-glow);
 }
 
 /* Barycentric Opinion Simplex Widget */
 .simplex-container {
   padding: 18px;
-  background: var(--c1-panel);
+  background: var(--bg-panel);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -375,7 +380,7 @@ button, input, select {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid var(--c1-border);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 6px;
 }
 
@@ -383,7 +388,7 @@ button, input, select {
   font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-pure);
+  color: var(--white-pure);
 }
 
 .simplex-canvas-wrap {
@@ -391,8 +396,8 @@ button, input, select {
   width: 100%;
   height: 220px;
   border-radius: var(--radius-sm);
-  background: #090d17;
-  border: 1px solid var(--c1-border);
+  background: #060907;
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
 }
 
@@ -406,10 +411,10 @@ button, input, select {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  background: var(--c1-surface);
+  background: var(--bg-surface);
   padding: 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--c1-border);
+  border: 1px solid var(--border-subtle);
   font-family: var(--font-mono);
   font-size: 10.5px;
   text-align: center;
@@ -418,11 +423,11 @@ button, input, select {
 .simplex-prop strong {
   display: block;
   font-size: 13px;
-  color: var(--text-pure);
+  color: var(--white-pure);
   margin-top: 2px;
 }
-.simplex-prop.prop-b { color: var(--c2-cyan); }
-.simplex-prop.prop-d { color: var(--c3-amber); }
+.simplex-prop.prop-b { color: var(--green-vivid); }
+.simplex-prop.prop-d { color: var(--white-pure); }
 .simplex-prop.prop-u { color: var(--text-muted); }
 
 /* Three Column Watchfloor Grid */
@@ -433,8 +438,8 @@ button, input, select {
 }
 
 .panel-box {
-  background: var(--c1-panel);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 18px;
   display: flex;
@@ -445,14 +450,14 @@ button, input, select {
 }
 
 .panel-box:hover {
-  border-color: var(--c1-border-strong);
+  border-color: var(--border-medium);
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid var(--c1-border);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 8px;
 }
 
@@ -461,7 +466,7 @@ button, input, select {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text-pure);
+  color: var(--white-pure);
 }
 
 /* Rail Column Components */
@@ -472,17 +477,17 @@ button, input, select {
 
 .input-field {
   flex-grow: 1;
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
   padding: 6px 12px;
-  color: var(--text-pure);
+  color: var(--white-pure);
   font-family: var(--font-mono);
   font-size: 11.5px;
   outline: none;
 }
 .input-field:focus {
-  border-color: var(--c2-cyan);
+  border-color: var(--green-vivid);
 }
 
 .metadata-dl {
@@ -496,7 +501,7 @@ button, input, select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px dashed var(--c1-border);
+  border-bottom: 1px dashed var(--border-subtle);
   padding-bottom: 4px;
 }
 
@@ -511,35 +516,35 @@ button, input, select {
 
 .hash-text {
   font-family: var(--font-mono);
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   padding: 2px 5px;
   border-radius: 4px;
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
 }
 
 /* Conflict Alert Banner */
 .conflict-banner {
-  background: var(--c3-amber-dim);
-  border: 1px solid var(--c3-amber);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--white-pure);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  box-shadow: var(--shadow-amber);
+  box-shadow: var(--shadow-white);
 }
 
 .conflict-banner-title {
   font-family: var(--font-mono);
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--c3-amber);
+  color: var(--white-pure);
 }
 
 .conflict-banner-body {
   font-size: 11px;
-  color: #fde68a;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
@@ -554,11 +559,11 @@ button, input, select {
 }
 
 .claims-list::-webkit-scrollbar { width: 3px; }
-.claims-list::-webkit-scrollbar-thumb { background: var(--c1-border-strong); }
+.claims-list::-webkit-scrollbar-thumb { background: var(--border-medium); }
 
 .claim-row {
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   display: flex;
@@ -568,14 +573,14 @@ button, input, select {
 }
 
 .claim-row:hover {
-  background: var(--c1-elevated);
-  border-color: rgba(0, 240, 255, 0.3);
+  background: var(--bg-elevated);
+  border-color: rgba(0, 245, 155, 0.35);
 }
 
 .claim-row.has-conflict {
-  border-color: var(--c3-amber);
+  border-color: var(--white-pure);
   border-left-width: 3px;
-  background: rgba(245, 158, 11, 0.05);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .claim-header-line {
@@ -593,12 +598,12 @@ button, input, select {
   font-size: 10px;
   text-transform: uppercase;
 }
-.polarity-plus { background: var(--c2-cyan-dim); color: var(--c2-cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
-.polarity-minus { background: var(--c3-amber-dim); color: var(--c3-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+.polarity-plus { background: var(--green-dim); color: var(--green-vivid); border: 1px solid rgba(0, 245, 155, 0.3); }
+.polarity-minus { background: rgba(255, 255, 255, 0.08); color: var(--white-pure); border: 1px solid rgba(255, 255, 255, 0.3); }
 
 .claim-topic-name {
   font-weight: 600;
-  color: var(--text-pure);
+  color: var(--white-pure);
   font-size: 13px;
 }
 
@@ -612,13 +617,13 @@ button, input, select {
 }
 
 .p-cred-badge {
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
 }
 
 /* Column 3: Fusion & Explanation */
 .fusion-headline-box {
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   display: flex;
@@ -636,8 +641,8 @@ button, input, select {
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
-  color: var(--c2-cyan);
-  text-shadow: 0 0 12px var(--c2-cyan-glow);
+  color: var(--green-vivid);
+  text-shadow: 0 0 14px var(--green-glow);
 }
 
 .score-sub-label {
@@ -655,9 +660,9 @@ button, input, select {
   border-radius: var(--radius-pill);
   text-transform: uppercase;
 }
-.verdict-conflict { background: var(--c3-amber-dim); color: var(--c3-amber); border: 1px solid var(--c3-amber); }
-.verdict-supported { background: var(--c2-cyan-dim); color: var(--c2-cyan); border: 1px solid var(--c2-cyan); }
-.verdict-insufficient { background: rgba(255, 255, 255, 0.06); color: var(--text-secondary); border: 1px solid var(--c1-border); }
+.verdict-conflict { background: rgba(255, 255, 255, 0.08); color: var(--white-pure); border: 1px solid var(--white-pure); }
+.verdict-supported { background: var(--green-dim); color: var(--green-vivid); border: 1px solid var(--green-vivid); }
+.verdict-insufficient { background: rgba(255, 255, 255, 0.04); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
 
 /* Stacked Opinion Bar b / d / u */
 .opinion-bar-wrap {
@@ -679,13 +684,13 @@ button, input, select {
   display: flex;
   border-radius: var(--radius-pill);
   overflow: hidden;
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
 }
 
-.bar-b { background: var(--c2-cyan); box-shadow: 0 0 6px var(--c2-cyan-glow); transition: width 0.4s ease; }
-.bar-d { background: var(--c3-amber); box-shadow: 0 0 6px var(--c3-amber-glow); transition: width 0.4s ease; }
-.bar-u { background: var(--text-muted); transition: width 0.4s ease; }
+.bar-b { background: var(--green-vivid); box-shadow: 0 0 8px var(--green-glow); transition: width 0.4s ease; }
+.bar-d { background: #ffffff; transition: width 0.4s ease; }
+.bar-u { background: #22342b; transition: width 0.4s ease; }
 
 /* SHAP Definition List */
 .shap-reasons-list {
@@ -695,8 +700,8 @@ button, input, select {
 }
 
 .shap-item {
-  background: var(--c1-surface);
-  border: 1px solid var(--c1-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   font-size: 11.5px;
@@ -712,9 +717,9 @@ button, input, select {
   font-size: 11px;
 }
 
-.shap-feat { color: var(--text-pure); font-weight: 600; }
-.shap-val-pos { color: var(--c2-cyan); font-family: var(--font-mono); }
-.shap-val-neg { color: var(--c3-amber); font-family: var(--font-mono); }
+.shap-feat { color: var(--white-pure); font-weight: 600; }
+.shap-val-pos { color: var(--green-vivid); font-family: var(--font-mono); }
+.shap-val-neg { color: var(--white-pure); font-family: var(--font-mono); }
 
 .shap-desc {
   color: var(--text-secondary);
@@ -725,7 +730,7 @@ button, input, select {
 .caveats-box {
   font-size: 10.5px;
   color: var(--text-muted);
-  border-top: 1px solid var(--c1-border);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 8px;
   display: flex;
   flex-direction: column;
@@ -736,7 +741,7 @@ button, input, select {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 6, 10, 0.85);
+  background: rgba(3, 5, 4, 0.85);
   backdrop-filter: blur(6px);
   z-index: 1000;
   display: flex;
@@ -750,9 +755,9 @@ button, input, select {
 .modal-dialog {
   width: 100%;
   max-width: 660px;
-  background: var(--c1-panel);
-  border: 1px solid var(--c2-cyan);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), var(--shadow-cyan);
+  background: var(--bg-panel);
+  border: 1px solid var(--green-vivid);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), var(--shadow-green);
   border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
@@ -764,7 +769,7 @@ button, input, select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--c1-border);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 8px;
 }
 
@@ -772,17 +777,17 @@ button, input, select {
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-pure);
+  color: var(--white-pure);
 }
 
 .code-pre-box {
-  background: #05070d;
-  border: 1px solid var(--c1-border);
+  background: #050806;
+  border: 1px solid var(--border-subtle);
   padding: 12px;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--c2-cyan);
+  color: var(--green-vivid);
   max-height: 300px;
   overflow-y: auto;
 }
@@ -790,6 +795,6 @@ button, input, select {
 /* Responsive */
 @media (max-width: 1100px) {
   .hero-visual-panel { grid-template-columns: 1fr; }
-  .canvas-container { border-right: none; border-bottom: 1px solid var(--c1-border); }
+  .canvas-container { border-right: none; border-bottom: 1px solid var(--border-subtle); }
   .three-column-grid { grid-template-columns: 1fr; }
 }
