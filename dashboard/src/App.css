@@ -204,6 +204,16 @@ input[type="password"] { letter-spacing: 0.08em; }
 .banner.danger { border-color: var(--danger); }
 .banner.warn { border-color: var(--warn); }
 .banner.ok { border-color: var(--moss); }
+.fight {
+  padding: 12px 14px;
+  border: 1px solid var(--copper);
+  background: var(--ink-2);
+  margin-bottom: 14px;
+}
+.fight p { margin: 0 0 10px; color: var(--bone); font-size: 14px; }
+.fight ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.fight li { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; font-size: 13px; }
+.fight code { color: var(--mute); font-size: 12px; }
 .statstrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

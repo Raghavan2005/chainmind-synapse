@@ -5,6 +5,7 @@ from services.common.chains import (
     FORBIDDEN_MAINNET_BRIDGES,
     INK_SEPOLIA_CHAIN_ID,
     L2_CHAINS,
+    LOG_RANGE,
     MODE_SEPOLIA_CHAIN_ID,
     OP_SEPOLIA_CHAIN_ID,
     SETTLEMENT_CHAIN_ID,
@@ -12,6 +13,7 @@ from services.common.chains import (
     UNICHAIN_SEPOLIA_CHAIN_ID,
     chain_by_slug,
     did_ethr,
+    ingest_floor,
     is_forbidden_mainnet_bridge,
 )
 
@@ -59,6 +61,13 @@ def test_did_ethr_labels():
     assert did_ethr(11155111, addr) == f"did:ethr:sepolia:{addr}"
     assert did_ethr(84532, addr) == f"did:ethr:eip155:84532:{addr}"
     assert did_ethr(11155420, addr) == f"did:ethr:eip155:11155420:{addr}"
+
+
+def test_ingest_floor_uses_claimsource_deploy_not_head_minus_2k():
+    assert LOG_RANGE == 2000
+    assert ingest_floor(SETTLEMENT_CHAIN_ID, 99_000_000) == CHAINS[SETTLEMENT_CHAIN_ID].ingest_from_block
+    assert ingest_floor(UNICHAIN_SEPOLIA_CHAIN_ID, 99_000_000) == CHAINS[UNICHAIN_SEPOLIA_CHAIN_ID].ingest_from_block
+    assert ingest_floor(SETTLEMENT_CHAIN_ID, 99_000_000) < 99_000_000 - LOG_RANGE
 
 
 def test_slug_aliases():

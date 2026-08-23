@@ -42,6 +42,10 @@ class ChainSpec:
     rpc_default: str
     rpc_fallback_default: str
     rewind: int = 12
+    # ClaimSource deploy block from contracts/broadcast (2026-08-23). Cold ingest
+    # starts here — L2 heads move thousands of blocks per hour, so head-2000 misses
+    # the demo posts.
+    ingest_from_block: int = 0
 
 
 CHAINS: dict[int, ChainSpec] = {
@@ -57,6 +61,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://sepolia.etherscan.io",
         rpc_default="https://ethereum-sepolia-rpc.publicnode.com",
         rpc_fallback_default="https://1rpc.io/sepolia",
+        ingest_from_block=11548216,
     ),
     UNICHAIN_SEPOLIA_CHAIN_ID: ChainSpec(
         chain_id=UNICHAIN_SEPOLIA_CHAIN_ID,
@@ -70,6 +75,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://sepolia.uniscan.xyz",
         rpc_default="https://sepolia.unichain.org",
         rpc_fallback_default="https://unichain-sepolia.drpc.org",
+        ingest_from_block=60613451,
     ),
     BASE_SEPOLIA_CHAIN_ID: ChainSpec(
         chain_id=BASE_SEPOLIA_CHAIN_ID,
@@ -83,6 +89,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://sepolia.basescan.org",
         rpc_default="https://sepolia.base.org",
         rpc_fallback_default="https://base-sepolia-rpc.publicnode.com",
+        ingest_from_block=45850514,
     ),
     OP_SEPOLIA_CHAIN_ID: ChainSpec(
         chain_id=OP_SEPOLIA_CHAIN_ID,
@@ -96,6 +103,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://sepolia-optimism.etherscan.io",
         rpc_default="https://sepolia.optimism.io",
         rpc_fallback_default="https://optimism-sepolia-rpc.publicnode.com",
+        ingest_from_block=47833396,
     ),
     INK_SEPOLIA_CHAIN_ID: ChainSpec(
         chain_id=INK_SEPOLIA_CHAIN_ID,
@@ -109,6 +117,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://explorer-sepolia.inkonchain.com",
         rpc_default="https://rpc-gel-sepolia.inkonchain.com",
         rpc_fallback_default="https://rpc-gel-sepolia.inkonchain.com",
+        ingest_from_block=58466054,
     ),
     MODE_SEPOLIA_CHAIN_ID: ChainSpec(
         chain_id=MODE_SEPOLIA_CHAIN_ID,
@@ -122,6 +131,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://sepolia.explorer.mode.network",
         rpc_default="https://sepolia.mode.network",
         rpc_fallback_default="https://sepolia.mode.network",
+        ingest_from_block=49800714,
     ),
     SONEIUM_MINATO_CHAIN_ID: ChainSpec(
         chain_id=SONEIUM_MINATO_CHAIN_ID,
@@ -135,6 +145,7 @@ CHAINS: dict[int, ChainSpec] = {
         explorer="https://soneium-minato.blockscout.com",
         rpc_default="https://rpc.minato.soneium.org",
         rpc_fallback_default="https://rpc.minato.soneium.org",
+        ingest_from_block=32137515,
     ),
 }
 
@@ -177,3 +188,13 @@ def did_ethr(chain_id: int, addr: str) -> str:
 def rewind_blocks(chain_id: int) -> int:
     spec = CHAINS.get(chain_id)
     return spec.rewind if spec else 12
+
+
+LOG_RANGE = 2_000
+
+
+def ingest_floor(chain_id: int, head: int) -> int:
+    spec = CHAINS.get(chain_id)
+    if spec and spec.ingest_from_block:
+        return spec.ingest_from_block
+    return max(0, head - LOG_RANGE)

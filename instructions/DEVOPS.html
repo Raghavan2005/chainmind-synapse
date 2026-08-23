@@ -39,7 +39,7 @@
       </table>
       <div class="forbid">
         <p><strong>Human override 2026-08-23:</strong> <code>AWS_DEPLOY_ENABLED=true</code> and <code>VERCEL_DEPLOY_ENABLED=true</code> so GitHub actually ships. The public API is a single App Runner service (image CMD runs ingest beside uvicorn; no <code>DEPLOYER_PRIVATE_KEY</code>). Do not <code>terraform apply</code> <code>enable_runtime=true</code> — that still creates Secrets Manager. Create/roll App Runner from the CLI + the gated workflow. Prefer <code>scripts/aws_preflight.sh</code> for OIDC/ECR.</p>
-        <p><strong>Do not</strong> put <code>DEPLOYER_PRIVATE_KEY</code>, issuer keys, or <code>LLM_API_KEY</code> in Vercel env. Browser BYOK is localStorage + per-request. Operator keys stay on the machine that runs ingest+writer.</p>
+        <p><strong>Do not</strong> put <code>DEPLOYER_PRIVATE_KEY</code>, issuer keys, or <code>LLM_API_KEY</code> in Vercel env, or in the git tree. Browser BYOK is localStorage + per-request. The writer key stays on the laptop; hosted <code>pendingOnChain</code> settles when Sepolia already has the overlay <code>commitId</code>, or the laptop runs <code>scripts/commit_overlay.py</code>. Groq <code>LLM_API_KEY</code> has three copies: gitignored laptop <code>.env</code>, App Runner <em>runtime env</em> (what hosted explain reads), and a GitHub Actions secret on env <code>aws</code> (encrypted CI backup so a later <code>update-service</code> can re-apply it). Never Secrets Manager. Hosted ingest stays <code>LLM_EXTRACT=0</code>.</p>
       </div>
 
       <h2 id="spend">Resource allocation (be stingy)</h2>
@@ -189,7 +189,7 @@ bash scripts/aws_preflight.sh            # check OIDC, role, ECR
 <pre><code>aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin \
     555431941144.dkr.ecr.us-east-1.amazonaws.com
-docker build -t 555431941144.dkr.ecr.us-east-1.amazonaws.com/chainmind-synapse:local .
+docker build --platform linux/amd64 -t 555431941144.dkr.ecr.us-east-1.amazonaws.com/chainmind-synapse:local .
 # docker push …   # only after AWS_DEPLOY_ENABLED or an explicit human ask
 </code></pre>
       <p>Local run that costs no AWS compute:</p>
@@ -224,8 +224,9 @@ terraform plan -var='enable_runtime=false'
         <thead><tr><th>Variable</th><th>Laptop <code>.env</code></th><th>Vercel</th><th>GitHub</th><th>AWS secret (held)</th></tr></thead>
         <tbody>
           <tr><td>RPC URLs, ClaimSource, IdentityState, demo subject</td><td>Yes</td><td>No</td><td>No</td><td>Only if runtime exists</td></tr>
-          <tr><td><code>DEPLOYER_PRIVATE_KEY</code> / issuer keys</td><td>Yes, gitignored</td><td>Never</td><td>Never</td><td>Only if runtime exists</td></tr>
-          <tr><td><code>LLM_API_KEY</code></td><td>Optional operator default</td><td>Never</td><td>Never</td><td>Optional</td></tr>
+          <tr><td><code>DEPLOYER_PRIVATE_KEY</code> / issuer keys</td><td>Yes, gitignored</td><td>Never</td><td>Never</td><td>Never (no Secrets Manager; laptop writer only)</td></tr>
+          <tr><td><code>LLM_API_KEY</code></td><td>Groq <code>gsk_…</code> in gitignored repo-root <code>.env</code></td><td>Never</td><td>Actions secret only (env <code>aws</code> + repo). Never the git tree</td><td>Never Secrets Manager. App Runner <em>runtime env</em> is what the live API reads. Default model is Groq <code>qwen/qwen3.6-27b</code></td></tr>
+          <tr><td><code>LLM_EXTRACT</code></td><td><code>0</code> hosted / optional laptop</td><td>No</td><td>No</td><td>Runtime env <code>0</code> so ingest stays rules-fast</td></tr>
           <tr><td>Browser BYOK</td><td>localStorage only</td><td>—</td><td>—</td><td>—</td></tr>
           <tr><td><code>VITE_API_BASE</code></td><td><code>dashboard/.env.local</code> if you want</td><td>Optional</td><td>No</td><td>No</td></tr>
           <tr><td><code>CORS_ORIGINS</code></td><td><code>*</code> locally</td><td>No (API-side)</td><td>No</td><td>Vercel origin list if public API</td></tr>

@@ -35,6 +35,8 @@ def test_health_llm_payload_has_no_secrets(monkeypatch):
     assert body["llm"]["baseUrlSet"] is True
     assert body["llm"]["byok"] is True
     assert body["llm"]["model"] == "gpt-4.1-mini"
+    assert body["llm"]["extractMode"] == "rules"
+    assert body["llm"]["explainMode"] == "shap+litellm"
 
 
 def test_get_llm_same_public_config(monkeypatch):

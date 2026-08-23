@@ -147,14 +147,15 @@ CLAIM_SOURCE_INK_SEPOLIA=
 CLAIM_SOURCE_MODE_SEPOLIA=
 CLAIM_SOURCE_SONEIUM_MINATO=
 IDENTITY_STATE_SEPOLIA=
-LLM_BASE_URL=
+LLM_BASE_URL=https://api.groq.com/openai/v1
 LLM_API_KEY=
-LLM_MODEL=gpt-4.1-mini
+LLM_MODEL=qwen/qwen3.6-27b
+LLM_EXTRACT=0
 MODEL_PATH=data/model.joblib
 CORS_ORIGINS=*
 # VITE_API_BASE is dashboard-only; never put keys in VITE_*
 </code></pre>
-      <p>LiteLLM is the router for extract (P1) and explain (P2). <code>LLM_API_KEY</code> / <code>LLM_BASE_URL</code> / <code>LLM_MODEL</code> remain the operator default for live ingest. If the env key is missing, the extractor uses the deterministic rules parser and explain uses the SHAP template — FR-02 still passes. Browser BYOK (dashboard + watch floor) is localStorage + per-request body only. Never write keys to disk, overlay, git, or explanation JSON. GET <code>/v1/identity</code> never calls the LLM. The LLM never emits <code>scoreBps</code> / <code>pCredible</code>.</p>
+      <p>LiteLLM is the router for extract (P1) and explain (P2). Operator default is Groq Cloud <code>qwen/qwen3.6-27b</code> at <code>https://api.groq.com/openai/v1</code>. The Groq key is never committed. Copies: repo-root <code>.env</code> (laptop), App Runner runtime env (hosted explain), GitHub Actions secret <code>LLM_API_KEY</code> on env <code>aws</code> (encrypted CI backup). Never Vercel, never Secrets Manager, never a writer key. Hosted ingest sets <code>LLM_EXTRACT=0</code> so extract stays the rules parser. If the env key is missing, explain uses the SHAP template — FR-02 still passes. Browser BYOK is optional and overrides the env key per request; it never owns <code>scoreBps</code>. GET <code>/v1/identity</code> never calls the LLM.</p>
 
       <h2 id="quality">Quality bar under a 6-hour clock</h2>
       <ul>

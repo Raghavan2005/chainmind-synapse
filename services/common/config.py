@@ -9,7 +9,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=ROOT / ".env",
+        extra="ignore",
+        # Empty exported LLM_* (common leftover from older shells) must not
+        # wipe a real key/model sitting in .env.
+        env_ignore_empty=True,
+    )
 
     sepolia_rpc_url: str = "https://ethereum-sepolia-rpc.publicnode.com"
     unichain_sepolia_rpc_url: str = "https://sepolia.unichain.org"
@@ -58,9 +64,11 @@ class Settings(BaseSettings):
     claim_source_soneium_minato: str = ""
     identity_state_sepolia: str = ""
 
-    llm_base_url: str = ""
+    llm_base_url: str = "https://api.groq.com/openai/v1"
     llm_api_key: str = ""
-    llm_model: str = "gpt-4.1-mini"
+    llm_model: str = "qwen/qwen3.6-27b"
+    # Hosted ingest must stay rules-fast. Explain may use the env key.
+    llm_extract: bool = False
 
     model_path: Path = ROOT / "data" / "model.joblib"
     metrics_path: Path = ROOT / "data" / "metrics.json"

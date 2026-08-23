@@ -43,7 +43,7 @@
       <table>
         <thead><tr><th>ID</th><th>Shall</th><th>Acceptance</th></tr></thead>
         <tbody>
-          <tr><td>NFR-01</td><td>API &lt; 500&nbsp;ms under load</td><td><code>hey -n 200 -c 20 http://localhost:8000/v1/identity/{demo}</code> p95 &lt; 500&nbsp;ms. Warm cache.</td></tr>
+          <tr><td>NFR-01</td><td>API &lt; 500&nbsp;ms under load</td><td>Warm local <code>scripts/nfr01_load.sh</code> (<code>hey -n 200 -c 20 http://localhost:8000/v1/identity/{demo}</code>) p95 &lt; 500&nbsp;ms. Not App Runner RTT.</td></tr>
           <tr><td>NFR-02</td><td>On-chain update &lt; 2 minutes</td><td>demo_flow.sh prints commit latency. Fail if &gt; 120s.</td></tr>
           <tr><td>NFR-03</td><td>Model accuracy &gt; 75% on test claims</td><td>Printed by train script. Commit the metrics JSON.</td></tr>
           <tr><td>NFR-04</td><td>Deterministic, idempotent chain I/O</td><td>FR-08 + fusion unit tests with fixed seeds.</td></tr>
@@ -81,7 +81,7 @@
           <tr><td>E2E</td><td><code>scripts/demo_flow.sh</code></td><td>FR-01, FR-04, FR-06, FR-10, NFR-02: posts A+B, waits, curls GET, prints commit latency, exits non-zero if &gt; 120s.</td></tr>
           <tr><td>Integrity</td><td><code>python scripts/verify_hash.py</code></td><td>FR-09, NFR-05: keccak(preimage) equals on-chain stateHash.</td></tr>
           <tr><td>Durability</td><td>kill uvicorn, run replay</td><td>NFR-07: latest hash unchanged. Overlay file is not the authority.</td></tr>
-          <tr><td>Load</td><td><code>hey -n 200 -c 20</code> on GET identity</td><td>NFR-01: p95 &lt; 500&nbsp;ms, warm cache, no LLM on the path.</td></tr>
+          <tr><td>Load</td><td><code>scripts/nfr01_load.sh</code> (prefers <code>hey -n 200 -c 20</code>)</td><td>NFR-01: p95 &lt; 500&nbsp;ms, warm local cache, no LLM on the path.</td></tr>
           <tr><td>Health</td><td>curl /v1/health</td><td>Both heads, modelLoaded, modelAccuracy, degraded flag. RPC errors must appear, not be swallowed.</td></tr>
         </tbody>
       </table>

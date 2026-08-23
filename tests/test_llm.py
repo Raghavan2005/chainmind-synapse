@@ -1,6 +1,14 @@
 from types import SimpleNamespace
 
-from services.common.llm import llm_public_status, resolve_model, runtime_from, LLMOverride
+from services.common.llm import (
+    LLMOverride,
+    LLMRuntime,
+    llm_public_status,
+    resolve_model,
+    runtime_from,
+    structured_call_options,
+    uses_groq,
+)
 from services.normalize.extract import extract_claim
 from tests.test_schema import FIXTURE
 
@@ -20,7 +28,32 @@ def test_resolve_model_no_base_url():
 
 
 def test_resolve_model_empty_defaults():
-    assert resolve_model("", None) == "gpt-4.1-mini"
+    assert resolve_model("", None) == "qwen/qwen3.6-27b"
+
+
+def test_resolve_model_keeps_groq_qwen_id():
+    assert resolve_model("qwen/qwen3.6-27b", "https://api.groq.com/openai/v1") == "qwen/qwen3.6-27b"
+
+
+def test_groq_structured_options_disable_reasoning_and_use_openai_compat():
+    rt = LLMRuntime(
+        api_key="gsk_test",
+        base_url="https://api.groq.com/openai/v1",
+        model="qwen/qwen3.6-27b",
+    )
+    assert uses_groq(rt) is True
+    opts = structured_call_options(rt)
+    assert opts["custom_llm_provider"] == "openai"
+    assert opts["api_base"] == "https://api.groq.com/openai/v1"
+    assert opts["extra_body"] == {"reasoning_effort": "none"}
+
+
+def test_openai_compat_non_groq_keeps_tools_path_options():
+    rt = LLMRuntime(api_key="sk-test", base_url="https://api.openai.com/v1", model="gpt-4.1-mini")
+    assert uses_groq(rt) is False
+    opts = structured_call_options(rt)
+    assert "extra_body" not in opts
+    assert opts["custom_llm_provider"] == "openai"
 
 
 def test_runtime_byok_wins_when_key_present():
@@ -53,10 +86,24 @@ def test_public_status_never_includes_secrets():
     assert payload["envConfigured"] is True
     assert payload["baseUrlSet"] is True
     assert payload["byok"] is True
+    assert payload["extractMode"] == "rules"
+    assert payload["explainMode"] == "shap+litellm"
 
 
 def test_extract_claim_rules_without_key():
     settings = SimpleNamespace(llm_api_key="", llm_base_url="", llm_model="gpt-4.1-mini")
+    claim, engine = extract_claim(FIXTURE, 18, settings=settings)
+    assert engine == "rules"
+    assert claim.topic == "kyc.adult"
+
+
+def test_extract_stays_rules_when_llm_extract_off_even_with_env_key():
+    settings = SimpleNamespace(
+        llm_api_key="sk-would-call-network",
+        llm_base_url="https://example.invalid/v1",
+        llm_model="gpt-4.1-mini",
+        llm_extract=False,
+    )
     claim, engine = extract_claim(FIXTURE, 18, settings=settings)
     assert engine == "rules"
     assert claim.topic == "kyc.adult"

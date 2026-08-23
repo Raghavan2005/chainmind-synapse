@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from services.common.chains import ALLOWED_CHAIN_IDS
+from services.common.demo import reuse_commit_clock
 from services.common.hashing import commit_id, state_hash, to_hex
 from services.common.llm import LLMOverride, runtime_from
 from services.common.log import emit
@@ -78,8 +79,11 @@ class Brain:
         probs = self.scorer.predict_proba(vectors)
         p_by_id = {c.claim_id: p for c, p in zip(claims, probs)}
         fused = fuse_subject(claims, p_by_id, self.issuer_rs, now)
-        issued_at = now
         ids = [c.claim_id for c in claims]
+        prev = (self.overlay.get("subjects") or {}).get(subject.lower()) or {}
+        issued_at, pending, tx_hash, block_number = reuse_commit_clock(
+            prev, ids, fused["scoreBps"], self.scorer.version_hex, now
+        )
         cid = commit_id(subject, ids, fused["scoreBps"], self.scorer.version)
         shash = state_hash(subject, ids, fused["scoreBps"], self.scorer.version, issued_at)
         if fused.get("conflicts"):
@@ -91,15 +95,15 @@ class Brain:
             "confidence": fused["confidence"],
             "scoreBps": fused["scoreBps"],
             "modelVersion": self.scorer.version_hex,
-            "pendingOnChain": True,
+            "pendingOnChain": pending,
             "degradedChains": self._degraded(),
             "commit": {
                 "commitId": to_hex(cid),
                 "stateHash": to_hex(shash),
-                "txHash": None,
+                "txHash": tx_hash,
                 "chainId": 11155111,
                 "issuedAt": issued_at,
-                "blockNumber": None,
+                "blockNumber": block_number,
             },
             "preimage": {
                 "subject": subject,

@@ -5,6 +5,29 @@ const BYOK_KEY = "synapse.byok.v1";
 const DEMO_SUBJECT = "0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221";
 const DEFAULT_API = "https://fmngtnpp5e.us-east-1.awsapprunner.com";
 
+const DEMO_FIGHT = [
+  {
+    label: "Sepolia kyc.adult +1",
+    href: "https://sepolia.etherscan.io/tx/0x258a839cc148b352ce1bc581dea792ae58c34b46748f95cda2d37371347a8d94",
+    tx: "0x258a839cc148b352ce1bc581dea792ae58c34b46748f95cda2d37371347a8d94",
+  },
+  {
+    label: "Unichain kyc.adult −1",
+    href: "https://sepolia.uniscan.xyz/tx/0x55e1f73e55556412280bf7844a4ec0a0cdf0d23776b8e7e5b05529b24106a197",
+    tx: "0x55e1f73e55556412280bf7844a4ec0a0cdf0d23776b8e7e5b05529b24106a197",
+  },
+  {
+    label: "StateCommitted (first fight) scoreBps 0",
+    href: "https://sepolia.etherscan.io/tx/0x654ddce8b47cba6b06fe9508ece0ffaf7b9aeb67d59f046bf2fcedad7bee4135",
+    tx: "0x654ddce8b47cba6b06fe9508ece0ffaf7b9aeb67d59f046bf2fcedad7bee4135",
+  },
+  {
+    label: "StateCommitted (live overlay) scoreBps 0",
+    href: "https://sepolia.etherscan.io/tx/0x0cc62febe3c876084c89b51aedf281e2b81c52c6041ee3c7266a1a35922e3c86",
+    tx: "0x0cc62febe3c876084c89b51aedf281e2b81c52c6041ee3c7266a1a35922e3c86",
+  },
+];
+
 const CHAINS = [
   { id: "11155111", label: "Sepolia", pair: "FR-01 settlement", explorer: "https://sepolia.etherscan.io" },
   { id: "1301", label: "Unichain", pair: "FR-01 source", explorer: "https://sepolia.uniscan.xyz" },
@@ -134,16 +157,17 @@ function OpinionBar({ opinion, compact }) {
 function loadByok() {
   try {
     const raw = localStorage.getItem(BYOK_KEY);
-    if (!raw) return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: ENV_API };
+    if (!raw) return { apiKey: "", baseUrl: "", model: "", apiBase: ENV_API };
     const parsed = JSON.parse(raw);
+    const leftover = parsed.model === "gpt-4.1-mini" ? "" : parsed.model;
     return {
       apiKey: parsed.apiKey || "",
       baseUrl: parsed.baseUrl || "",
-      model: parsed.model || "gpt-4.1-mini",
+      model: leftover || "",
       apiBase: parsed.apiBase ?? ENV_API,
     };
   } catch {
-    return { apiKey: "", baseUrl: "", model: "gpt-4.1-mini", apiBase: ENV_API };
+    return { apiKey: "", baseUrl: "", model: "", apiBase: ENV_API };
   }
 }
 
@@ -396,7 +420,7 @@ export default function App() {
           </li>
           <li>
             <strong>3 · Verify the commit</strong>
-            <span>Open the Sepolia tx or GET history. Hash is keccak of the published preimage. LLM never emitted the score.</span>
+            <span>Open history plus the three explorer links below — not only today’s overlay. Hash is keccak of the published preimage. LLM never emitted the score.</span>
           </li>
         </ol>
         <div className="hero-actions">
@@ -405,6 +429,9 @@ export default function App() {
           </button>
           <a className="as-btn ghost" href={`${api}/v1/identity/${DEMO_SUBJECT}`}>
             Raw GET JSON
+          </a>
+          <a className="as-btn ghost" href={`${api}/v1/identity/${DEMO_SUBJECT}/history`}>
+            On-chain history
           </a>
           <button type="button" className="ghost" onClick={() => jump("why")}>
             Why this exists
@@ -514,8 +541,7 @@ export default function App() {
             {health?.ok ? "API ok" : health ? "degraded" : "API silent"}
           </Chip>
           <Chip kind={llm?.envConfigured ? "ok" : "warn"}>
-            LiteLLM {llm?.envConfigured ? "env set" : "env unset"}
-            {llm?.model ? ` · ${llm.model}` : ""}
+            extract {llm?.extractMode || "rules"} · explain {llm?.explainMode || explanation?.engine || "shap+template"}
           </Chip>
           {explanation?.engine && <Chip kind="ok">explain {explanation.engine}</Chip>}
         </div>
@@ -523,9 +549,10 @@ export default function App() {
         <details className="byok">
           <summary>LiteLLM / BYOK and API base</summary>
           <p className="byok-warn">
-            Key stays in this browser. Sent only on Test and Generate explanation. GET polls never
-            include it. Canonical UI is chainmind-synapse.vercel.app — a second Hobby alias still
-            talks to the same App Runner. Replay from logs is bearer-gated on the API, not this panel.
+            Operator default is Groq Cloud <code>qwen/qwen3.6-27b</code> via LiteLLM. Paste
+            <code>LLM_API_KEY</code> in the repo-root <code>.env</code> (laptop) or App Runner
+            runtime env (hosted explain). This panel is optional BYOK — leave the key blank to
+            use that default. BYOK never owns scoreBps. GET polls never include the key.
           </p>
           <div className="byok-grid">
             <label>
@@ -542,7 +569,7 @@ export default function App() {
               <input
                 value={byok.baseUrl}
                 onChange={(e) => setByok({ ...byok, baseUrl: e.target.value })}
-                placeholder="https://api.openai.com/v1 or Ollama / Groq / Together"
+                placeholder="https://api.groq.com/openai/v1 (or your OpenAI-compatible URL)"
                 aria-label="LLM base URL"
               />
             </label>
@@ -551,7 +578,7 @@ export default function App() {
               <input
                 value={byok.model}
                 onChange={(e) => setByok({ ...byok, model: e.target.value })}
-                placeholder="gpt-4.1-mini"
+                placeholder="qwen/qwen3.6-27b"
                 aria-label="LLM model"
               />
             </label>
@@ -562,7 +589,7 @@ export default function App() {
                 autoComplete="off"
                 value={byok.apiKey}
                 onChange={(e) => setByok({ ...byok, apiKey: e.target.value })}
-                placeholder="sk-… (never committed)"
+                placeholder="optional gsk_… / sk-… (blank = operator .env)"
                 aria-label="LLM API key"
               />
             </label>
@@ -603,6 +630,31 @@ export default function App() {
             <p className="mute">Degraded: {JSON.stringify(health.rpcErrors)}</p>
           )}
           <button type="button" onClick={() => load(subject)}>Retry</button>
+        </div>
+      )}
+      {subject.toLowerCase() === DEMO_SUBJECT.toLowerCase() && (
+        <div className="fight">
+          <p>
+            Ingest watches seven chains. The live GET is a rolling overlay — if it only lists
+            Sepolia <code>kyc.adult +1</code>, the Unichain −1 and conflict commit are still
+            the on-chain fight. Send judges{" "}
+            <a href={`${api}/v1/identity/${DEMO_SUBJECT}/history`}>history</a>
+            {" "}and these explorer links, not only today’s overlay.
+          </p>
+          <ul>
+            {DEMO_FIGHT.map((row) => (
+              <li key={row.tx}>
+                <a href={row.href} target="_blank" rel="noreferrer">{row.label}</a>
+                <code>{shortHex(row.tx)}</code>
+              </li>
+            ))}
+            <li>
+              <a href={`${api}/v1/identity/${DEMO_SUBJECT}/history`} target="_blank" rel="noreferrer">
+                GET /v1/identity/…/history
+              </a>
+              <code>commitId 0x815db98f… · block 11548231</code>
+            </li>
+          </ul>
         </div>
       )}
       {identity && (

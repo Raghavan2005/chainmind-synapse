@@ -6,10 +6,18 @@ from typing import Any
 
 from web3 import Web3
 
-from services.chain import claim_abi, web3s
+from services.chain import claim_abi, connect_live, identity_abi, web3s
 from services.common.config import load_settings
 from services.common.log import emit
-from services.common.chains import CHAINS, rewind_blocks
+from services.common.chains import (
+    CHAINS,
+    LOG_RANGE,
+    SETTLEMENT_CHAIN_ID,
+    UNICHAIN_SEPOLIA_CHAIN_ID,
+    ingest_floor,
+    rewind_blocks,
+)
+from services.common.demo import align_overlay_to_latest
 from services.pipeline import Brain
 from services.score.predict import Scorer
 from services.store import atomic_write, read_json
@@ -27,11 +35,21 @@ def _sources(settings) -> dict[int, str]:
 
 def poll_chain(w3: Web3, chain_id: int, address: str, from_block: int, to_block: int) -> list[dict[str, Any]]:
     contract = w3.eth.contract(address=Web3.to_checksum_address(address), abi=claim_abi())
-    posted = contract.events.ClaimPosted().get_logs(from_block=from_block, to_block=to_block)
-    revoked = contract.events.ClaimRevoked().get_logs(from_block=from_block, to_block=to_block)
+    posted: list[Any] = []
+    revoked: list[Any] = []
+    start = from_block
+    while start <= to_block:
+        end = min(start + LOG_RANGE - 1, to_block)
+        posted.extend(contract.events.ClaimPosted().get_logs(from_block=start, to_block=end))
+        revoked.extend(contract.events.ClaimRevoked().get_logs(from_block=start, to_block=end))
+        start = end + 1
     events: list[dict[str, Any]] = []
+    ts_cache: dict[int, int] = {}
     for log in posted:
         args = log["args"]
+        block_n = int(log["blockNumber"])
+        if block_n not in ts_cache:
+            ts_cache[block_n] = int(w3.eth.get_block(block_n).timestamp)
         events.append(
             {
                 "kind": "posted",
@@ -45,8 +63,8 @@ def poll_chain(w3: Web3, chain_id: int, address: str, from_block: int, to_block:
                 "evidenceURI": args["evidenceURI"],
                 "txHash": log["transactionHash"].hex(),
                 "logIndex": log["logIndex"],
-                "blockNumber": log["blockNumber"],
-                "postedAt": int(w3.eth.get_block(log["blockNumber"]).timestamp),
+                "blockNumber": block_n,
+                "postedAt": ts_cache[block_n],
                 "revoked": False,
             }
         )
@@ -63,6 +81,33 @@ def poll_chain(w3: Web3, chain_id: int, address: str, from_block: int, to_block:
         )
     events.sort(key=lambda e: (e["blockNumber"], e.get("logIndex", 0)))
     return events
+
+
+def _mark_settled(body: dict[str, Any], settings) -> None:
+    """Writer-less hosts: if Sepolia already stores this commit, drop pendingOnChain."""
+    commit = body.get("commit") or {}
+    if not commit or not settings.identity_state_sepolia or not body.get("subject"):
+        return
+    try:
+        w3 = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
+        contract = w3.eth.contract(
+            address=Web3.to_checksum_address(settings.identity_state_sepolia),
+            abi=identity_abi(),
+        )
+        latest = contract.functions.latest(Web3.to_checksum_address(body["subject"])).call()
+    except Exception as exc:
+        emit("ingest.settle_error", err=str(exc))
+        return
+    align_overlay_to_latest(body, latest)
+
+
+def settle_pending_overlays(brain, settings) -> None:
+    for subject, row in list((brain.overlay.get("subjects") or {}).items()):
+        if not row.get("pendingOnChain"):
+            continue
+        _mark_settled(row, settings)
+        if not row.get("pendingOnChain"):
+            brain.persist_overlay(subject, row)
 
 
 def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool = False) -> None:
@@ -98,12 +143,17 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
             # this run re-derives claims from the same backfill window a truly cold
             # start would use.
             stored = {} if force_backfill else cursors.get("chains", {}).get(cursor_key, {})
-            cursor = int(stored.get("lastBlock", max(0, head - 2000)))
+            floor = ingest_floor(chain_id, head)
+            # Extra L2s are watched sources, not the FR-01 fight. Cold-start them
+            # from a recent window so seven full deploy→head scans do not starve GET.
+            if force_backfill and chain_id not in (SETTLEMENT_CHAIN_ID, UNICHAIN_SEPOLIA_CHAIN_ID):
+                floor = max(floor, head - LOG_RANGE)
+            cursor = int(stored.get("lastBlock", floor - 1))
             if stored.get("parentHash") and stored.get("lastBlock") == head and stored.get("parentHash") != parent:
-                rewind = max(0, head - rewind_blocks(chain_id))
+                rewind = max(floor, head - rewind_blocks(chain_id))
                 emit("ingest.reorg", chainId=chain_id, rewindTo=rewind)
                 cursor = rewind
-            start = cursor + 1 if stored else max(0, head - 2000)
+            start = floor if not stored else cursor + 1
             end = head
             events = poll_chain(url_w3, chain_id, address, start, end) if end >= start else []
             subjects: set[str] = set()
@@ -135,6 +185,8 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
                         body["pendingOnChain"] = False
                         body["commit"]["txHash"] = receipt["txHash"]
                         body["commit"]["blockNumber"] = receipt["blockNumber"]
+                else:
+                    _mark_settled(body, settings)
                 brain.persist_overlay(subject, body)
                 try:
                     brain.explain(subject, body)
@@ -144,6 +196,7 @@ def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool
             brain.rpc_errors[chain_id] = str(exc)
             emit("ingest.error", chainId=chain_id, err=str(exc), backoffMs=2000)
             emit("api.degraded", degradedChains=brain._degraded(), modelLoaded=True)
+    settle_pending_overlays(brain, settings)
     atomic_write(settings.cursors_path, cursors)
 
 
