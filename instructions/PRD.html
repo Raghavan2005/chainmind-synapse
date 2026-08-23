@@ -120,7 +120,7 @@
           <tr><td>API latency</td><td>&lt; 500&nbsp;ms under load</td><td>Read path never waits on an LLM or an RPC confirmation. Serve last committed state + in-memory overlay.</td></tr>
           <tr><td>On-chain update latency</td><td>&lt; 2 minutes</td><td>Sepolia + Unichain Sepolia block times are seconds. Budget is dominated by RPC + gas. Retry with the same idempotency key.</td></tr>
           <tr><td>Model accuracy</td><td>&gt; 75% on test claims</td><td>Hold out 20% of the synthetic+seeded set. Report accuracy, F1, and calibration (Brier). Do not game the split.</td></tr>
-          <tr><td>Deterministic, idempotent chain I/O</td><td>Required</td><td><code>commitId = keccak256(subject, claimsRoot, modelVersion)</code>. Second write with same id is a no-op.</td></tr>
+          <tr><td>Deterministic, idempotent chain I/O</td><td>Required</td><td><code>commitId = keccak256(subject, claimsRoot, scoreBps, modelVersion)</code>. Second write with the same fused score is a no-op; a revoke changes scoreBps so it still lands as a new commit (B-01).</td></tr>
           <tr><td>Third-party verifiable records</td><td>Required</td><td>Anyone with the tx hash can recompute <code>stateHash</code> from the public JSON bundle (or IPFS CID) and match the log.</td></tr>
         </tbody>
       </table>

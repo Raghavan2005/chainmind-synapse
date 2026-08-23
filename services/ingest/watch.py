@@ -65,7 +65,7 @@ def poll_chain(w3: Web3, chain_id: int, address: str, from_block: int, to_block:
     return events
 
 
-def run_once(brain: Brain, writer: Writer | None, settings) -> None:
+def run_once(brain: Brain, writer: Writer | None, settings, force_backfill: bool = False) -> None:
     cursors = read_json(settings.cursors_path, {"chains": {}})
     clients = web3s(settings)
     sources = _sources(settings)
@@ -80,7 +80,13 @@ def run_once(brain: Brain, writer: Writer | None, settings) -> None:
             except Exception:
                 head = max(0, head - 2)
                 parent = url_w3.eth.get_block(head)["parentHash"].hex()
-            stored = cursors.get("chains", {}).get(str(chain_id), {})
+            # force_backfill: a fresh Brain has no in-memory claims, so resuming from
+            # the persisted cursor (near head) would miss everything already synced —
+            # apply_revoke would silently no-op on a claim this Brain never loaded, and
+            # replay would just re-serve the stale overlay. Treat cursor as absent so
+            # this run re-derives claims from the same backfill window a truly cold
+            # start would use.
+            stored = {} if force_backfill else cursors.get("chains", {}).get(str(chain_id), {})
             cursor = int(stored.get("lastBlock", max(0, head - 2000)))
             if stored.get("parentHash") and stored.get("lastBlock") == head and stored.get("parentHash") != parent:
                 rewind = max(0, head - REWIND[chain_id])
@@ -134,6 +140,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--poll", type=float, default=4.0)
+    parser.add_argument(
+        "--full-backfill",
+        action="store_true",
+        help="Ignore the persisted cursor and re-derive claims from the backfill window (recovery after a restart).",
+    )
     args = parser.parse_args()
     settings = load_settings()
     scorer = Scorer(settings.model_path)
@@ -148,7 +159,7 @@ def main() -> None:
             settings.deployer_private_key,
         )
     if args.once:
-        run_once(brain, writer, settings)
+        run_once(brain, writer, settings, force_backfill=args.full_backfill)
         return
     while True:
         run_once(brain, writer, settings)

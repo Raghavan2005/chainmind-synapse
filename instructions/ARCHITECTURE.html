@@ -277,7 +277,7 @@ Feature vector (SCHEMA.html order) → sklearn p_i
 p_i + issuer Beta prior → opinion ω_i → cumulative fuse ⊕
         |
         v
-commitId = keccak(subject, claimsRoot, modelVersion)
+commitId = keccak(subject, claimsRoot, scoreBps, modelVersion)
 IdentityState.commit on Sepolia  →  GET /v1/identity/{subject}
 Explain (SHAP + prompt) runs after; never on the GET path
         </div>
@@ -307,7 +307,7 @@ stateHash commits the full preimage, not a silent winner
         <figcaption>Confidence is “how settled the state is,” not “probability the human is good.” High conflict ⇒ low C. MATH.html is normative.</figcaption>
       </figure>
       <h3>Revoke path (bonus B-01, still designed in)</h3>
-      <p>Issuer calls <code>revokeClaim</code>. Watcher sees <code>ClaimRevoked</code>, sets <code>revoked=true</code>, forces <code>p_i ← min(p_i, 0.05)</code> and adds disbelief mass. Fusion re-runs. New <code>commitId</code> (claimsRoot changed). GET history shows both commits. Do not delete the old log.</p>
+      <p>Issuer calls <code>revokeClaim</code>. Watcher sees <code>ClaimRevoked</code>, sets <code>revoked=true</code>, forces <code>p_i ← min(p_i, 0.05)</code> and adds disbelief mass. Fusion re-runs. New <code>commitId</code> (claimsRoot is unchanged — same claim set — but scoreBps moves, and scoreBps is in the commitId preimage precisely so this case gets a distinct id). GET history shows both commits. Do not delete the old log.</p>
 
       <h2 id="decisions">Decisions and rejected alternatives</h2>
       <p>These are product and technical locks, not taste. CLAUDE.html forbids the right-hand column as a substitute without a named human override.</p>
