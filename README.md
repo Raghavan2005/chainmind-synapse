@@ -19,6 +19,8 @@ Operator key can commit. That is a documented liveness concession, not a hidden 
 
 Public RPCs used here: `ethereum-sepolia-rpc.publicnode.com` and `sepolia.unichain.org`. Bridge Sepolia ETH to Unichain with `bash scripts/bridge_sepolia_to_unichain.sh` (L1 proxy `0xea58fcA6…` on Sepolia — never mainnet `0x81014F44…`).
 
+Model accuracy (`data/metrics.json`): **90% held-out accuracy**, F1 0.911, Brier 0.087, trained on 720 rows / tested on 180.
+
 ## Quick start
 
 ```bash
@@ -26,7 +28,7 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cd contracts && forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0 --no-git --shallow && forge test -vv && cd ..
 python -m services.score.train
-cp .env.example .env   # throwaway keys + Sepolia ETH + Unichain Sepolia ETH + deployed addresses
+cp .env.example .env   # deployed addresses already filled in; paste in 3 keys from a teammate, not from git; fund Sepolia ETH, bridge to Unichain Sepolia
 uvicorn services.api.main:app --host 0.0.0.0 --port 8000
 # other terminal
 python -m services.ingest.watch
@@ -73,6 +75,18 @@ Demo fixture (same subject `0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221`):
 - Claim A Sepolia +1: [`0x258a839c…`](https://sepolia.etherscan.io/tx/0x258a839cc148b352ce1bc581dea792ae58c34b46748f95cda2d37371347a8d94)
 - Claim B Unichain Sepolia −1: [`0x55e1f73e…`](https://sepolia.uniscan.xyz/tx/0x55e1f73e55556412280bf7844a4ec0a0cdf0d23776b8e7e5b05529b24106a197)
 - Conflict `StateCommitted`: [`0x654ddce8…`](https://sepolia.etherscan.io/tx/0x654ddce8b47cba6b06fe9508ece0ffaf7b9aeb67d59f046bf2fcedad7bee4135)
+
+Decoded `StateCommitted` event from that commit tx (via `contract.events.StateCommitted().process_receipt(...)`, not a mocked value):
+
+```
+commitId     0x815db98f00448421fd6eea71ebff671448e7e9a1a74466b87f49d8fe49e0c338
+stateHash    0xdb2acacfa434d7e66ab913b57d1f9fd58c7810b52274c57cc291b59642cc8789
+scoreBps     0
+modelVersion 0x3fd4e29b2b3f0f7a1cf9b9ab687c041885cfd4c19acde734495dfd99d005c1d1
+issuedAt     1787466048
+```
+
+Once the API is pointed at this deployment's `.env`, `curl http://127.0.0.1:8000/v1/identity/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221` serves the fused view of the same commit.
 
 ## GitHub
 
