@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — 6-hour plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Clock discipline</p>
+      <h1>Six-hour plan</h1>
+      <p class="lede">If a task is not on this page, it does not start until MVP is green. Times assume one strong implementer or two people who do not collide on the same files.</p>
+      <div class="meta-row">
+        <span class="chip warn">T+0 → T+6:00</span>
+        <span class="chip ok">Cut bonus first</span>
+        <span class="chip">demo_flow.sh is the heartbeat</span>
+      </div>
+
+      <h2 id="pre">Pre-clock (if you have 20 minutes before T+0)</h2>
+      <ol>
+        <li>Install Foundry: <code>curl -L https://foundry.paradigm.xyz | bash &amp;&amp; foundryup</code></li>
+        <li><code>gh auth status</code>. Then run the bootstrap clone block in REPOS.html.</li>
+        <li>Create a fresh throwaway key. Fund Sepolia and Amoy from public faucets. Never reuse a mainnet key.</li>
+        <li>Copy <code>.env.example</code> → <code>.env</code>.</li>
+        <li>Skim CLAUDE.html and SCHEMA.html.</li>
+      </ol>
+
+      <h2 id="h0">Hour 0 — Contracts and layout (T+0:00–1:00)</h2>
+      <ul>
+        <li>foundry init inside <code>contracts/</code>. Remap OpenZeppelin from the cloned repo or <code>forge install OpenZeppelin/openzeppelin-contracts</code>.</li>
+        <li>Write ClaimSource.sol + IdentityState.sol + tests: post, revoke, claimId stability, commit idempotency, latest().</li>
+        <li><code>forge test -vv</code> green before deploy.</li>
+        <li>Deploy script takes chain id. Reject 1 and 137.</li>
+        <li>Deploy ClaimSource to Sepolia and Amoy, IdentityState to Sepolia. Save addresses in <code>.env</code>.</li>
+        <li>Cut line: if deploy fails, keep Anvil for tests but do not stop trying public testnets — the deliverable needs a real tx.</li>
+      </ul>
+
+      <h2 id="h1">Hour 1 — Ingest + schemas (T+1:00–2:00)</h2>
+      <ul>
+        <li>Pydantic models from SCHEMA.html.</li>
+        <li>Log watcher with cursors on disk <code>data/cursors.json</code> (local file is not a hosted DB).</li>
+        <li>Backfill last 2k blocks on each chain.</li>
+        <li>Script to post fixture claims A and B.</li>
+        <li>Print decoded events. Do not start the LLM yet if this is late.</li>
+      </ul>
+
+      <h2 id="h2">Hour 2 — Dataset + model (T+2:00–3:00)</h2>
+      <ul>
+        <li>Generate <code>data/claims_train.jsonl</code> (≥ 800). Document the label function in a header comment.</li>
+        <li>Train HistGradientBoosting. Persist joblib. Write <code>data/metrics.json</code>.</li>
+        <li>If accuracy &lt; 75%, add signal features (revoked, expired, issuer prior) — you under-noised the labels or over-noised the features. Fix data, do not stack networks.</li>
+        <li>Unit test: predict on a revoked+expired row → p &lt; 0.4.</li>
+      </ul>
+
+      <h2 id="h3">Hour 3 — Fusion + writer + API (T+3:00–4:00)</h2>
+      <ul>
+        <li>Implement Beta mapping and cumulative / averaging fusion. Test against the numeric examples in MATH.html.</li>
+        <li>Writer: compute commitId, send tx, handle revert-as-success.</li>
+        <li>FastAPI: health, GET identity, GET history. In-memory overlay.</li>
+        <li>Wire ingest → score → fuse → overlay → writer.</li>
+        <li><code>scripts/demo_flow.sh</code> must work by T+4:00 even with rules-based normalize.</li>
+      </ul>
+
+      <h2 id="h4">Hour 4 — Gen-AI extract + explain + revoke (T+4:00–5:00)</h2>
+      <ul>
+        <li>Instructor/DSPy extract prompt. Timeout + fallback.</li>
+        <li>SHAP values on the scored vector.</li>
+        <li>Explanation prompt. Cache on disk keyed by commitId.</li>
+        <li>Revocation path (B-01). This is more impressive than a pretty UI.</li>
+        <li>verify_hash.py green.</li>
+      </ul>
+
+      <h2 id="h5">Hour 5 — Dashboard, video, hardening (T+5:00–6:00)</h2>
+      <ul>
+        <li>0–25 min: dashboard if and only if API is solid. DESIGN.html tokens. Browser-verify.</li>
+        <li>25–40 min: load test GET (hey or wrk). Fix obvious n+1 RPC.</li>
+        <li>40–55 min: record the 3-minute video. Script below. One take. Do not polish slides.</li>
+        <li>Last 5 min: README with addresses, tx hash, curl, accuracy, dead-testnet note.</li>
+      </ul>
+
+      <h2 id="roles">If two people</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Chain</h3>
+          <p>Contracts, deploy, ingest, writer, verify_hash, faucets, cast logs.</p>
+        </div>
+        <div class="card">
+          <h3>Brain</h3>
+          <p>Dataset, model, fusion, API, prompts, SHAP, dashboard, video edit.</p>
+        </div>
+      </div>
+      <p>SCHEMA.html is the interface. Do not invent parallel JSON shapes.</p>
+
+      <h2 id="cuts">Cut order when late</h2>
+      <ol>
+        <li>Dashboard.</li>
+        <li>Hugging Face embeddings.</li>
+        <li>CRAVE dual-perspective prompt (keep single explain).</li>
+        <li>LLM extract (keep rules fallback, still show the prompt file).</li>
+        <li>Never cut: two-chain ingest, sklearn score, on-chain commit, GET JSON, accuracy print, one explanation even if templated.</li>
+      </ol>
+
+      <h2 id="video">3-minute video script</h2>
+      <ol>
+        <li><strong>0:00–0:20</strong> Problem. “Credentials on two chains can disagree. Providers cannot see both.”</li>
+        <li><strong>0:20–0:40</strong> Show prd constraint slide: no IdP, testnets, prompt orchestration. Mention Goerli/Mumbai → Sepolia/Amoy.</li>
+        <li><strong>0:40–1:10</strong> Cast or block explorer: post claim A Sepolia, claim B Amoy. Point at events.</li>
+        <li><strong>1:10–1:50</strong> Terminal: watcher logs, model accuracy, curl GET. Highlight conflict and scores.</li>
+        <li><strong>1:50–2:20</strong> Explorer: StateCommitted. Show hash verify script.</li>
+        <li><strong>2:20–2:45</strong> Explanation JSON / dashboard. SHAP: issuer_prior, revoked, conflict_count.</li>
+        <li><strong>2:45–3:00</strong> What we did not wrap (Passport, Trusta). What we would add next (status lists, EigenTrust graph).</li>
+      </ol>
+
+      <h2 id="risks">Risk register</h2>
+      <table>
+        <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Faucet dry</td><td>High</td><td>Multiple faucets; one teammate hunts ETH/POL from T+0</td></tr>
+          <tr><td>Public RPC 429</td><td>High</td><td>Backoff; optional extra RPC in .env; do not tight-loop</td></tr>
+          <tr><td>LLM key missing</td><td>Med</td><td>Rules fallback designed in</td></tr>
+          <tr><td>Foundry install blocked</td><td>Low</td><td>Hardhat fallback in SKILL.html</td></tr>
+          <tr><td>Accuracy &lt; 75%</td><td>Low if honest features</td><td>Fix dataset in 15 minutes</td></tr>
+          <tr><td>Scope creep (zk, bridges)</td><td>High socially</td><td>This plan; CLAUDE.html</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

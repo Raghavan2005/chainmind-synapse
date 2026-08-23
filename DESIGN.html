@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Visual system · dashboard · explanation UX</p>
+      <h1>Design</h1>
+      <p class="lede">The product should feel like a watch floor for identity evidence, not a consumer fintech card grid and not a neon “AI brain.” These tokens are already used by this dossier (<code>docs-assets/synapse.css</code>). Reuse them in the dashboard.</p>
+
+      <h2 id="direction">Direction</h2>
+      <p><strong>Workstation-dense, warm ink.</strong> Bone type on near-black, oxidized copper for signal, moss for “settled / ok,” brick for conflict. Serif headlines (Newsreader), IBM Plex Sans for UI, IBM Plex Mono for hashes and scores. Plenty of air in the dossier; tighter density in the live dashboard.</p>
+      <div class="forbid">
+        <p>Forbidden defaults: Inter, purple-to-blue gradients, glassmorphism, 3D orbs, “neural” backgrounds, rainbow chain badges, rounded-everything, generic shadcn themes without retokenizing, stock Unsplash heroes, “Unlock the future of identity” copy.</p>
+      </div>
+
+      <h2 id="tokens">Tokens</h2>
+      <table>
+        <thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td><code>--ink</code></td><td><code>#0b0d0c</code></td><td>Page</td></tr>
+          <tr><td><code>--ink-2</code></td><td><code>#121614</code></td><td>Panels</td></tr>
+          <tr><td><code>--ink-3</code></td><td><code>#1a1f1c</code></td><td>Inset / code</td></tr>
+          <tr><td><code>--rule</code></td><td><code>#2a322c</code></td><td>Hairlines</td></tr>
+          <tr><td><code>--bone</code></td><td><code>#ebe4d4</code></td><td>Primary text</td></tr>
+          <tr><td><code>--bone-dim</code></td><td><code>#c4bba8</code></td><td>Secondary</td></tr>
+          <tr><td><code>--mute</code></td><td><code>#8a8476</code></td><td>Meta</td></tr>
+          <tr><td><code>--copper</code></td><td><code>#c4783a</code></td><td>Brand / focus</td></tr>
+          <tr><td><code>--copper-2</code></td><td><code>#e4a15a</code></td><td>Hover / scores</td></tr>
+          <tr><td><code>--moss</code></td><td><code>#6f9d7a</code></td><td>Supported / ok</td></tr>
+          <tr><td><code>--moss-2</code></td><td><code>#9ec9a6</code></td><td>Links</td></tr>
+          <tr><td><code>--danger</code></td><td><code>#c45b4a</code></td><td>Conflict / revoked</td></tr>
+          <tr><td><code>--warn</code></td><td><code>#d4a017</code></td><td>Pending / degraded</td></tr>
+        </tbody>
+      </table>
+      <p>Focus ring: <code>2px solid var(--copper)</code> offset 2px. Do not remove outlines. Hit targets ≥ 40×40 on the subject search and retry buttons. Respect <code>prefers-reduced-motion</code> — no continuous pulse on “live.”</p>
+
+      <h2 id="type">Type</h2>
+      <ul>
+        <li>Headlines: Newsreader, 500, tracking −0.03em.</li>
+        <li>UI: IBM Plex Sans, 14–16px, line-height 1.5.</li>
+        <li>Hashes, bps, chainIds: IBM Plex Mono, 12–13px. Truncate 0x + 6 + … + 4 with a copy button (real <code>&lt;button&gt;</code>).</li>
+      </ul>
+
+      <h2 id="dashboard">Dashboard architecture</h2>
+      <p>One route: <code>/#/{subject}</code>. Query string also fine. Three columns on desktop, stacked on 375px:</p>
+      <ol>
+        <li><strong>Rail.</strong> Subject input, health chips (Sepolia head, Amoy head, accuracy), last commit hash → explorer.</li>
+        <li><strong>Claims.</strong> Chronological list. Each row: chain chip, issuer, topic, polarity, pCredible, revoked/expired marks. Opposite polarities on the same topic get a shared brick rule.</li>
+        <li><strong>Fusion.</strong> For each topic, a stacked bar of b / d / u (copper / brick / mute). Confidence as a single large mono number, not a speedometer.</li>
+      </ol>
+      <p>Explanation sits under fusion: summary, then reasons as a definition list (feature · shap · sentence). Caveats in mute.</p>
+
+      <h2 id="states">States (mandatory)</h2>
+      <table>
+        <thead><tr><th>State</th><th>What the user sees</th></tr></thead>
+        <tbody>
+          <tr><td>Loading</td><td>Skeleton blocks the same height as a 3-claim list. No spinner-only page.</td></tr>
+          <tr><td>Empty</td><td>“No claims for this subject on watched chains.” Offer the demo subject as an action.</td></tr>
+          <tr><td>Error</td><td>The API message + Retry button. If health.degraded, say which chain.</td></tr>
+          <tr><td>Pending</td><td>Amber chip “overlay not mined”. Still show numbers.</td></tr>
+          <tr><td>Conflict</td><td>Brick banner with topic + claim ids. Do not hide the losing side.</td></tr>
+          <tr><td>OK</td><td>Moss chip with verdict. Still show history link.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="copy">Copy</h2>
+      <ul>
+        <li>“Conflict on kyc.adult” not “We detected an anomaly in your identity graph.”</li>
+        <li>“Commit 0xabc… · 4100 bps” not “Successfully anchored your trust crystal.”</li>
+        <li>“Issuer prior 0.18 (hostile seed)” not “Low vibe score.”</li>
+        <li>Buttons: “Replay from logs”, “Copy hash”, “Open Sepolia tx.”</li>
+      </ul>
+
+      <h2 id="motion">Motion</h2>
+      <p>150–200ms ease-out on hover and expand. New claims may briefly highlight the row once. No layout thrash: skeletons reserve space. If reduced motion, highlights are static chips.</p>
+
+      <h2 id="a11y">Accessibility</h2>
+      <ul>
+        <li>Real buttons and links. Label the subject field.</li>
+        <li>Contrast: bone on ink passes; mute on ink is for non-essential meta only.</li>
+        <li>Do not encode verdict only in color — include the word.</li>
+        <li>Explorer links have discernible text, not icon-only without aria-label.</li>
+      </ul>
+
+      <h2 id="api-ux">API as a designed surface</h2>
+      <p>Pretty-print JSON in the video with <code>jq</code>. Field order as SCHEMA.html. Humans read verdict, confidence, conflicts first — keep those keys at the top.</p>
+
+      <h2 id="mark">Mark</h2>
+      <p>The ◎ copper ring in the dossier mast is the only logo. Do not add a brain-plus-chain illustration. If you need a favicon, it is that ring on ink.</p>
+
+      <h2 id="video-look">Video look</h2>
+      <p>Terminal: dark, 18pt, no transparency. Browser: this dashboard at 1280px. Explorer: hide cookie banners before recording. Cut dead air. Three minutes is a hard stop.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Agents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Runtime agents + coding-time agents</p>
+      <h1>Agents</h1>
+      <p class="lede">Two layers. Inside the product: small, boring, structured Gen-AI clerks. Around the repo: Cursor / Claude / Compozy workers that implement PLAN.html. Do not confuse them.</p>
+
+      <h2 id="runtime">Runtime agents (the product)</h2>
+      <table>
+        <thead><tr><th>Agent</th><th>Job</th><th>Inputs</th><th>Outputs</th><th>May call LLM?</th></tr></thead>
+        <tbody>
+          <tr><td>Watcher</td><td>Follow logs</td><td>RPC, cursors</td><td>RawEvent</td><td>No</td></tr>
+          <tr><td>Extractor</td><td>Normalize</td><td>RawEvent + evidence</td><td>NormalizedClaim</td><td>Yes (P1)</td></tr>
+          <tr><td>Featurizer</td><td>Vectors</td><td>Claims + issuer Beta</td><td>x_i</td><td>No</td></tr>
+          <tr><td>Scorer</td><td>p_i</td><td>x_i, joblib</td><td>pCredible</td><td>No</td></tr>
+          <tr><td>Fuser</td><td>ω, C</td><td>opinions</td><td>IdentityState</td><td>No</td></tr>
+          <tr><td>Writer</td><td>Commit</td><td>state, key</td><td>tx</td><td>No</td></tr>
+          <tr><td>Explainer</td><td>Prose</td><td>state + SHAP</td><td>Explanation</td><td>Yes (P2)</td></tr>
+          <tr><td>API</td><td>Serve</td><td>overlay + chain</td><td>JSON</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <p>Only Extractor and Explainer are “Gen-AI agents.” Everything else is deterministic code. That is how we stay under 500&nbsp;ms on GET and honest on the score.</p>
+      <p>Loop: Watcher → Extractor → Featurizer → Scorer → Fuser → (Writer ∥ Explainer) → API overlay. Mutex per subject in Fuser/Writer.</p>
+
+      <h2 id="capabilities">Capabilities (keep few)</h2>
+      <p>If you add function-calling, these are the only tools:</p>
+      <ul>
+        <li><code>read_event(chainId, txHash, logIndex)</code></li>
+        <li><code>fetch_evidence(uri)</code> — allowlist, size cap 64 KiB, no private IPs</li>
+        <li><code>get_issuer_prior(address)</code></li>
+      </ul>
+      <p>No <code>google_search</code>. No <code>score_with_trusta</code>. No <code>write_chain</code> from the LLM.</p>
+
+      <h2 id="coding">Coding-time agents (the team)</h2>
+      <p>Use Compozy (<a href="https://github.com/compozy/compozy">compozy/compozy</a>) or raw Cursor. Roster:</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Chainwright</h3>
+          <p>Owns contracts/, deploy, cast, ingest, writer. Reads architecture + SCHEMA. Forbidden to change fusion math without MATH.html.</p>
+        </div>
+        <div class="card">
+          <h3>Brainwright</h3>
+          <p>Owns dataset, sklearn, fuse/, explain/, prompts. Forbidden to add fine-tuning.</p>
+        </div>
+        <div class="card">
+          <h3>Apowright</h3>
+          <p>Owns FastAPI, health, demo_flow, verify_hash. Forbidden to put SoT in Postgres.</p>
+        </div>
+        <div class="card">
+          <h3>Facewright</h3>
+          <p>Owns dashboard. Starts only after GET works. DESIGN.html is law.</p>
+        </div>
+      </div>
+      <p>Shared memory: this HTML dossier. Do not invent a second spec in Slack.</p>
+
+      <h2 id="handoffs">Handoffs</h2>
+      <ol>
+        <li>Chainwright publishes addresses → Apowright .env.</li>
+        <li>Brainwright publishes model.joblib + metrics.json → Apowright health.</li>
+        <li>Extractor schema frozen → everyone.</li>
+        <li>demo_flow green → Facewright + video.</li>
+      </ol>
+
+      <h2 id="compozy-jobs">Suggested Compozy / Cursor jobs</h2>
+      <ul>
+        <li>“Implement ClaimSource and IdentityState as specified in architecture.html. Tests from REQUIREMENTS FR-08.”</li>
+        <li>“Generate the training set and train the model. Do not use Hugging Face yet.”</li>
+        <li>“Implement cumulative and averaging fusion. Unit-test the worked numbers in MATH.html.”</li>
+        <li>“Write FastAPI routes exactly as SCHEMA.html.”</li>
+        <li>“Add P1/P2 prompts from PROMPTS.html with Instructor and a rules fallback.”</li>
+      </ul>
+      <p>Each job should attach CLAUDE.html as always-on rules.</p>
+
+      <h2 id="erc8004">ERC-8004 footnote</h2>
+      <p>If a judge asks about agent identity: ERC-8004 (2025 draft) gives on-chain identity/reputation/validation registries for agents. Our runtime agents are not registered there. We could later publish the Explainer as an 8004 agent and accept validation of our commits. Out of scope. Spec: <a href="https://github.com/ethereum/ERCs/blob/master/ERCS/erc-8004.md">erc-8004.md</a>.</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

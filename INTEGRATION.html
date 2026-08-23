@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Integration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">From clones to a running demo</p>
+      <h1>Integration instructions</h1>
+      <p class="lede">This is the only page that tells you how the verified repos become one process tree. Copy commands. Do not invent extra platforms.</p>
+
+      <h2 id="prereq">Prerequisites</h2>
+      <ul>
+        <li>macOS/Linux, git, <code>gh</code> authenticated, Python 3.11+, Node 20+ (dashboard only), curl.</li>
+        <li>Foundry: <code>curl -L https://foundry.paradigm.xyz | bash</code> then <code>foundryup</code>. Confirm <code>forge --version</code>.</li>
+        <li>Throwaway key with Sepolia ETH and Amoy POL.</li>
+      </ul>
+
+      <h2 id="python">Python service</h2>
+<pre><code>python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install \
+  web3 \
+  fastapi uvicorn pydantic \
+  scikit-learn numpy pandas joblib \
+  shap \
+  httpx pytest \
+  instructor openai
+# optional:
+# pip install dspy-ai sentence-transformers
+</code></pre>
+      <p>Those packages map to ApeWorX/web3.py, fastapi/fastapi, scikit-learn/scikit-learn, shap/shap, 567-labs/instructor, openai/openai-python. You already cloned them into <code>vendor-ref/</code> for reading; pip still installs wheels.</p>
+
+      <h2 id="foundry">Foundry project</h2>
+<pre><code>cd contracts
+forge init --force --no-commit
+forge install foundry-rs/forge-std --no-commit
+forge install OpenZeppelin/openzeppelin-contracts --no-commit
+</code></pre>
+      <p><code>foundry.toml</code>:</p>
+<pre><code>[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+amoy = "${AMOY_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+</code></pre>
+      <p>Remappings should include <code>@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/</code>.</p>
+
+      <h2 id="deploy">Deploy</h2>
+<pre><code># contracts/script/Deploy.s.sol should revert if block.chainid is 1 or 137
+source ../.env
+cd contracts
+
+forge script script/DeployClaimSource.s.sol:DeployClaimSource \
+  --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+
+forge script script/DeployClaimSource.s.sol:DeployClaimSource \
+  --rpc-url $AMOY_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+
+forge script script/DeployIdentityState.s.sol:DeployIdentityState \
+  --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+</code></pre>
+      <p>Paste addresses into <code>.env</code>. Verify with <code>cast call $IDENTITY_STATE_SEPOLIA "latest(address)" $DEMO_SUBJECT --rpc-url $SEPOLIA_RPC_URL</code>.</p>
+
+      <h2 id="public-rpcs">Public RPCs (no vendor lock)</h2>
+      <table>
+        <thead><tr><th>Chain</th><th>chainId</th><th>RPC</th><th>Explorer</th></tr></thead>
+        <tbody>
+          <tr><td>Sepolia</td><td>11155111</td><td><code>https://rpc.sepolia.org</code></td><td>https://sepolia.etherscan.io</td></tr>
+          <tr><td>Polygon Amoy</td><td>80002</td><td><code>https://rpc-amoy.polygon.technology/</code></td><td>https://amoy.polygonscan.com</td></tr>
+        </tbody>
+      </table>
+      <p>Cross-check metadata in <a href="https://github.com/ethereum-lists/chains">ethereum-lists/chains</a>. If public RPCs 429, add a second URL from a faucet-friendly provider in <code>.env</code> — that is not an identity provider.</p>
+
+      <h2 id="faucets">Faucets (liveness, not identity)</h2>
+      <ul>
+        <li>Sepolia: public Ethereum faucets (Google Cloud, PoW, Alchemy public drip — any will do).</li>
+        <li>Amoy: Polygon faucet + Alchemy Amoy faucet historically dripped test POL.</li>
+      </ul>
+      <p>Document which faucet you used in the README. Do not login-with-Google as the product identity.</p>
+
+      <h2 id="run">Run the brain</h2>
+<pre><code>source .venv/bin/activate
+python -m services.score.train          # writes data/model.joblib + data/metrics.json
+uvicorn services.api.main:app --host 0.0.0.0 --port 8000
+# other terminal
+python -m services.ingest.watch
+</code></pre>
+      <p>Ingest process owns the writer. API process is read-only plus health. Share overlay via a local JSON file <code>data/overlay.json</code> with atomic replace (<code>os.replace</code>). That file is a cache, not the source of truth.</p>
+
+      <h2 id="llm">LLM wiring</h2>
+<pre><code>export LLM_BASE_URL=https://api.openai.com/v1   # or any compatible server
+export LLM_API_KEY=...
+export LLM_MODEL=gpt-4.1-mini
+</code></pre>
+      <p>Instructor:</p>
+<pre><code>from instructor import from_openai
+from openai import OpenAI
+from services.normalize.schema import NormalizedClaim
+
+client = from_openai(OpenAI(base_url=os.environ["LLM_BASE_URL"], api_key=os.environ["LLM_API_KEY"]))
+claim = client.chat.completions.create(
+    model=os.environ["LLM_MODEL"],
+    response_model=NormalizedClaim,
+    temperature=0,
+    messages=[...],  # PROMPTS.html
+)
+</code></pre>
+      <p>DSPy alternative: one <code>dspy.Signature</code> per prompt file. Do not enable DSPy teleprompt / compile that trains weights if that counts as fine-tuning in your org’s reading of the PRD. Use zero-shot signatures only.</p>
+
+      <h2 id="shap">SHAP wiring</h2>
+<pre><code>import shap, joblib
+model = joblib.load("data/model.joblib")
+explainer = shap.TreeExplainer(model)
+sv = explainer.shap_values(x_row)  # x_row shape (1, d)
+</code></pre>
+      <p>If the model is logistic, <code>shap.LinearExplainer</code> with the train background (≤ 100 rows).</p>
+
+      <h2 id="did">did:ethr without a full SSI runtime</h2>
+<pre><code>def did_ethr(chain: str, addr: str) -&gt; str:
+    addr = addr.lower()
+    if chain == "sepolia":
+        return f"did:ethr:sepolia:{addr}"
+    if chain == "amoy":
+        return f"did:ethr:eip155:80002:{addr}"
+    raise ValueError(chain)
+</code></pre>
+      <p>Read <a href="https://github.com/uport-project/ethr-did">uport-project/ethr-did</a> README for the network-name table. Optional: verify a JWT-VC with <a href="https://github.com/decentralized-identity/did-jwt-vc">decentralized-identity/did-jwt-vc</a> in a Node one-off. The Python path can accept unsigned JSON for the hackathon if you say so in the video — still emit VC-shaped fields.</p>
+
+      <h2 id="dashboard">Dashboard (bonus)</h2>
+<pre><code>npm create vite@latest dashboard -- --template react-ts
+cd dashboard
+npm i
+# optional: npm i viem
+npm run dev
+</code></pre>
+      <p>Fetch <code>http://localhost:8000/v1/identity/${subject}</code>. Tokens from DESIGN.html. Verify in a real browser: loading, empty, error, happy, conflict.</p>
+
+      <h2 id="demo-script">demo_flow.sh</h2>
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail
+source .env
+# 1. post claim A on Sepolia, claim B on Amoy via cast send
+# 2. sleep 20
+# 3. curl -sf localhost:8000/v1/identity/$DEMO_SUBJECT | tee /tmp/id.json
+# 4. python scripts/verify_hash.py /tmp/id.json
+# 5. echo explorer URLs
+</code></pre>
+
+      <h2 id="compozy-int">Compozy integration (optional, coding time)</h2>
+      <ol>
+        <li><code>gh repo clone compozy/compozy</code> and/or install the desktop app from Releases.</li>
+        <li>Point a Compozy project at this repo.</li>
+        <li>Give agents CLAUDE.html as the constitution and PLAN.html hour slices as jobs.</li>
+        <li>Do not start the Compozy daemon as a production identity dependency.</li>
+      </ol>
+
+      <h2 id="graphify">graphify</h2>
+      <pre><code>graphify update .
+# after meaningful code lands
+</code></pre>
+
+      <h2 id="health-check">You are integrated when</h2>
+      <ol>
+        <li><code>GET /v1/health</code> shows both heads moving and <code>modelAccuracy &gt; 0.75</code>.</li>
+        <li>Two explorers show ClaimPosted.</li>
+        <li>Sepolia explorer shows StateCommitted.</li>
+        <li><code>verify_hash.py</code> exits 0.</li>
+        <li>Killing uvicorn and running replay reconstructs the same latest hash.</li>
+      </ol>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+</body>
+</html>

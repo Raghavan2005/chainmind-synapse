@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainMind Synapse — Math</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs-assets/synapse.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="mast" data-mast></header>
+  <div class="shell">
+    <aside class="toc" data-toc></aside>
+    <main id="main">
+      <p class="kicker">Formulas the code must implement</p>
+      <h1>Mathematics of reconciliation</h1>
+      <p class="lede">This page is normative for <code>services/fuse</code> and <code>services/score</code>. If a unit test disagrees with a formula here, the formula wins. Symbols follow Jøsang unless noted.</p>
+
+      <h2 id="problem-math">What we are estimating</h2>
+      <p>For a subject \(s\) and a topic \(\tau\) (e.g. <code>kyc.adult</code>), each claim \(i\) is evidence that the proposition \(x_\tau\) is true or false. We want:</p>
+      <ul>
+        <li>A per-claim credibility \(p_i = \Pr(\text{claim } i \text{ is currently reliable} \mid \mathbf{x}_i)\).</li>
+        <li>A fused opinion \(\omega_\tau = (b,d,u,a)\) about \(x_\tau\).</li>
+        <li>A scalar confidence \(C \in [0,1]\) written on-chain as \(\mathrm{scoreBps} = \mathrm{round}(10000 \cdot C)\).</li>
+      </ul>
+      <p>\(C\) is not “probability the human is good.” It is “how settled the fused identity state is.” High conflict ⇒ lower \(C\) even if one side is slightly ahead.</p>
+
+      <h2 id="beta">Beta reputation (Jøsang &amp; Ismail, 2002)</h2>
+      <p>Issuer \(I\) has accumulated positive evidence \(r_I\) and negative evidence \(s_I\) (fractional allowed). With a uniform prior \(\mathrm{Beta}(1,1)\):</p>
+      \[
+        f(p \mid r_I, s_I) = \frac{\Gamma(r_I+s_I+2)}{\Gamma(r_I+1)\Gamma(s_I+1)} p^{r_I}(1-p)^{s_I}, \quad p\in[0,1]
+      \]
+      \[
+        E[p] = \frac{r_I+1}{r_I+s_I+2}, \qquad
+        \sigma^2 = \frac{(r_I+1)(s_I+1)}{(r_I+s_I+2)^2(r_I+s_I+3)}
+      \]
+      <p>Forgetting: evidence is recency-weighted with factor \(\lambda \in (0,1]\). A record of age \(\Delta t\) (in hours) contributes \(\lambda^{\Delta t / t_0}\) with \(t_0 = 24\). Default \(\lambda = 0.97\).</p>
+      <p><strong>How we update \(r,s\):</strong> after a claim is resolved (revoked, expired-as-false, or corroborated by a higher-trust issuer), add \(v\) to \(r\) or \(1-v\) to \(s\) where \(v\) is the observed satisfaction in \([0,1]\). For the 6-hour demo, seed issuers from the training set: honest issuers \(r=8,s=1\), noisy \(r=3,s=3\), hostile \(r=1,s=8\).</p>
+      <p>Discounting a rating by source credibility \(c_k\in[0,1]\): contribute \(c_k v\) and \(c_k(1-v)\) instead of \(v, 1-v\).</p>
+      <p>Paper: <a href="https://www.mn.uio.no/ifi/english/people/aca/josang/publications/ji2002-bled.pdf">ji2002-bled.pdf</a>.</p>
+
+      <h2 id="sl">Subjective logic opinions (Jøsang)</h2>
+      <p>A binomial opinion on proposition \(x\):</p>
+      \[
+        \omega_x = (b, d, u, a)
+        \quad\text{with}\quad
+        b+d+u = 1,\quad b,d,u,a\in[0,1]
+      \]
+      <p>\(b\) belief, \(d\) disbelief, \(u\) uncertainty, \(a\) base rate (prior of \(x\) in the absence of evidence). Probability expectation:</p>
+      \[
+        P(\omega) = b + a u
+      \]
+      <p>Mapping from Beta evidence (W = 2, the non-informative prior weight):</p>
+      \[
+        b = \frac{r}{r+s+W},\quad
+        d = \frac{s}{r+s+W},\quad
+        u = \frac{W}{r+s+W},\quad
+        a = a_0
+      \]
+      <p>Default \(a_0 = 0.5\), \(W = 2\). This is the bridge between issuer reputation and claim opinions.</p>
+
+      <h3>From sklearn \(p_i\) to an opinion</h3>
+      <p>Let \(p_i\) be model credibility and \(m_i\) an evidence mass in \([0.5, 8]\) from confirmations + issuer volume (see code defaults). Interpret “claim is reliable” as the proposition. Then:</p>
+      \[
+        r_i = m_i p_i,\quad s_i = m_i (1-p_i)
+      \]
+      <p>and apply the mapping above. If the claim’s polarity is \(-1\), swap \(b\) and \(d\) before fusing onto \(x_\tau\) (the claim argues ¬\(x_\tau\)).</p>
+      <p>If the claim is revoked or expired, force \(p_i \leftarrow \min(p_i, 0.05)\) and add \(+2\) to \(s_i\) before mapping. Do not drop the row; dropping hides history.</p>
+
+      <h2 id="fuse">Belief fusion</h2>
+      <h3>Cumulative fusion \(\oplus\) (independent sources)</h3>
+      <p>Jøsang FUSION 2022 tutorial. For two opinions with \(u_A + u_B - u_A u_B \neq 0\):</p>
+      \[
+        b_{A\oplus B} = \frac{b_A u_B + b_B u_A}{u_A + u_B - u_A u_B},\quad
+        d_{A\oplus B} = \frac{d_A u_B + d_B u_A}{u_A + u_B - u_A u_B}
+      \]
+      \[
+        u_{A\oplus B} = \frac{u_A u_B}{u_A + u_B - u_A u_B},\quad
+        a_{A\oplus B} = \frac{a_A u_B + a_B u_A - (a_A+a_B) u_A u_B}{u_A + u_B - 2 u_A u_B}
+      \]
+      <p>If both uncertainties are 0 and \(b_A=b_B\), return either. If both uncertainties are 0 and they disagree, do not apply \(\oplus\); switch to averaging and raise a conflict flag. Implement this branch; it will show up in tests.</p>
+      <p>Associate \(\oplus\) left-to-right over a list. It is commutative in the ideal algebra; floating point will drift — fuse in claimId sort order for determinism.</p>
+
+      <h3>Averaging fusion \(\underline{\oplus}\) (dependent / duplicate sources)</h3>
+      \[
+        b = \frac{b_A u_B + b_B u_A}{u_A + u_B},\quad
+        d = \frac{d_A u_B + d_B u_A}{u_A + u_B},\quad
+        u = \frac{2 u_A u_B}{u_A + u_B}
+      \]
+      <p>Use when the same issuer posts the same topic on both chains, or when evidenceURI hashes match. Detect duplicates by <code>keccak(issuer, topic, evidenceHash)</code>.</p>
+
+      <h3>Trust discounting \(\otimes\) (referral)</h3>
+      <p>If we trust source \(A\) about source \(B\)’s reliability with \(\omega_A^{B} = (b_t, d_t, u_t, a_t)\) and \(B\) states \(\omega_B^{x}\):</p>
+      \[
+        b_{A:B} = b_t\, b_x,\quad
+        d_{A:B} = b_t\, d_x,\quad
+        u_{A:B} = d_t + u_t + b_t u_x
+      \]
+      <p>For the MVP, set referral trust from the Beta of the issuer: \(b_t = E[p_I]\cdot(1-u_I)\). Full trust networks are optional (EigenTrust section).</p>
+
+      <h3>Worked numbers (unit-test these)</h3>
+      <p>Opinion A: \((b,d,u,a)=(0.70, 0.10, 0.20, 0.50)\). Opinion B: \((0.10, 0.70, 0.20, 0.50)\).</p>
+      <p>Cumulative \(\oplus\): denominator \(0.20+0.20-0.04=0.36\).</p>
+      \[
+        b=\frac{0.70\cdot0.20+0.10\cdot0.20}{0.36}=\frac{0.16}{0.36}\approx 0.4444,\quad
+        d\approx 0.4444,\quad
+        u=\frac{0.04}{0.36}\approx 0.1111
+      \]
+      \[
+        P = 0.4444 + 0.5\cdot 0.1111 \approx 0.5000
+      \]
+      <p>Uncertainty fell (more evidence) but expectation stayed 0.5 — that is conflict, not ignorance. \(C\) must use a conflict penalty (next section), or the on-chain score would lie.</p>
+
+      <h2 id="conflict">Conflict and confidence</h2>
+      <p>Pairwise mass conflict in the DS sense, for binary frames \(\{x,\neg x\}\):</p>
+      \[
+        K_{ij} = b_i d_j + d_i b_j
+      \]
+      <p>Topic conflict \(K_\tau = \max_{i<j} K_{ij}\). Global confidence:</p>
+      \[
+        C = \big(\tfrac{1}{|\mathcal{T}|}\sum_{\tau} (1-u_\tau)\big) \cdot (1-\bar K) \cdot \mathrm{clip}(2|P-0.5|, 0, 1)^{0.5}
+      \]
+      <p>where \(\bar K\) is the mean of \(K_\tau\), \(P\) is the mean of \(P(\omega_\tau)\). The last term stops us from publishing “confident 0.51.” Tune exponents only if tests require; do not invent a fourth factor on the clock.</p>
+      <p>Trust revision (Jøsang, Zibetti, Wang — FUSION 2017): if \(K_{ij}>\theta\) with \(\theta=0.45\), shrink the lower-\(E[p_I]\) issuer’s mass \(m_i\) by \(0.5\) and refuse. Re-fuse. Always keep both claims in the JSON.</p>
+      <p>Paper: <a href="https://www.mn.uio.no/ifi/english/people/aca/josang/publications/jzw2017-fusion.pdf">jzw2017-fusion.pdf</a>.</p>
+
+      <h2 id="ds">Dempster–Shafer (background, optional path)</h2>
+      <p>Frame \(\Theta=\{x,\neg x\}\). Masses \(m(\{x\})=b\), \(m(\{\neg x\})=d\), \(m(\Theta)=u\). Dempster combination:</p>
+      \[
+        (m_1\oplus m_2)(A)=\frac{1}{1-K}\sum_{B\cap C=A}m_1(B)m_2(C),\quad
+        K=\sum_{B\cap C=\emptyset}m_1(B)m_2(C)
+      \]
+      \[
+        \mathrm{Bel}(A)=\sum_{B\subseteq A}m(B),\quad
+        \mathrm{Pl}(A)=\sum_{B\cap A\neq\emptyset}m(B)
+      \]
+      <p>When \(K\to 1\), classical DS renormalization is brittle (Zadeh’s paradox). Prefer Jøsang cumulative fusion as the default. Keep a <code>fuse_engine=sl|ds</code> flag if you implement both; tests lock <code>sl</code>.</p>
+      <p>Adaptive DS in multi-agent systems (MDPI 2022) weights witnesses by confidence — we already do this via discounting.</p>
+
+      <h2 id="eigentrust">EigenTrust (optional issuer graph)</h2>
+      <p>Kamvar, Schlosser, Garcia-Molina, WWW 2003. Local trust \(s_{ij}=\) satisfactory minus unsatisfactory interactions, then</p>
+      \[
+        c_{ij}=\frac{\max(s_{ij},0)}{\sum_k \max(s_{ik},0)}
+      \]
+      <p>Global trust vector \(t\) is the principal left eigenvector of \(C\), computed by power iteration with pre-trusted peers \(p\):</p>
+      \[
+        t^{(k+1)} = (1-\alpha) C^\top t^{(k)} + \alpha p
+      \]
+      <p>Use \(\alpha=0.15\), \(p\) uniform over faucet-known demo issuers. Only worth it if you have ≥ 8 issuers. Paper: <a href="https://www-nlp.stanford.edu/pubs/eigentrust.pdf">eigentrust.pdf</a>.</p>
+
+      <h2 id="sklearn">Credibility model</h2>
+      <p>Let \(\mathbf{x}\in\mathbb{R}^{d}\) be the feature vector (SCHEMA.html). HistGradientBoosting estimates</p>
+      \[
+        F(\mathbf{x}) = \sum_{t=1}^{T} \eta\, h_t(\mathbf{x}),\quad
+        p = \sigma(F(\mathbf{x})) = \frac{1}{1+e^{-F(\mathbf{x})}}
+      \]
+      <p>Logistic fallback: \(p=\sigma(w^\top x + b)\). Train with log loss. Class weight balanced. Calibration: if Brier &gt; 0.22, apply sklearn <code>CalibratedClassifierCV</code> (sigmoid) on a slice of train — only if time.</p>
+      <p>Accuracy on the holdout must exceed \(0.75\). Also compute</p>
+      \[
+        \mathrm{F1} = \frac{2\mathrm{TP}}{2\mathrm{TP}+\mathrm{FP}+\mathrm{FN}},\quad
+        \mathrm{Brier} = \frac{1}{n}\sum_i (p_i - y_i)^2
+      \]
+
+      <h2 id="shap">SHAP (Lundberg &amp; Lee, NeurIPS 2017)</h2>
+      <p>For model \(f\) and features \(N\), the attribution of feature \(i\) on instance \(x\) is the Shapley value</p>
+      \[
+        \phi_i = \sum_{S\subseteq N\setminus\{i\}}
+        \frac{|S|!\,(|N|-|S|-1)!}{|N|!}
+        \big(f(S\cup\{i\})-f(S)\big)
+      \]
+      <p>Additive: \(f(x)=\phi_0+\sum_i \phi_i\). Use <code>shap.TreeExplainer</code>. Pass the top 5 \((\mathrm{name},\phi)\) into the explanation prompt. Do not send all SHAP values to the LLM.</p>
+      <p>LIME (Ribeiro, Singh, Guestrin, KDD 2016) is the fallback explainer:</p>
+      \[
+        \xi(x)=\arg\min_{g\in G} \; \mathcal{L}(f,g,\pi_x)+\Omega(g)
+      \]
+      <p>Paper: <a href="https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf">SHAP</a>, <a href="https://arxiv.org/abs/1602.04938">LIME</a>.</p>
+
+      <h2 id="hash">On-chain commitment</h2>
+      \[
+        \mathrm{claimsRoot} = \mathrm{keccak256}(\mathrm{abi.encodePacked}(\mathrm{sorted}(\mathrm{claimId}_i)))
+      \]
+      \[
+        \mathrm{stateHash} = \mathrm{keccak256}(\mathrm{abi.encode}(s,\ \mathrm{claimsRoot},\ \mathrm{scoreBps},\ \mathrm{modelVersion},\ \mathrm{issuedAt}))
+      \]
+      \[
+        \mathrm{commitId} = \mathrm{keccak256}(\mathrm{abi.encode}(s,\ \mathrm{claimsRoot},\ \mathrm{modelVersion}))
+      \]
+      <p>\(\mathrm{modelVersion}=\mathrm{keccak256}(\mathrm{bytes}(\mathrm{model.joblib}))\). issuedAt is unix seconds from the operator clock, also stored in the JSON so verifiers do not guess.</p>
+
+      <h2 id="expiry">Time features</h2>
+      \[
+        \mathrm{hours\_to\_expiry} = \frac{t_{\mathrm{exp}}-t_{\mathrm{now}}}{3600},\quad
+        \mathrm{expired} = \mathbf{1}[t_{\mathrm{now}} \ge t_{\mathrm{exp}}]
+      \]
+      \[
+        \mathrm{claim\_age\_hours} = \frac{t_{\mathrm{now}}-t_{\mathrm{post}}}{3600}
+      \]
+      <p>Confirmations feature: \(\min(\mathrm{head}-\mathrm{logBlock}, 32)/32\).</p>
+
+      <h2 id="dirichlet">Dirichlet generalization (do not implement unless ahead)</h2>
+      <p>For multi-valued topics (low / medium / high KYC), Dirichlet reputation replaces Beta. Leave a TODO. Binary topics only for the demo.</p>
+
+      <h2 id="llm-judge">Why the LLM does not own \(p_i\)</h2>
+      <p>TrustJudge (arXiv:2509.21117, 2025) shows integer LLM-as-judge scores lose entropy and break transitivity. We may use an LLM to <em>narrate</em> \(p_i\), never to <em>replace</em> it. If you add a secondary LLM score, store it as <code>llm_p</code> and keep it out of \(C\).</p>
+    </main>
+  </div>
+  <footer class="colophon" data-foot></footer>
+  <script src="docs-assets/nav.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}]});"></script>
+</body>
+</html>
