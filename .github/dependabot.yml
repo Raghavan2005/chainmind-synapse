@@ -4,10 +4,20 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      openai-instructor:
+        patterns:
+          - openai
+          - instructor
   - package-ecosystem: npm
     directory: /dashboard
     schedule:
       interval: weekly
+    groups:
+      vite:
+        patterns:
+          - vite
+          - "@vitejs/plugin-react"
   - package-ecosystem: github-actions
     directory: /
     schedule:

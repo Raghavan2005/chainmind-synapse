@@ -1,41 +1,109 @@
 name: Deploy AWS
 
+# Push is handled (not deleted) so GitHub's existing push subscription
+# gets real jobs instead of a 0-job "workflow file issue" red X.
+# Image push / App Runner only run after CI succeeds, or on dispatch,
+# and only when repository variables explicitly enable them.
 on:
+  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master, main]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: preflight tests OIDC and ECR only; deploy pushes an image (App Runner only if APPRUNNER_SERVICE_ARN is set)
+        type: choice
+        options: [preflight, deploy]
+        default: preflight
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  deploy:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      action: ${{ steps.decide.outputs.action }}
+    steps:
+      - id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          ENABLED: ${{ vars.AWS_DEPLOY_ENABLED }}
+          ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          ECR_REPO: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          action=skip
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            echo "Push event: deploy waits for the CI workflow_run (or workflow_dispatch)."
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" && "${DISPATCH_MODE:-preflight}" == "preflight" ]]; then
+            if [[ -n "${ROLE_ARN}" && -n "${ECR_REPO}" ]]; then
+              action=preflight
+            else
+              echo "Preflight skipped: set repository variables AWS_ROLE_ARN and ECR_REPOSITORY."
+            fi
+          elif [[ "${ENABLED}" == "true" && -n "${ROLE_ARN}" && -n "${ECR_REPO}" ]]; then
+            action=deploy
+          else
+            echo "Deploy skipped (neutral). After OIDC/ECR exist, set vars AWS_DEPLOY_ENABLED=true, AWS_ROLE_ARN, ECR_REPOSITORY."
+          fi
+          echo "action=${action}" >> "$GITHUB_OUTPUT"
+          echo "Resolved action=${action} event=${EVENT_NAME} enabled=${ENABLED:-} role=$([ -n "${ROLE_ARN}" ] && echo set || echo unset) ecr=$([ -n "${ECR_REPO}" ] && echo set || echo unset)"
+
+  preflight:
+    name: AWS preflight
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'preflight' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Require repo secrets
-        env:
-          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        run: |
-          if [[ -z "$AWS_ROLE_ARN" || -z "$ECR_REPOSITORY" ]]; then
-            echo "Set repo secrets AWS_ROLE_ARN and ECR_REPOSITORY (optional APPRUNNER_SERVICE_ARN), then re-run this workflow."
-            exit 1
-          fi
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: OIDC and ECR checks
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: bash scripts/aws_preflight.sh --ci
+
+  deploy:
+    name: AWS deploy
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'deploy' }}
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Preflight
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: bash scripts/aws_preflight.sh --ci
       - uses: aws-actions/amazon-ecr-login@v2
         id: login
       - name: Build and push
         env:
-          ECR: ${{ secrets.ECR_REPOSITORY }}
+          ECR: ${{ vars.ECR_REPOSITORY }}
         run: |
           IMAGE="${{ steps.login.outputs.registry }}/${ECR}:${GITHUB_SHA}"
           docker build -t "$IMAGE" -t "${{ steps.login.outputs.registry }}/${ECR}:latest" .
           docker push "$IMAGE"
           docker push "${{ steps.login.outputs.registry }}/${ECR}:latest"
       - name: Roll App Runner
-        if: ${{ secrets.APPRUNNER_SERVICE_ARN != '' }}
-        run: |
-          aws apprunner start-deployment --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}"
+        if: ${{ vars.APPRUNNER_SERVICE_ARN != '' }}
+        env:
+          ARN: ${{ vars.APPRUNNER_SERVICE_ARN }}
+        run: aws apprunner start-deployment --service-arn "$ARN"

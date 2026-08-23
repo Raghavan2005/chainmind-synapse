@@ -61,17 +61,24 @@ Paste addresses into `.env`.
 ## GitHub
 
 - `.github/workflows/ci.yml` — Foundry, pytest + train, dashboard build, Docker image.
-- `.github/workflows/aws-deploy.yml` — manual `workflow_dispatch` only; OIDC → ECR → App Runner (`AWS_ROLE_ARN`, `ECR_REPOSITORY`).
+- `.github/workflows/aws-deploy.yml` — after CI succeeds on `master`/`main`, or `workflow_dispatch`. Deploy is skipped (neutral) unless repository variables `AWS_DEPLOY_ENABLED=true`, `AWS_ROLE_ARN`, and `ECR_REPOSITORY` are set. App Runner rolls only when `APPRUNNER_SERVICE_ARN` is set. Local check: `bash scripts/aws_preflight.sh`.
 - Dependabot for pip, npm, Actions, Docker.
 
 ## AWS
 
-`infra/aws` is Terraform for ECR, Secrets Manager, App Runner, and optional GitHub OIDC.
+`infra/aws` is Terraform for ECR, Secrets Manager, App Runner, and GitHub OIDC. Do not `terraform apply` the App Runner service until contracts are funded and you want a live URL.
+
+Cheap GitHub Actions pieces (OIDC + `chainmind-synapse-gha` role + ECR) can be created without Terraform:
+
+```bash
+bash scripts/aws_preflight.sh --create   # us-east-1 unless AWS_REGION is set
+# later: bash scripts/aws_preflight.sh --teardown
+```
 
 ```bash
 cd infra/aws
 terraform init
-terraform apply -var="region=eu-west-1"
+terraform plan -var="region=us-east-1"   # plan only until App Runner is intentional
 ```
 
 Same image runs locally via `docker compose up --build`. Ingest and API share `data/overlay.json`. No hosted database is the source of truth.
