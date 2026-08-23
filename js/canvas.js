@@ -1,6 +1,6 @@
 /**
- * ChainMind Synapse — Vivid Green & Pure White Visualizer Engine
- * Palette: Emerald Green (#00f59b) & Pure White (#ffffff) on Dark Carbon (#060907)
+ * ChainMind Synapse — Professional Neutral Slate Visualizer Engine
+ * High-precision titanium/slate particle topology and barycentric simplex.
  */
 
 export class SynapseCanvas {
@@ -141,7 +141,7 @@ export class SynapseCanvas {
       const y = centerY + Math.sin(angle) * (radiusOrbit * 0.75 + (idx % 2 === 0 ? 15 : -10));
 
       const isConflict = claim.polarity === -1 || claim.revoked;
-      const nodeColor = isConflict ? '#ffffff' : '#00f59b';
+      const borderColor = isConflict ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.25)';
 
       this.nodes.push({
         ...claim,
@@ -152,7 +152,7 @@ export class SynapseCanvas {
         angle,
         orbitRadius: radiusOrbit,
         radius: 17,
-        color: nodeColor,
+        borderColor,
         isConflict
       });
     });
@@ -165,8 +165,7 @@ export class SynapseCanvas {
           sourceNode: n,
           progress: i / count,
           speed: 0.005 + Math.random() * 0.003,
-          size: 2.4,
-          color: n.color
+          size: 2.2
         });
       }
     });
@@ -175,17 +174,17 @@ export class SynapseCanvas {
   updatePhysics() {
     const time = performance.now() * 0.001;
 
-    this.radarAngle += 0.015;
+    this.radarAngle += 0.012;
 
     if (this.coreNode) {
-      this.coreNode.pulse = Math.sin(time * 2.5) * 3;
+      this.coreNode.pulse = Math.sin(time * 2.2) * 3;
     }
 
     this.nodes.forEach((node, idx) => {
       if (node === this.mouse.draggedNode) return;
 
-      const targetX = (this.width / 2) + Math.cos(node.angle + time * 0.06) * node.orbitRadius;
-      const targetY = (this.height / 2) + Math.sin(node.angle + time * 0.06) * (node.orbitRadius * 0.72);
+      const targetX = (this.width / 2) + Math.cos(node.angle + time * 0.05) * node.orbitRadius;
+      const targetY = (this.height / 2) + Math.sin(node.angle + time * 0.05) * (node.orbitRadius * 0.72);
 
       node.vx += (targetX - node.x) * 0.02;
       node.vy += (targetY - node.y) * 0.02;
@@ -208,30 +207,30 @@ export class SynapseCanvas {
     const cx = this.coreNode.x;
     const cy = this.coreNode.y;
 
-    // 1. Radar Circles
+    // 1. Concentric Titanium Grid
     [80, 160, 240].forEach(r => {
       this.ctx.beginPath();
       this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      this.ctx.strokeStyle = 'rgba(0, 245, 155, 0.035)';
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
       this.ctx.lineWidth = 1;
       this.ctx.stroke();
     });
 
-    // 2. Green Sweeping Radar Line
+    // 2. Neutral Sweeping Scan Line
     const scanX = cx + Math.cos(this.radarAngle) * 240;
     const scanY = cy + Math.sin(this.radarAngle) * 180;
     const radarGrad = this.ctx.createLinearGradient(cx, cy, scanX, scanY);
-    radarGrad.addColorStop(0, 'rgba(0, 245, 155, 0.25)');
-    radarGrad.addColorStop(1, 'rgba(0, 245, 155, 0)');
+    radarGrad.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
+    radarGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     
     this.ctx.beginPath();
     this.ctx.moveTo(cx, cy);
     this.ctx.lineTo(scanX, scanY);
     this.ctx.strokeStyle = radarGrad;
-    this.ctx.lineWidth = 1.2;
+    this.ctx.lineWidth = 1;
     this.ctx.stroke();
 
-    // 3. Synaptic Lines
+    // 3. Synaptic Connections
     this.nodes.forEach(n => {
       const midX = (n.x + cx) / 2;
       const midY = (n.y + cy) / 2;
@@ -242,17 +241,17 @@ export class SynapseCanvas {
       this.ctx.quadraticCurveTo(midX + offset, midY - offset, cx, cy);
 
       const grad = this.ctx.createLinearGradient(n.x, n.y, cx, cy);
-      grad.addColorStop(0, n.color + '55');
-      grad.addColorStop(1, 'rgba(0, 245, 155, 0.4)');
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0.06)');
 
       this.ctx.strokeStyle = grad;
-      this.ctx.lineWidth = n.isConflict ? 1.8 : 1.2;
+      this.ctx.lineWidth = n.isConflict ? 1.5 : 1;
       if (n.isConflict) this.ctx.setLineDash([4, 4]);
       else this.ctx.setLineDash([]);
       this.ctx.stroke();
     });
 
-    // 4. Flowing Green/White Photons
+    // 4. White Photons
     this.particles.forEach(p => {
       const n = p.sourceNode;
       const midX = (n.x + cx) / 2;
@@ -269,28 +268,26 @@ export class SynapseCanvas {
       this.ctx.save();
       this.ctx.beginPath();
       this.ctx.arc(px, py, p.size, 0, Math.PI * 2);
-      this.ctx.fillStyle = p.color;
-      this.ctx.shadowColor = p.color;
-      this.ctx.shadowBlur = 8;
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      this.ctx.shadowBlur = 6;
       this.ctx.fill();
       this.ctx.restore();
     });
 
-    // 5. Emerald Green Consensus Core
+    // 5. Consensus Core
     this.ctx.save();
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, this.coreNode.radius + 12 + this.coreNode.pulse, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(0, 245, 155, 0.25)';
-    this.ctx.lineWidth = 1.5;
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    this.ctx.lineWidth = 1;
     this.ctx.stroke();
 
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, this.coreNode.radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = '#0d1410';
-    this.ctx.strokeStyle = '#00f59b';
-    this.ctx.lineWidth = 2;
-    this.ctx.shadowColor = '#00f59b';
-    this.ctx.shadowBlur = 14;
+    this.ctx.fillStyle = '#11141a';
+    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.lineWidth = 1.5;
     this.ctx.fill();
     this.ctx.stroke();
 
@@ -301,16 +298,14 @@ export class SynapseCanvas {
     this.ctx.fillText('CORE', cx, cy);
     this.ctx.restore();
 
-    // 6. Ingested Nodes (Green & White)
+    // 6. Ingested Nodes
     this.nodes.forEach(n => {
       this.ctx.save();
       this.ctx.beginPath();
       this.ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#131c17';
-      this.ctx.strokeStyle = n.color;
-      this.ctx.lineWidth = 2;
-      this.ctx.shadowColor = n.color;
-      this.ctx.shadowBlur = 10;
+      this.ctx.fillStyle = '#171b23';
+      this.ctx.strokeStyle = n.borderColor;
+      this.ctx.lineWidth = 1.5;
       this.ctx.fill();
       this.ctx.stroke();
 
@@ -318,11 +313,10 @@ export class SynapseCanvas {
       this.ctx.font = '700 10px "Space Mono"';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
-      const initial = n.chainName.substring(0, 3).toUpperCase();
-      this.ctx.fillText(initial, n.x, n.y);
+      this.ctx.fillText(n.chainName.substring(0, 3).toUpperCase(), n.x, n.y);
 
       this.ctx.font = '600 11px "Plus Jakarta Sans"';
-      this.ctx.fillStyle = '#a7f3d0';
+      this.ctx.fillStyle = '#94a3b8';
       this.ctx.fillText(n.topic, n.x, n.y + n.radius + 14);
       this.ctx.restore();
     });
@@ -353,23 +347,26 @@ export class SynapseCanvas {
     sCtx.lineTo(leftX, leftY);
     sCtx.lineTo(rightX, rightY);
     sCtx.closePath();
-    sCtx.strokeStyle = 'rgba(0, 245, 155, 0.15)';
-    sCtx.lineWidth = 1.2;
-    sCtx.fillStyle = 'rgba(13, 20, 16, 0.7)';
+    sCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    sCtx.lineWidth = 1;
+    sCtx.fillStyle = 'rgba(17, 20, 26, 0.7)';
     sCtx.fill();
+    sCtx.stroke();
+
+    // Internal Altitudes
+    sCtx.beginPath();
+    sCtx.moveTo(topX, topY);
+    sCtx.lineTo((leftX + rightX) / 2, leftY);
+    sCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
     sCtx.stroke();
 
     // Corner Labels
     sCtx.font = '600 10px "Space Mono"';
     sCtx.textAlign = 'center';
     
-    sCtx.fillStyle = '#a7f3d0';
+    sCtx.fillStyle = '#94a3b8';
     sCtx.fillText('u=1 (Uncertainty)', topX, topY - 6);
-
-    sCtx.fillStyle = '#ffffff';
     sCtx.fillText('d=1 (Disbelief)', leftX + 18, leftY + 14);
-
-    sCtx.fillStyle = '#00f59b';
     sCtx.fillText('b=1 (Belief)', rightX - 18, rightY + 14);
 
     // Barycentric coordinates
@@ -380,18 +377,18 @@ export class SynapseCanvas {
     const px = b * rightX + d * leftX + u * topX;
     const py = b * rightY + d * leftY + u * topY;
 
-    // Emerald Coordinate pointer
+    // White Coordinate pointer
     sCtx.beginPath();
-    sCtx.arc(px, py, 5, 0, Math.PI * 2);
-    sCtx.fillStyle = '#00f59b';
-    sCtx.shadowColor = '#00f59b';
-    sCtx.shadowBlur = 10;
+    sCtx.arc(px, py, 4.5, 0, Math.PI * 2);
+    sCtx.fillStyle = '#ffffff';
+    sCtx.shadowColor = '#ffffff';
+    sCtx.shadowBlur = 8;
     sCtx.fill();
 
     sCtx.beginPath();
-    sCtx.arc(px, py, 10, 0, Math.PI * 2);
-    sCtx.strokeStyle = 'rgba(0, 245, 155, 0.4)';
-    sCtx.lineWidth = 1.5;
+    sCtx.arc(px, py, 9, 0, Math.PI * 2);
+    sCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    sCtx.lineWidth = 1.2;
     sCtx.stroke();
 
     sCtx.restore();
