@@ -8,7 +8,7 @@ pydantic==2.12.5
 pydantic-settings==2.12.0
 scikit-learn==1.7.2
 numpy==2.3.3
-pandas==2.3.3
+pandas==3.0.5
 joblib==1.5.3
 shap==0.49.1
 httpx==0.28.1
