@@ -93,6 +93,7 @@
         <li>Treat every file in <code>instructions/</code> as the living spec. Update the HTML when a decision changes. Do not spawn a parallel <code>PLAN.md</code>, <code>ARCHITECTURE.md</code>, or <code>docs/*.md</code>.</li>
         <li>When you report status to a human, prefer a short note plus a link/path to the relevant HTML section over a 200-line Markdown dump.</li>
         <li>Repo-root <code>AGENTS.md</code> and <code>CLAUDE.md</code> are pointers only. This file wins on conflict.</li>
+        <li>Follow <a href="PLAN.html">PLAN.html</a> as written. If a locked decision (stack, chains, scope) changes, update every affected page here in the same commit and say so loudly in the commit message — a quiet override lets a parallel contributor keep building on the stale assumption. This has already cost the project duplicate work once (a same-day chain-pair switch landed while another contributor was mid-deploy on the old pair).</li>
       </ul>
       <p class="small">Sources: <a href="https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/">InfoQ — HTML increasingly better than Markdown in agentic loops</a> (24 Jun 2026); Shihipar, <em>Using Claude Code: The Unreasonable Effectiveness of HTML</em>.</p>
 
