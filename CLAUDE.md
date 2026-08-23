@@ -12,5 +12,6 @@ Rules:
 2. Do not create parallel Markdown specs (`docs/`, `ARCHITECTURE.md`, `PLAN.md`).
 3. Do not wrap Trusta / Nomis / Passport. No fine-tuning. Sepolia + Unichain Sepolia, not Goerli / Mumbai / Amoy.
 4. This `CLAUDE.md` never overrides `instructions/CLAUDE.html`.
+5. Follow `instructions/PLAN.html` as written. If a locked decision (stack, chains, scope) must change, update every affected `instructions/*.html` page in the same commit, and make the change loud in the commit message — this project already lost time once to two contributors independently redeploying on different chains because a locked-pair change wasn't flagged before the other side built on the old assumption.
 
 Human-facing rationale for HTML-over-Markdown specs: [InfoQ, 24 Jun 2026](https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/).
