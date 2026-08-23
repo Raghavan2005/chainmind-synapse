@@ -2,15 +2,6 @@ name: Deploy AWS
 
 on:
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - "services/**"
-      - "Dockerfile"
-      - "infra/aws/**"
-      - "requirements.txt"
-      - "data/model.joblib"
-      - "data/metrics.json"
 
 permissions:
   contents: read
@@ -18,7 +9,6 @@ permissions:
 
 jobs:
   deploy:
-    if: ${{ secrets.AWS_ROLE_ARN != '' }}
     runs-on: ubuntu-latest
     environment: aws
     steps:
@@ -37,7 +27,6 @@ jobs:
           docker build -t "$IMAGE" -t "${{ steps.login.outputs.registry }}/${ECR}:latest" .
           docker push "$IMAGE"
           docker push "${{ steps.login.outputs.registry }}/${ECR}:latest"
-          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
       - name: Roll App Runner
         if: ${{ secrets.APPRUNNER_SERVICE_ARN != '' }}
         run: |
