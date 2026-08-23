@@ -13,7 +13,9 @@
 
 <p align="center">
   <strong>Website:</strong>
-  <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a>
+  <a href="https://chainmind-synapse.vercel.app">https://chainmind-synapse.vercel.app</a><br>
+  <strong>Demo video:</strong>
+  <a href="https://drive.google.com/file/d/1ajDYbxxSzGHJGjbtK5GqPkTavMX4i_Ej/view">https://drive.google.com/file/d/1ajDYbxxSzGHJGjbtK5GqPkTavMX4i_Ej/view</a>
 </p>
 
 <p align="center">
@@ -27,6 +29,8 @@
 
 <p align="center">
   <a href="https://chainmind-synapse.vercel.app/#/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221">Watch floor</a>
+  ·
+  <a href="https://drive.google.com/file/d/1ajDYbxxSzGHJGjbtK5GqPkTavMX4i_Ej/view">Demo video</a>
   ·
   <a href="https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/health">API health</a>
   ·
@@ -118,6 +122,7 @@ Features: `issuer_prior`, `issuer_volume`, `hours_to_expiry`, `expired`, `revoke
 ## Live demo
 
 Canonical UI: [chainmind-synapse.vercel.app](https://chainmind-synapse.vercel.app/#/0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221)  
+Demo video: [FInal2.mp4 on Google Drive](https://drive.google.com/file/d/1ajDYbxxSzGHJGjbtK5GqPkTavMX4i_Ej/view)  
 Read API: [fmngtnpp5e.us-east-1.awsapprunner.com/v1/health](https://fmngtnpp5e.us-east-1.awsapprunner.com/v1/health)
 
 Demo subject `0x5cCBd2Ef7DBC744AbFF179F5C5B8180B182B1221`:
