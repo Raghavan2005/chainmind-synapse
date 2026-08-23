@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>ChainMind Synapse — demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ink: #0b0d0c;
+        --ink-2: #121614;
+        --ink-3: #1a1f1c;
+        --rule: #2a322c;
+        --bone: #ebe4d4;
+        --bone-dim: #c4bba8;
+        --mute: #8a8476;
+        --copper: #c4783a;
+        --copper-2: #e4a15a;
+        --moss: #6f9d7a;
+        --moss-2: #9ec9a6;
+        --danger: #c45b4a;
+        --warn: #d4a017;
+        --serif: "Newsreader", serif;
+        --sans: "IBM Plex Sans", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ink);
+        color: var(--bone);
+        font-family: var(--sans);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 80px;
+        display: flex;
+        flex-direction: column;
+      }
+      .kicker {
+        font-family: var(--mono);
+        font-size: 15px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--copper);
+      }
+      .headline {
+        font-family: var(--serif);
+        font-weight: 500;
+        letter-spacing: -0.03em;
+        color: var(--bone);
+        line-height: 1.05;
+      }
+      .body-text {
+        font-family: var(--sans);
+        font-size: 26px;
+        line-height: 1.55;
+        color: var(--bone-dim);
+        max-width: 1400px;
+      }
+      .chip {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 16px;
+        border: 1px solid var(--rule);
+        padding: 6px 12px;
+        margin-right: 12px;
+        color: var(--bone-dim);
+      }
+      .chip.ok { color: var(--moss); }
+      .chip.danger { color: var(--danger); }
+      .panel {
+        border: 1px solid var(--rule);
+        background: var(--ink-2);
+      }
+      .terminal {
+        border: 1px solid var(--rule);
+        background: var(--ink-3);
+        font-family: var(--mono);
+        font-size: 18px;
+        line-height: 1.7;
+        color: var(--bone);
+        padding: 32px;
+        white-space: pre;
+        overflow: hidden;
+      }
+      .mono { font-family: var(--mono); }
+      .hash { font-family: var(--mono); color: var(--copper-2); }
+      .mute-text { color: var(--mute); font-family: var(--mono); font-size: 15px; }
+      .mark { color: var(--copper); font-size: 28px; }
+
+      /* ---------- scene 1: problem ---------- */
+      #s1 { align-items: flex-start; justify-content: center; gap: 32px; }
+      #s1 .headline { font-size: 92px; max-width: 1500px; }
+
+      /* ---------- scene 2: constraints ---------- */
+      #s2 { justify-content: center; gap: 40px; }
+      #s2 .headline { font-size: 60px; }
+      #s2 .chip-row { display: flex; flex-wrap: wrap; gap: 16px; }
+      #s2 .chip-row .chip { margin-right: 0; font-size: 18px; padding: 10px 16px; }
+
+      /* ---------- scene 3: on-chain post ---------- */
+      #s3 { justify-content: center; gap: 40px; }
+      #s3 .headline { font-size: 52px; margin-bottom: 8px; }
+      #s3 .claim-row { display: flex; gap: 40px; }
+      #s3 .claim-card {
+        flex: 1;
+        border: 1px solid var(--rule);
+        background: var(--ink-2);
+        padding: 40px;
+      }
+      #s3 .claim-card .chain { font-family: var(--mono); font-size: 15px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.1em; }
+      #s3 .claim-card .topic { font-family: var(--serif); font-size: 38px; margin: 16px 0; }
+      #s3 .claim-card.pos .topic { color: var(--moss-2); }
+      #s3 .claim-card.neg .topic { color: var(--danger); }
+      #s3 .claim-card .tx { font-family: var(--mono); font-size: 18px; color: var(--copper-2); margin-top: 20px; }
+
+      /* ---------- scene 4: terminal ---------- */
+      #s4 { justify-content: center; gap: 32px; }
+      #s4 .headline { font-size: 52px; }
+      #s4 .stat-row { display: flex; gap: 60px; margin-top: 8px; }
+      #s4 .stat { font-family: var(--mono); }
+      #s4 .stat .num { font-size: 40px; color: var(--copper-2); }
+      #s4 .stat .label { font-size: 14px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.1em; }
+
+      /* ---------- scene 5: commit + verify ---------- */
+      #s5 { justify-content: center; gap: 36px; }
+      #s5 .headline { font-size: 52px; }
+      #s5 .commit-panel { border: 1px solid var(--rule); background: var(--ink-2); padding: 40px; }
+      #s5 .commit-panel .row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 20px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+      #s5 .commit-panel .row:last-child { border-bottom: none; }
+      #s5 .commit-panel .row .k { color: var(--mute); }
+      #s5 .commit-panel .row .v { color: var(--bone); }
+      #s5 .verify-line { font-family: var(--mono); font-size: 22px; color: var(--moss-2); }
+
+      /* ---------- scene 6: explanation + dashboard ---------- */
+      #s6 { justify-content: center; gap: 32px; flex-direction: row; align-items: stretch; }
+      #s6 .left { flex: 1; display: flex; flex-direction: column; gap: 20px; justify-content: center; }
+      #s6 .headline { font-size: 46px; }
+      #s6 .reason { font-family: var(--mono); font-size: 18px; color: var(--bone-dim); padding: 8px 0; border-bottom: 1px solid var(--rule); }
+      #s6 .reason .f { color: var(--bone); }
+      #s6 .reason .neg { color: var(--danger); }
+      #s6 .reason .pos { color: var(--moss); }
+      #s6 .right { flex: 1.2; border: 1px solid var(--rule); overflow: hidden; display: flex; align-items: flex-start; justify-content: center; background: var(--ink-2); }
+      #s6 .right img { width: 100%; display: block; }
+
+      /* ---------- scene 7: scope ---------- */
+      #s7 { justify-content: center; gap: 28px; }
+      #s7 .headline { font-size: 56px; }
+      #s7 ul { list-style: none; }
+      #s7 li { font-family: var(--sans); font-size: 24px; color: var(--bone-dim); padding: 6px 0; }
+      #s7 li::before { content: "— "; color: var(--copper); }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-plbr" id="root" data-composition-id="main" data-start="0" data-duration="180" data-width="1920" data-height="1080">
+      <!-- SCENE 1 — Problem (0-20s) -->
+      <section data-hf-id="hf-d05n" id="s1" class="clip" data-start="0" data-duration="20" data-track-index="1">
+        <p data-hf-id="hf-8y00" class="kicker" id="s1-kicker">◎ ChainMind Synapse</p>
+        <h1 data-hf-id="hf-h008" class="headline" id="s1-h">Credentials on two chains<br data-hf-id="hf-x5px">can disagree.</h1>
+        <p data-hf-id="hf-dhuk" class="body-text" id="s1-body">
+          A user presents a credential from one blockchain to a service provider on another.
+          The provider cannot verify current validity, or detect conflicting claims from the
+          other chain. That is a trust gap — not a display bug.
+        </p>
+      </section>
+
+      <!-- SCENE 2 — Constraints (20-40s) -->
+      <section data-hf-id="hf-g7f6" id="s2" class="clip" data-start="20" data-duration="20" data-track-index="1">
+        <p data-hf-id="hf-9j68" class="kicker" id="s2-kicker">Hard constraints</p>
+        <h1 data-hf-id="hf-uqib" class="headline" id="s2-h">No identity provider.<br data-hf-id="hf-rsrt">No centralized database.<br data-hf-id="hf-szow">Real testnets, not toys.</h1>
+        <div data-hf-id="hf-rvxe" class="chip-row" id="s2-chips">
+          <span data-hf-id="hf-q0h0" class="chip ok">Sepolia 11155111</span>
+          <span data-hf-id="hf-wfrc" class="chip ok">Unichain Sepolia 1301</span>
+          <span data-hf-id="hf-5m3d" class="chip danger">Goerli / Mumbai — dead since Apr 2024</span>
+          <span data-hf-id="hf-nfq4" class="chip">Amoy override → Unichain (POL faucet dried)</span>
+          <span data-hf-id="hf-mjuf" class="chip">Prompt orchestration, not fine-tuning</span>
+        </div>
+      </section>
+
+      <!-- SCENE 3 — On-chain post (40-70s) -->
+      <section data-hf-id="hf-53sk" id="s3" class="clip" data-start="40" data-duration="30" data-track-index="1">
+        <p data-hf-id="hf-9m7a" class="kicker" id="s3-kicker">Two issuers, one subject, opposite claims</p>
+        <h1 data-hf-id="hf-rc9f" class="headline" id="s3-h">kyc.adult — posted on both chains</h1>
+        <div data-hf-id="hf-3igt" class="claim-row" id="s3-cards">
+          <div data-hf-id="hf-p97x" class="claim-card pos">
+            <div data-hf-id="hf-xtlf" class="chain">Sepolia · 11155111</div>
+            <div data-hf-id="hf-ej3s" class="topic">kyc.adult&#160;+1</div>
+            <div data-hf-id="hf-pnbp" class="mute-text">issuer 0x17cF7F…6D27</div>
+            <div data-hf-id="hf-fyp2" class="tx">tx 2fbfd651…9edb</div>
+          </div>
+          <div data-hf-id="hf-h799" class="claim-card neg">
+            <div data-hf-id="hf-hke3" class="chain">Unichain Sepolia · 1301</div>
+            <div data-hf-id="hf-g18t" class="topic">kyc.adult&#160;−1</div>
+            <div data-hf-id="hf-oqsd" class="mute-text">issuer 0x2dfdAC…8bA2</div>
+            <div data-hf-id="hf-5hwj" class="tx">tx 50c1e418…829c</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 4 — Terminal (70-110s) -->
+      <section data-hf-id="hf-e96r" id="s4" class="clip" data-start="70" data-duration="40" data-track-index="1">
+        <p data-hf-id="hf-inpf" class="kicker" id="s4-kicker">Watcher + model, live</p>
+        <h1 data-hf-id="hf-j4z8" class="headline" id="s4-h">Ingest → score → fuse → commit</h1>
+        <div data-hf-id="hf-muqp" class="terminal" id="s4-term">{"event": "score.ok", "claimId": "0x247b4719…c0ffbcd9", "engine": "rules"}
+{"event": "ingest.head", "chainId": 11155111, "block": 11548553, "lag": 9}
+{"event": "commit.sent", "commitId": "0x31316cbf…6975ed27", "txHash": "77fa806b…b005083"}
+{"event": "commit.mined", "latencyMs": 13229}
+{"event": "score.ok", "claimId": "0x544c4d39…39f13b5c", "engine": "rules"}
+{"event": "ingest.head", "chainId": 1301, "block": 60617541, "lag": 118}
+{"event": "fuse.conflict", "subject": "0x5E088157…234DF3AA42B5", "K": 0.0812568738353125}
+{"event": "commit.sent", "commitId": "0x509ef93f…290f2ef30", "txHash": "04913fea…cab28ee8f"}
+{"event": "commit.mined", "latencyMs": 10825}</div>
+        <div data-hf-id="hf-s0hs" class="stat-row" id="s4-stats">
+          <div data-hf-id="hf-xa0m" class="stat"><div data-hf-id="hf-efqk" class="num">90%</div><div data-hf-id="hf-mmo5" class="label">held-out accuracy</div></div>
+          <div data-hf-id="hf-tx7e" class="stat"><div data-hf-id="hf-7r0b" class="num">0.911</div><div data-hf-id="hf-p49j" class="label">F1</div></div>
+          <div data-hf-id="hf-ubif" class="stat"><div data-hf-id="hf-3ma1" class="num">39s</div><div data-hf-id="hf-ebj5" class="label">commit latency (budget 120s)</div></div>
+        </div>
+      </section>
+
+      <!-- SCENE 5 — Commit + verify (110-140s) -->
+      <section data-hf-id="hf-ekm6" id="s5" class="clip" data-start="110" data-duration="30" data-track-index="1">
+        <p data-hf-id="hf-o0db" class="kicker" id="s5-kicker">Hash-only on-chain commitment</p>
+        <h1 data-hf-id="hf-ma3q" class="headline" id="s5-h">StateCommitted on Sepolia</h1>
+        <div data-hf-id="hf-61w1" class="commit-panel" id="s5-panel">
+          <div data-hf-id="hf-thy4" class="row"><span data-hf-id="hf-7dhw" class="k">commitId</span><span data-hf-id="hf-mnf9" class="v">0x509ef93f…90f2ef30</span></div>
+          <div data-hf-id="hf-lt04" class="row"><span data-hf-id="hf-17kl" class="k">stateHash</span><span data-hf-id="hf-wyzj" class="v">0x47f1db5d…983ce98</span></div>
+          <div data-hf-id="hf-km31" class="row"><span data-hf-id="hf-tp94" class="k">txHash</span><span data-hf-id="hf-z4pq" class="v">0x04913fea…cab28ee8f</span></div>
+          <div data-hf-id="hf-l0e2" class="row"><span data-hf-id="hf-8d9k" class="k">chainId</span><span data-hf-id="hf-d129" class="v">11155111</span></div>
+        </div>
+        <p data-hf-id="hf-2rkf" class="verify-line" id="s5-verify">$ python scripts/verify_hash.py --subject 0x5E08…AA42B5<br data-hf-id="hf-sldv">ok 0x47f1db5d5fca53f87dda522f5123ba38012c2a87d6f6b0c0099fbc620983ce98</p>
+      </section>
+
+      <!-- SCENE 6 — Explanation + dashboard (140-165s) -->
+      <section data-hf-id="hf-ouwi" id="s6" class="clip" data-start="140" data-duration="25" data-track-index="1">
+        <div data-hf-id="hf-i0dv" class="left">
+          <p data-hf-id="hf-k067" class="kicker" id="s6-kicker">Explanation, async — never on the GET path</p>
+          <h1 data-hf-id="hf-7quv" class="headline" id="s6-h">Conflict on kyc.adult.<br data-hf-id="hf-qluq">Both sides stay listed.</h1>
+          <div data-hf-id="hf-m2m6" id="s6-reasons">
+            <div data-hf-id="hf-wh9w" class="reason"><span data-hf-id="hf-e349" class="f">issuer_prior</span> <span data-hf-id="hf-datz" class="neg">-1.468</span></div>
+            <div data-hf-id="hf-4vpo" class="reason"><span data-hf-id="hf-tdhn" class="f">conflict_count</span> <span data-hf-id="hf-ywhl" class="neg">-1.435</span></div>
+            <div data-hf-id="hf-3osl" class="reason"><span data-hf-id="hf-k910" class="f">confirmations_norm</span> <span data-hf-id="hf-18k4" class="pos">+0.332</span></div>
+            <div data-hf-id="hf-433m" class="reason"><span data-hf-id="hf-cf9d" class="f">revoked</span> <span data-hf-id="hf-m2iz" class="pos">+0.250</span></div>
+          </div>
+        </div>
+        <div data-hf-id="hf-c4m8" class="right" id="s6-dash">
+          <img data-hf-id="hf-82lg" src="assets/dashboard-real.png" alt="live dashboard">
+        </div>
+      </section>
+
+      <!-- SCENE 7 — Scope & next (165-180s) -->
+      <section data-hf-id="hf-rivf" id="s7" class="clip" data-start="165" data-duration="15" data-track-index="1">
+        <p data-hf-id="hf-1bpt" class="kicker" id="s7-kicker">Said out loud</p>
+        <h1 data-hf-id="hf-bajm" class="headline" id="s7-h">What this is not</h1>
+        <ul data-hf-id="hf-5bi0" id="s7-list">
+          <li data-hf-id="hf-3079">Not Trusta / Nomis / Gitcoin Passport — no commercial reconciliation SDK</li>
+          <li data-hf-id="hf-t9td">Operator key can commit — a liveness concession, not a hidden IdP</li>
+          <li data-hf-id="hf-u2a5">Next: status lists, EigenTrust issuer graph, real labeled claims</li>
+        </ul>
+        <p data-hf-id="hf-cs46" class="mark" id="s7-mark">◎ ChainMind Synapse</p>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // scene 1
+      tl.from("#s1-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.from("#s1-h", { opacity: 0, y: 24, duration: 0.7, ease: "power3.out" }, 0.3);
+      tl.from("#s1-body", { opacity: 0, y: 16, duration: 0.6, ease: "power2.out" }, 0.7);
+
+      // scene 2
+      tl.from("#s2-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 20.1);
+      tl.from("#s2-h", { opacity: 0, y: 24, duration: 0.7, ease: "power3.out" }, 20.3);
+      tl.from("#s2-chips .chip", { opacity: 0, y: 12, duration: 0.4, stagger: 0.08, ease: "power2.out" }, 20.9);
+
+      // scene 3
+      tl.from("#s3-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 40.1);
+      tl.from("#s3-h", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, 40.3);
+      tl.from("#s3-cards .claim-card", { opacity: 0, y: 30, duration: 0.6, stagger: 0.2, ease: "power2.out" }, 40.7);
+
+      // scene 4
+      tl.from("#s4-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 70.1);
+      tl.from("#s4-h", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, 70.3);
+      tl.from("#s4-term", { opacity: 0, y: 20, duration: 0.6, ease: "power2.out" }, 70.7);
+      tl.from("#s4-stats .stat", { opacity: 0, y: 16, duration: 0.5, stagger: 0.12, ease: "power2.out" }, 71.3);
+
+      // scene 5
+      tl.from("#s5-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 110.1);
+      tl.from("#s5-h", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, 110.3);
+      tl.from("#s5-panel", { opacity: 0, y: 20, duration: 0.6, ease: "power2.out" }, 110.7);
+      tl.from("#s5-verify", { opacity: 0, y: 16, duration: 0.5, ease: "power2.out" }, 111.3);
+
+      // scene 6
+      tl.from("#s6-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 140.1);
+      tl.from("#s6-h", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, 140.3);
+      tl.from("#s6-reasons .reason", { opacity: 0, x: -16, duration: 0.4, stagger: 0.1, ease: "power2.out" }, 140.7);
+      tl.from("#s6-dash", { opacity: 0, x: 24, duration: 0.7, ease: "power3.out" }, 140.5);
+
+      // scene 7
+      tl.from("#s7-kicker", { opacity: 0, y: -16, duration: 0.5, ease: "power2.out" }, 165.1);
+      tl.from("#s7-h", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, 165.3);
+      tl.from("#s7-list li", { opacity: 0, x: -16, duration: 0.4, stagger: 0.15, ease: "power2.out" }, 165.7);
+      tl.from("#s7-mark", { opacity: 0, duration: 0.6, ease: "power2.out" }, 166.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
