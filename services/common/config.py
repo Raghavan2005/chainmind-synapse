@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     api_port: int = 8000
     # "*" = workstation demo. Comma-separated concrete origins for a public API.
     cors_origins: str = "*"
+    # App Runner / single-box host: run ingest in a daemon thread of the API process
+    # so we do not fork a second sklearn+web3 interpreter (OOM / CREATE_FAILED).
+    hosted_ingest: bool = False
 
 
 def load_settings() -> Settings:
