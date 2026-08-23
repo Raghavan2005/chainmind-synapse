@@ -109,9 +109,13 @@ def history(subject: str) -> dict[str, Any]:
         raise HTTPException(503, "identity contract not configured")
     w3 = connect_live(settings.sepolia_rpc_url, settings.sepolia_rpc_url_fallback)
     contract = w3.eth.contract(address=Web3.to_checksum_address(settings.identity_state_sepolia), abi=identity_abi())
-    count = contract.functions.historyCount(Web3.to_checksum_address(subject)).call()
-    ids = [contract.functions.historyAt(Web3.to_checksum_address(subject), i).call() for i in range(count)]
-    latest = contract.functions.latest(Web3.to_checksum_address(subject)).call()
+    checksum_subject = Web3.to_checksum_address(subject)
+    count = contract.functions.historyCount(checksum_subject).call()
+    with w3.batch_requests() as batch:
+        for i in range(count):
+            batch.add(contract.functions.historyAt(checksum_subject, i))
+        batch.add(contract.functions.latest(checksum_subject))
+        *ids, latest = batch.execute()
     return {
         "subject": subject,
         "count": count,
