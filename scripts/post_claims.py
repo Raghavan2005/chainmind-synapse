@@ -26,14 +26,15 @@ def _send(w3: Web3, key: str, address: str, subject: str, polarity: int, uri: st
         expires,
         uri,
     )
+    priority_fee = max(w3.to_wei(1, "gwei"), w3.eth.max_priority_fee)
     tx = fn.build_transaction(
         {
             "from": account.address,
             "nonce": w3.eth.get_transaction_count(account.address),
             "chainId": w3.eth.chain_id,
             "gas": 200_000,
-            "maxFeePerGas": w3.eth.gas_price * 2,
-            "maxPriorityFeePerGas": w3.to_wei(1, "gwei"),
+            "maxFeePerGas": w3.eth.gas_price * 2 + priority_fee,
+            "maxPriorityFeePerGas": priority_fee,
         }
     )
     signed = account.sign_transaction(tx)
