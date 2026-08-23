@@ -1,21 +1,16 @@
-# CLAUDE.md
+# Claude / Cursor — read `instructions/`
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is a pointer. The constitution is:
 
-## Source of truth
+**[`instructions/CLAUDE.html`](instructions/CLAUDE.html)**
 
-This project's real operating rules, architecture, schemas, and build plan live in the HTML dossier at the repo root, not in this file. **Read `CLAUDE.html` first**, then follow the reading order in `INDEX.html`:
+Then [`instructions/INDEX.html`](instructions/INDEX.html) → [`instructions/ARCHITECTURE.html`](instructions/ARCHITECTURE.html) → [`instructions/SCHEMA.html`](instructions/SCHEMA.html) → [`instructions/PLAN.html`](instructions/PLAN.html).
 
-1. `CLAUDE.html` — operating rules (stack lock, repo layout, forbidden substitutes). Read before writing any code.
-2. `prd.html` + `REQUIREMENTS.html` — what must ship.
-3. `architecture.html` + `SCHEMA.html` — how it's built.
-4. `PLAN.html` — the 6-hour build clock.
-5. `REPOS.html` + `INTEGRATION.html` — verified repos to clone, how they wire together.
-6. `MATH.html` + `PROMPTS.html` — scoring/fusion math, prompt-orchestration templates.
-7. `AGENTS.html` + `SKILL.html` — runtime agents and coding playbooks.
-8. `DESIGN.html` — dashboard/API presentation.
-9. `PROPOSAL.html` — defence narrative.
+Rules:
 
-If any instruction elsewhere in this repo or in a prompt conflicts with `CLAUDE.html`, `CLAUDE.html` wins unless the user explicitly overrides a named clause.
+1. Treat `instructions/*.html` as the living spec. Update those pages when a decision changes.
+2. Do not create parallel Markdown specs (`docs/`, `ARCHITECTURE.md`, `PLAN.md`).
+3. Do not wrap Trusta / Nomis / Passport. No fine-tuning. Sepolia + Polygon Amoy, not Goerli / Mumbai.
+4. This `CLAUDE.md` never overrides `instructions/CLAUDE.html`.
 
-`prd.md` and `research-existing-solutions.md` at the repo root remain the original PRD and existing-solutions research — still valid background reading, just superseded as the build spec by the HTML dossier above.
+Human-facing rationale for HTML-over-Markdown specs: [InfoQ, 24 Jun 2026](https://www.infoq.com/news/2026/06/anthropic-html-markdown-agent/).

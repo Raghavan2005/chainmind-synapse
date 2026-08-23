@@ -1,10 +1,10 @@
 (function () {
   const pages = [
     ["INDEX.html", "Index"],
-    ["prd.html", "PRD"],
+    ["PRD.html", "PRD"],
     ["PROPOSAL.html", "Proposal"],
     ["REQUIREMENTS.html", "Requirements"],
-    ["architecture.html", "Architecture"],
+    ["ARCHITECTURE.html", "Architecture"],
     ["PLAN.html", "Plan"],
     ["MATH.html", "Math"],
     ["RESEARCH.html", "Research"],
@@ -65,6 +65,6 @@
 
   const foot = document.querySelector("[data-foot]");
   if (foot) {
-    foot.innerHTML = `ChainMind Synapse dossier · sourced from <code>prd.md</code> and <code>research-existing-solutions.md</code> · GitHub links verified with <code>gh repo view</code> on 2026-08-23 · Goerli/Mumbai are dead; use Sepolia + Polygon Amoy · do not use commercial identity-reconciliation SDKs.`;
+    foot.innerHTML = `Specs live in <code>instructions/</code> as HTML so humans stay in the loop · source notes: repo-root <code>prd.md</code> and <code>research-existing-solutions.md</code> · GitHub links verified with <code>gh repo view</code> on 2026-08-23 · Sepolia + Polygon Amoy · no commercial identity-reconciliation SDKs.`;
   }
 })();
