@@ -8,7 +8,7 @@ ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 NAME="${APPRUNNER_SERVICE_NAME:-chainmind-synapse}"
 IMAGE="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPOSITORY:-chainmind-synapse}:latest"
 ACCESS_ROLE="arn:aws:iam::${ACCOUNT}:role/chainmind-synapse-apprunner"
-CORS="${CORS_ORIGINS:-https://chainmind-synapse.vercel.app}"
+CORS="${CORS_ORIGINS:-https://chainmind-synapse.vercel.app,https://chainmind-synapse-sable.vercel.app}"
 
 EXISTING="$(aws apprunner list-services --region "$REGION" --query "ServiceSummaryList[?ServiceName=='${NAME}'].ServiceArn" --output text)"
 if [[ -n "$EXISTING" && "$EXISTING" != "None" ]]; then

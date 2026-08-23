@@ -55,7 +55,26 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="ChainMind Synapse", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="ChainMind Synapse",
+    version="0.1.0",
+    summary="Cross-chain identity-claim reconciler",
+    description=(
+        "Ingests ClaimPosted / ClaimRevoked from Sepolia and Superchain L2s, "
+        "scores each claim with a frozen sklearn model, fuses conflicts with "
+        "Jøsang subjective logic, and serves the last hash-only IdentityState "
+        "commit. GET never calls an LLM. Overlay JSON is a cache; replay rebuilds from logs."
+    ),
+    contact={"name": "ChainMind Synapse", "url": "https://github.com/Raghavan2005/chainmind-synapse"},
+    license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+    openapi_tags=[
+        {"name": "health", "description": "Readiness, model metrics, chain heads, contracts."},
+        {"name": "identity", "description": "Fused state, on-chain history, and explanations."},
+        {"name": "llm", "description": "Public LiteLLM status. Never returns apiKey."},
+        {"name": "ops", "description": "Replay from public logs. Requires REPLAY_BEARER."},
+    ],
+    lifespan=lifespan,
+)
 _cors = settings.cors_origins.strip()
 _cors_origins = ["*"] if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]
 app.add_middleware(
@@ -101,7 +120,7 @@ def _watched_chain_ids() -> set[int]:
     return watched
 
 
-@app.get("/v1/health")
+@app.get("/v1/health", tags=["health"])
 def health() -> dict[str, Any]:
     heads, errors, emergency = _heads()
     watched = _watched_chain_ids()
@@ -133,12 +152,12 @@ def health() -> dict[str, Any]:
     }
 
 
-@app.get("/v1/llm")
+@app.get("/v1/llm", tags=["llm"])
 def llm_status() -> dict[str, Any]:
     return llm_public_status(settings)
 
 
-@app.post("/v1/llm/test")
+@app.post("/v1/llm/test", tags=["llm"])
 def llm_test(body: LLMByokIn | None = None) -> dict[str, Any]:
     payload = body or LLMByokIn()
     runtime = runtime_from(settings, payload.as_override())
@@ -150,7 +169,7 @@ def _overlay(subject: str) -> dict[str, Any] | None:
     return data.get("subjects", {}).get(subject.lower())
 
 
-@app.get("/v1/identity/{subject}")
+@app.get("/v1/identity/{subject}", tags=["identity"])
 def identity(subject: str, pending: bool = True) -> dict[str, Any]:
     if scorer is None:
         raise HTTPException(503, "model not loaded")
@@ -164,7 +183,7 @@ def identity(subject: str, pending: bool = True) -> dict[str, Any]:
     return row
 
 
-@app.get("/v1/identity/{subject}/history")
+@app.get("/v1/identity/{subject}/history", tags=["identity"])
 def history(subject: str) -> dict[str, Any]:
     if not settings.identity_state_sepolia:
         raise HTTPException(503, "identity contract not configured")
@@ -192,7 +211,7 @@ def history(subject: str) -> dict[str, Any]:
     }
 
 
-@app.get("/v1/identity/{subject}/explanation")
+@app.get("/v1/identity/{subject}/explanation", tags=["identity"])
 def explanation(subject: str) -> dict[str, Any]:
     row = _overlay(subject)
     if row is None or not row.get("commit"):
@@ -204,7 +223,7 @@ def explanation(subject: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-@app.post("/v1/identity/{subject}/explain")
+@app.post("/v1/identity/{subject}/explain", tags=["identity"])
 def regenerate_explanation(subject: str, body: LLMByokIn | None = None) -> dict[str, Any]:
     if scorer is None:
         raise HTTPException(503, "model not loaded")
@@ -219,7 +238,7 @@ def regenerate_explanation(subject: str, body: LLMByokIn | None = None) -> dict[
     return json.loads(explained.model_dump_json(by_alias=True))
 
 
-@app.post("/v1/replay/{subject}")
+@app.post("/v1/replay/{subject}", tags=["ops"])
 def replay(subject: str, authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if not settings.replay_bearer or authorization != f"Bearer {settings.replay_bearer}":
         raise HTTPException(401, "replay forbidden")

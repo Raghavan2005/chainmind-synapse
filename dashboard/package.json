@@ -2,6 +2,8 @@
   "name": "synapse-dashboard",
   "private": true,
   "version": "0.1.0",
+  "description": "Watch floor for ChainMind Synapse — conflicting identity claims across Sepolia and Superchain L2s.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
